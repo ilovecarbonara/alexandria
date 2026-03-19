@@ -23,7 +23,7 @@
 
 ## F3: Certificate Generation
 - Generated on demand (not stored)
-- Uses jsPDF + qrcode.js
+- Uses jsPDF + qrcode
 - Contains: author name, title, level, category, submission type, 
   sha256 hash, tx hash, timestamp, QR code linking to Sepolia Etherscan tx
 - Downloadable as PDF
