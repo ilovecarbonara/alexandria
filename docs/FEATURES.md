@@ -4,8 +4,7 @@
 - University email only (@uspf.edu.ph)
 - Registration creates account with is_approved: false
 - Admin must flip is_approved: true before user can log in
-- JWT session via Supabase Auth
-- Passwords hashed by Supabase (bcrypt internally)
+- Session management via Supabase Auth
 
 ## F2: Thesis Registration
 - User uploads PDF + fills metadata form
