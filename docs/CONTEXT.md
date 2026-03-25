@@ -11,7 +11,7 @@ to establish a tamper-proof, publicly verifiable proof of existence and registra
 - ethers.js for blockchain interaction
 - jsPDF + qrcode for certificate generation
 - Chart.js for admin analytics
-- Fuse.js (or equivalent) for title similarity matching
+- pg_trgm (Postgres trigram extension) for title similarity matching
 - Supabase SMTP for alert email dispatch
 - Deployed on Vercel
 
@@ -27,6 +27,8 @@ to establish a tamper-proof, publicly verifiable proof of existence and registra
   email is sent to the author of the matching prior registration.
 - The system records REGISTRATION, not authorship. It does not verify
   that the registrant wrote the thesis.
+  - The system trusts the client-submitted hash. No server-side 
+  verification of hash-to-PDF correspondence is performed.
 
 ## Roles
 - Public: search + verify only

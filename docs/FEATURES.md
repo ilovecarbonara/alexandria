@@ -10,7 +10,7 @@
 - User uploads PDF + fills metadata form
 - Fields: author name, title, level (dropdown), category (dropdown), submission type (radio)
 - On submit:
-  1. SHA-256 hash generated client-side or server-side (Node crypto module)
+  1. SHA-256 hash generated client-side via Web Crypto API — PDF never leaves the browser. Node crypto module is NOT used for registration.
   2. PDF deleted immediately after hashing — never persisted
   3. Duplicate check: query blockchain via isRegistered(hash)
   4. If duplicate → show error, stop
@@ -70,7 +70,8 @@
   1. Normalize the incoming title (lowercase, strip punctuation,
      collapse whitespace) — store as title_normalized
   2. Fetch all existing title_normalized values from the theses table
-  3. Run Fuse.js similarity comparison between incoming title and all existing titles
+  3. Query Supabase using pg_trgm similarity() function against 
+   title_normalized column — threshold set via TITLE_ALERT_THRESHOLD env variable
   4. Collect all matches above the configured threshold (suggested default: 0.75)
   5. For each match, retrieve the author (user_id) of the matched thesis
   6. Send alert email via Resend to the matched author's registered email
