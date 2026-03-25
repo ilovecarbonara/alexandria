@@ -2,5 +2,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export type { Lock } from "./Lock";
+export type { ThesisRegistry } from "./ThesisRegistry";
 export * as factories from "./factories";
 export { Lock__factory } from "./factories/Lock__factory";
+export { ThesisRegistry__factory } from "./factories/ThesisRegistry__factory";
