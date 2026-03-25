@@ -1,6 +1,7 @@
 export type ThesisLevel = "undergraduate" | "masteral" | "doctoral";
 export type SubmissionType = "draft" | "final";
 export type DisputeStatus = "open" | "resolved";
+export type AlertStatus = "sent" | "failed"; 
 
 export interface Database {
   public: {
@@ -36,6 +37,7 @@ export interface Database {
           id: string;
           user_id: string;
           title: string;
+          title_normalized: string; 
           author_name: string;
           thesis_level: ThesisLevel;
           thesis_category: string;
@@ -49,6 +51,7 @@ export interface Database {
           id?: string;
           user_id: string;
           title: string;
+          title_normalized: string; 
           author_name: string;
           thesis_level: ThesisLevel;
           thesis_category: string;
@@ -62,6 +65,7 @@ export interface Database {
           id?: string;
           user_id?: string;
           title?: string;
+          title_normalized?: string; 
           author_name?: string;
           thesis_level?: ThesisLevel;
           thesis_category?: string;
@@ -98,6 +102,35 @@ export interface Database {
           created_at?: string;
         };
       };
+      title_alerts: { // NEW TABLE
+        Row: {
+          id: string;
+          new_thesis_id: string;
+          matched_thesis_id: string;
+          notified_user_id: string;
+          similarity_score: number;
+          status: AlertStatus;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          new_thesis_id: string;
+          matched_thesis_id: string;
+          notified_user_id: string;
+          similarity_score: number;
+          status?: AlertStatus;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          new_thesis_id?: string;
+          matched_thesis_id?: string;
+          notified_user_id?: string;
+          similarity_score?: number;
+          status?: AlertStatus;
+          created_at?: string;
+        };
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -105,6 +138,7 @@ export interface Database {
       thesis_level: ThesisLevel;
       submission_type: SubmissionType;
       dispute_status: DisputeStatus;
+      alert_status: AlertStatus; // NEW
     };
   };
 }

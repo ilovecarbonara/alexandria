@@ -13,19 +13,20 @@
 | created_at      | timestamp |                                |
 
 ### theses
-| column          | type      | notes                                      |
-|-----------------|-----------|--------------------------------------------|
-| id              | uuid (PK) |                                            |
-| user_id         | uuid (FK) | references users.id                        |
-| title           | text      |                                            |
-| author_name     | text      |                                            |
-| thesis_level    | enum      | undergraduate, masteral, doctoral          |
-| thesis_category | text      | user-selected from predefined list         |
-| submission_type | enum      | draft, final                               |
-| sha256_hash     | text      | unique per entry                           |
-| tx_hash         | text      | blockchain transaction hash                |
-| block_timestamp | timestamp | timestamp from blockchain                  |
-| registered_at   | timestamp | system registration time                   |
+| column           | type      | notes                                      |
+|------------------|-----------|--------------------------------------------|
+| id               | uuid (PK) |                                            |
+| user_id          | uuid (FK) | references users.id                        |
+| title            | text      |                                            |
+| title_normalized | text      | lowercased, stripped — used for similarity matching |
+| author_name      | text      |                                            |
+| thesis_level     | enum      | undergraduate, masteral, doctoral          |
+| thesis_category  | text      | user-selected from predefined list         |
+| submission_type  | enum      | draft, final                               |
+| sha256_hash      | text      | unique per entry                           |
+| tx_hash          | text      | blockchain transaction hash                |
+| block_timestamp  | timestamp | timestamp from blockchain                  |
+| registered_at    | timestamp | system registration time                   |
 
 ### disputes
 | column          | type      | notes                                      |
@@ -37,11 +38,22 @@
 | status          | enum      | open, resolved                             |
 | created_at      | timestamp |                                            |
 
+### title_alerts
+| column             | type      | notes                                                  |
+|--------------------|-----------|--------------------------------------------------------|
+| id                 | uuid (PK) |                                                        |
+| new_thesis_id      | uuid (FK) | references theses.id — the incoming registration       |
+| matched_thesis_id  | uuid (FK) | references theses.id — the existing entry that matched |
+| notified_user_id   | uuid (FK) | references users.id — who received the alert email     |
+| similarity_score   | float     | 0.0–1.0 score from Fuse.js at time of match            |
+| status             | enum      | sent, failed                                           |
+| created_at         | timestamp |                                                        |
+
 ## Smart Contract (Solidity)
 
 ### Struct: ThesisRecord
 - sha256Hash: string
-- submissionType: string  
+- submissionType: string
 - thesisLevel: string
 - thesisCategory: string
 - timestamp: uint256
