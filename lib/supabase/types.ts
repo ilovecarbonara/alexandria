@@ -38,6 +38,7 @@ export interface Database {
           last_active_at?: string | null;
           created_at?: string;
         };
+        Relationships: [];
       };
       theses: {
         Row: {
@@ -85,6 +86,7 @@ export interface Database {
           status?: ThesisStatus;
           registered_at?: string;
         };
+        Relationships: [];
       };
       disputes: {
         Row: {
@@ -111,6 +113,7 @@ export interface Database {
           status?: DisputeStatus;
           created_at?: string;
         };
+        Relationships: [];
       };
       activity_logs: {
         Row: {
@@ -131,6 +134,7 @@ export interface Database {
           action?: string;
           created_at?: string;
         };
+        Relationships: [];
       };
       title_alerts: {
         Row: {
@@ -160,6 +164,7 @@ export interface Database {
           status?: AlertStatus;
           created_at?: string;
         };
+        Relationships: [];
       };
     };
     Views: Record<string, never>;
