@@ -1,7 +1,7 @@
-import { ethers } from "hardhat";
+import hre from "hardhat";
 
 async function main() {
-  const ThesisRegistry = await ethers.getContractFactory("ThesisRegistry");
+  const ThesisRegistry = await hre.ethers.getContractFactory("ThesisRegistry");
   const registry = await ThesisRegistry.deploy();
   await registry.waitForDeployment();
 
