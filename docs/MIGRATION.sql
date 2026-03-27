@@ -165,3 +165,33 @@ CREATE POLICY "Admin can read all alerts"
 -- title_alerts: service role inserts (via API route with service key)
 -- No INSERT policy needed for anon/authenticated — inserts happen server-side
 -- via the service_role key which bypasses RLS.
+
+-- ============================================================
+-- Functions
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION public.find_similar_titles(
+  target_title text,
+  similarity_threshold real DEFAULT 0.75,
+  exclude_thesis_id uuid DEFAULT NULL
+)
+RETURNS TABLE (
+  thesis_id uuid,
+  title text,
+  title_normalized text,
+  user_id uuid,
+  similarity_score real
+)
+LANGUAGE sql STABLE
+AS $$
+  SELECT
+    t.id AS thesis_id,
+    t.title,
+    t.title_normalized,
+    t.user_id,
+    similarity(t.title_normalized, target_title)::real AS similarity_score
+  FROM public.theses t
+  WHERE t.id IS DISTINCT FROM exclude_thesis_id
+    AND similarity(t.title_normalized, target_title) >= similarity_threshold
+  ORDER BY similarity_score DESC;
+$$;
