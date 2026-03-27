@@ -23,3 +23,12 @@ export const SUBMISSION_TYPES = [
   { value: "draft", label: "Draft" },
   { value: "final", label: "Final" },
 ] as const;
+
+export const THESIS_STATUSES = [
+  { value: "pending", label: "Pending" },
+  { value: "accepted", label: "Accepted" },
+  { value: "flagged", label: "Flagged" },
+  { value: "rejected", label: "Rejected" },
+] as const;
+
+export const DEFAULT_TITLE_ALERT_THRESHOLD = 0.75;

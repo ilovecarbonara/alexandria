@@ -1,4 +1,6 @@
-type Status = "verified" | "pending" | "disputed" | "open" | "resolved" | "sent" | "failed";
+type Status =
+  | "verified" | "pending" | "disputed" | "open" | "resolved" | "sent" | "failed"
+  | "accepted" | "flagged" | "rejected" | "active" | "deactivated";
 
 const statusStyles: Record<Status, string> = {
   verified: "bg-success/20 text-success",
@@ -8,6 +10,11 @@ const statusStyles: Record<Status, string> = {
   resolved: "bg-success/20 text-success",
   sent: "bg-success/20 text-success",
   failed: "bg-dispute/20 text-dispute",
+  accepted: "bg-success/20 text-success",
+  flagged: "bg-pending/20 text-pending",
+  rejected: "bg-dispute/20 text-dispute",
+  active: "bg-success/20 text-success",
+  deactivated: "bg-white/10 text-white/40",
 };
 
 interface StatusChipProps {

@@ -13,6 +13,7 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 CREATE TYPE thesis_level AS ENUM ('undergraduate', 'masteral', 'doctoral');
 CREATE TYPE submission_type AS ENUM ('draft', 'final');
+CREATE TYPE thesis_status AS ENUM ('pending', 'accepted', 'flagged', 'rejected');
 CREATE TYPE dispute_status AS ENUM ('open', 'resolved');
 CREATE TYPE alert_status AS ENUM ('sent', 'failed');
 
@@ -22,12 +23,14 @@ CREATE TYPE alert_status AS ENUM ('sent', 'failed');
 
 -- users
 CREATE TABLE public.users (
-  id         uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  email      text NOT NULL,
-  full_name  text NOT NULL,
-  is_approved boolean NOT NULL DEFAULT false,
-  is_admin   boolean NOT NULL DEFAULT false,
-  created_at timestamptz NOT NULL DEFAULT now()
+  id             uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email          text NOT NULL,
+  full_name      text NOT NULL,
+  is_approved    boolean NOT NULL DEFAULT false,
+  is_admin       boolean NOT NULL DEFAULT false,
+  is_active      boolean NOT NULL DEFAULT true,
+  last_active_at timestamptz,
+  created_at     timestamptz NOT NULL DEFAULT now()
 );
 
 -- theses
@@ -43,6 +46,7 @@ CREATE TABLE public.theses (
   sha256_hash      text NOT NULL UNIQUE,
   tx_hash          text NOT NULL,
   block_timestamp  timestamptz NOT NULL,
+  status           thesis_status NOT NULL DEFAULT 'pending',
   registered_at    timestamptz NOT NULL DEFAULT now()
 );
 
@@ -53,6 +57,14 @@ CREATE TABLE public.disputes (
   flagged_by uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
   reason     text NOT NULL,
   status     dispute_status NOT NULL DEFAULT 'open',
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- activity_logs
+CREATE TABLE public.activity_logs (
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  action     text NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
@@ -75,7 +87,9 @@ CREATE INDEX idx_theses_user_id ON public.theses(user_id);
 CREATE INDEX idx_theses_sha256_hash ON public.theses(sha256_hash);
 CREATE INDEX idx_theses_title_trgm ON public.theses USING gin (title_normalized gin_trgm_ops);
 CREATE INDEX idx_disputes_thesis_id ON public.disputes(thesis_id);
+CREATE INDEX idx_theses_status ON public.theses(status);
 CREATE INDEX idx_disputes_status ON public.disputes(status);
+CREATE INDEX idx_activity_logs_user_id ON public.activity_logs(user_id);
 CREATE INDEX idx_title_alerts_notified_user ON public.title_alerts(notified_user_id);
 
 -- ============================================================
@@ -85,6 +99,7 @@ CREATE INDEX idx_title_alerts_notified_user ON public.title_alerts(notified_user
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.theses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.disputes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.activity_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.title_alerts ENABLE ROW LEVEL SECURITY;
 
 -- users: read own row
@@ -127,6 +142,16 @@ CREATE POLICY "Authenticated users can insert own theses"
   ON public.theses FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
+-- theses: admin can update status
+CREATE POLICY "Admin can update theses"
+  ON public.theses FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.users u
+      WHERE u.id = auth.uid() AND u.is_admin = true
+    )
+  );
+
 -- disputes: authenticated users can create
 CREATE POLICY "Authenticated users can create disputes"
   ON public.disputes FOR INSERT
@@ -146,6 +171,16 @@ CREATE POLICY "Admin can update disputes"
       WHERE u.id = auth.uid() AND u.is_admin = true
     )
   );
+
+-- activity_logs: user can read own logs
+CREATE POLICY "Users can read own activity logs"
+  ON public.activity_logs FOR SELECT
+  USING (auth.uid() = user_id);
+
+-- activity_logs: authenticated users can insert own logs
+CREATE POLICY "Authenticated users can insert own activity logs"
+  ON public.activity_logs FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
 
 -- title_alerts: user can read own alerts
 CREATE POLICY "Users can read own alerts"

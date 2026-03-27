@@ -12,7 +12,7 @@ to establish a tamper-proof, publicly verifiable proof of existence and registra
 - jsPDF + qrcode for certificate generation
 - Chart.js for admin analytics
 - pg_trgm (Postgres trigram extension) for title similarity matching
-- Supabase SMTP for alert email dispatch
+- Resend for alert and notification email dispatch
 - Deployed on Vercel
 
 ## Key Rules
@@ -34,7 +34,9 @@ to establish a tamper-proof, publicly verifiable proof of existence and registra
 - Public: search + verify only
 - Authenticated User: register theses, view dashboard, flag disputes,
   receive title-alert notifications
-- Admin: manage disputes, monitor title alerts, view analytics dashboard
+- Admin: manage disputes, manage thesis statuses (accept/flag/reject),
+  manage users (approve/deactivate/reactivate), monitor title alerts,
+  view analytics dashboard, view activity logs
 
 ## Docs
 See /docs for full specs on data model, features, API routes, and design system.

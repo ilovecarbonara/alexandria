@@ -91,3 +91,26 @@
 - A single incoming registration may trigger multiple alerts if it
   matches multiple existing entries
 - Draft registrations also trigger the similarity check
+
+## F9: Thesis Status Workflow
+- New registrations default to status: pending
+- Admin can change status to: accepted, flagged, rejected
+- Status changes are logged in activity_logs
+- Status change to accepted/rejected triggers email notification to the thesis author via Resend
+- Email contains: author name, thesis title, new status, and a link to the thesis
+- Public verification page displays thesis status alongside metadata
+
+## F10: User Management
+- Admin can view all registered users
+- Admin can deactivate a user (sets is_active: false)
+- Admin can reactivate a user (sets is_active: true)
+- Deactivated users are signed out on next request and cannot log in
+- Admin can reject a user (sets is_approved: false — soft, reversible)
+- Admin can re-approve a rejected user
+- last_active_at is tracked for user activity monitoring
+
+## F11: Activity Logging
+- Key user actions are logged to the activity_logs table
+- Actions include: thesis registration, dispute creation, status changes
+- Admin can view recent activity in the admin dashboard
+- Logs are append-only and never modified

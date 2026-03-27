@@ -1,5 +1,6 @@
 export type ThesisLevel = "undergraduate" | "masteral" | "doctoral";
 export type SubmissionType = "draft" | "final";
+export type ThesisStatus = "pending" | "accepted" | "flagged" | "rejected";
 export type DisputeStatus = "open" | "resolved";
 export type AlertStatus = "sent" | "failed"; 
 
@@ -13,6 +14,8 @@ export interface Database {
           full_name: string;
           is_approved: boolean;
           is_admin: boolean;
+          is_active: boolean;
+          last_active_at: string | null;
           created_at: string;
         };
         Insert: {
@@ -21,6 +24,8 @@ export interface Database {
           full_name: string;
           is_approved?: boolean;
           is_admin?: boolean;
+          is_active?: boolean;
+          last_active_at?: string | null;
           created_at?: string;
         };
         Update: {
@@ -29,6 +34,8 @@ export interface Database {
           full_name?: string;
           is_approved?: boolean;
           is_admin?: boolean;
+          is_active?: boolean;
+          last_active_at?: string | null;
           created_at?: string;
         };
       };
@@ -45,6 +52,7 @@ export interface Database {
           sha256_hash: string;
           tx_hash: string;
           block_timestamp: string;
+          status: ThesisStatus;
           registered_at: string;
         };
         Insert: {
@@ -59,6 +67,7 @@ export interface Database {
           sha256_hash: string;
           tx_hash: string;
           block_timestamp: string;
+          status?: ThesisStatus;
           registered_at?: string;
         };
         Update: {
@@ -73,6 +82,7 @@ export interface Database {
           sha256_hash?: string;
           tx_hash?: string;
           block_timestamp?: string;
+          status?: ThesisStatus;
           registered_at?: string;
         };
       };
@@ -102,7 +112,27 @@ export interface Database {
           created_at?: string;
         };
       };
-      title_alerts: { // NEW TABLE
+      activity_logs: {
+        Row: {
+          id: string;
+          user_id: string;
+          action: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          action: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          action?: string;
+          created_at?: string;
+        };
+      };
+      title_alerts: {
         Row: {
           id: string;
           new_thesis_id: string;
@@ -133,12 +163,28 @@ export interface Database {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      find_similar_titles: {
+        Args: {
+          target_title: string;
+          similarity_threshold?: number;
+          exclude_thesis_id?: string;
+        };
+        Returns: {
+          thesis_id: string;
+          title: string;
+          title_normalized: string;
+          user_id: string;
+          similarity_score: number;
+        }[];
+      };
+    };
     Enums: {
       thesis_level: ThesisLevel;
       submission_type: SubmissionType;
+      thesis_status: ThesisStatus;
       dispute_status: DisputeStatus;
-      alert_status: AlertStatus; // NEW
+      alert_status: AlertStatus;
     };
   };
 }

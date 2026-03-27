@@ -41,9 +41,15 @@ export async function proxy(request: NextRequest) {
   if (user) {
     const { data: profile } = await supabase
       .from("users")
-      .select("is_approved, is_admin")
+      .select("is_approved, is_admin, is_active")
       .eq("id", user.id)
       .single();
+
+    // Deactivated users are signed out and redirected to login
+    if (profile && !profile.is_active) {
+      await supabase.auth.signOut();
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
 
     // Unapproved users get redirected to /pending (unless already there or logging out)
     if (

@@ -10,6 +10,8 @@
 | full_name       | text      |                                |
 | is_approved     | boolean   | Admin approves before access   |
 | is_admin        | boolean   | Only one seeded admin          |
+| is_active       | boolean   | Admin can deactivate users     |
+| last_active_at  | timestamptz | Updated on authenticated requests |
 | created_at      | timestamp |                                |
 
 ### theses
@@ -27,6 +29,7 @@
 | tx_hash          | text      | blockchain transaction hash                |
 | block_timestamp  | timestamp | timestamp from blockchain                  |
 | registered_at    | timestamp | system registration time                   |
+| status           | enum      | pending, accepted, flagged, rejected       |
 
 ### disputes
 | column          | type      | notes                                      |
@@ -45,9 +48,17 @@
 | new_thesis_id      | uuid (FK) | references theses.id — the incoming registration       |
 | matched_thesis_id  | uuid (FK) | references theses.id — the existing entry that matched |
 | notified_user_id   | uuid (FK) | references users.id — who received the alert email     |
-| similarity_score   | float     | 0.0–1.0 score from Fuse.js at time of match            |
+| similarity_score   | float     | 0.0–1.0 score from pg_trgm at time of match            |
 | status             | enum      | sent, failed                                           |
 | created_at         | timestamp |                                                        |
+
+### activity_logs
+| column          | type      | notes                                      |
+|-----------------|-----------|--------------------------------------------||
+| id              | uuid (PK) |                                            |
+| user_id         | uuid (FK) | references users.id                        |
+| action          | text      | description of the action                  |
+| created_at      | timestamp |                                            |
 
 ## Smart Contract (Solidity)
 
