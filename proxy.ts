@@ -48,7 +48,14 @@ export async function proxy(request: NextRequest) {
     // Deactivated users are signed out and redirected to login
     if (profile && !profile.is_active) {
       await supabase.auth.signOut();
-      return NextResponse.redirect(new URL("/login", request.url));
+      const redirectRes = NextResponse.redirect(
+        new URL("/login?error=deactivated", request.url),
+      );
+      // Copy sign-out cookies to the redirect response
+      response.cookies.getAll().forEach((cookie) => {
+        redirectRes.cookies.set(cookie.name, cookie.value, { ...cookie });
+      });
+      return redirectRes;
     }
 
     // Unapproved users get redirected to /pending (unless already there or logging out)

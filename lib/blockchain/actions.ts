@@ -1,5 +1,3 @@
-"use server";
-
 import { getContract, getWallet } from "./config";
 
 export async function registerOnChain(
