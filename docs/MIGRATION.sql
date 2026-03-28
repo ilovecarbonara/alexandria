@@ -93,6 +93,29 @@ CREATE INDEX idx_activity_logs_user_id ON public.activity_logs(user_id);
 CREATE INDEX idx_title_alerts_notified_user ON public.title_alerts(notified_user_id);
 
 -- ============================================================
+-- Private Schema + Admin Helper
+-- ============================================================
+-- The private schema is NOT exposed via PostgREST, so these
+-- functions are inaccessible from the client API.
+
+CREATE SCHEMA IF NOT EXISTS private;
+
+-- SECURITY DEFINER runs as the creating role (postgres), bypassing
+-- RLS. This avoids infinite recursion when admin-check policies
+-- need to read the users table.
+CREATE OR REPLACE FUNCTION private.is_admin()
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = ''
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.users
+    WHERE id = (SELECT auth.uid())
+      AND is_admin = true
+  );
+$$;
+
+-- ============================================================
 -- Row Level Security
 -- ============================================================
 
@@ -105,97 +128,86 @@ ALTER TABLE public.title_alerts ENABLE ROW LEVEL SECURITY;
 -- users: read own row
 CREATE POLICY "Users can read own row"
   ON public.users FOR SELECT
-  USING (auth.uid() = id);
+  TO authenticated
+  USING ((SELECT auth.uid()) = id);
 
 -- users: admin reads all
 CREATE POLICY "Admin can read all users"
   ON public.users FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.users u
-      WHERE u.id = auth.uid() AND u.is_admin = true
-    )
-  );
+  TO authenticated
+  USING ((SELECT private.is_admin()));
 
 -- users: admin can update any user (approve, etc.)
 CREATE POLICY "Admin can update users"
   ON public.users FOR UPDATE
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.users u
-      WHERE u.id = auth.uid() AND u.is_admin = true
-    )
-  );
+  TO authenticated
+  USING ((SELECT private.is_admin()));
 
 -- users: insert own row on registration
 CREATE POLICY "Users can insert own row"
   ON public.users FOR INSERT
-  WITH CHECK (auth.uid() = id);
+  TO authenticated
+  WITH CHECK ((SELECT auth.uid()) = id);
 
 -- theses: anyone can read (public verification)
 CREATE POLICY "Theses are publicly readable"
   ON public.theses FOR SELECT
+  TO authenticated, anon
   USING (true);
 
 -- theses: authenticated users insert own
 CREATE POLICY "Authenticated users can insert own theses"
   ON public.theses FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  TO authenticated
+  WITH CHECK ((SELECT auth.uid()) = user_id);
 
 -- theses: admin can update status
 CREATE POLICY "Admin can update theses"
   ON public.theses FOR UPDATE
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.users u
-      WHERE u.id = auth.uid() AND u.is_admin = true
-    )
-  );
+  TO authenticated
+  USING ((SELECT private.is_admin()));
 
 -- disputes: authenticated users can create
 CREATE POLICY "Authenticated users can create disputes"
   ON public.disputes FOR INSERT
-  WITH CHECK (auth.uid() = flagged_by);
+  TO authenticated
+  WITH CHECK ((SELECT auth.uid()) = flagged_by);
 
 -- disputes: authenticated users can read all disputes
 CREATE POLICY "Authenticated users can read disputes"
   ON public.disputes FOR SELECT
-  USING (auth.uid() IS NOT NULL);
+  TO authenticated
+  USING (true);
 
 -- disputes: admin can update status
 CREATE POLICY "Admin can update disputes"
   ON public.disputes FOR UPDATE
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.users u
-      WHERE u.id = auth.uid() AND u.is_admin = true
-    )
-  );
+  TO authenticated
+  USING ((SELECT private.is_admin()));
 
 -- activity_logs: user can read own logs
 CREATE POLICY "Users can read own activity logs"
   ON public.activity_logs FOR SELECT
-  USING (auth.uid() = user_id);
+  TO authenticated
+  USING ((SELECT auth.uid()) = user_id);
 
 -- activity_logs: authenticated users can insert own logs
 CREATE POLICY "Authenticated users can insert own activity logs"
   ON public.activity_logs FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  TO authenticated
+  WITH CHECK ((SELECT auth.uid()) = user_id);
 
 -- title_alerts: user can read own alerts
 CREATE POLICY "Users can read own alerts"
   ON public.title_alerts FOR SELECT
-  USING (auth.uid() = notified_user_id);
+  TO authenticated
+  USING ((SELECT auth.uid()) = notified_user_id);
 
 -- title_alerts: admin can read all alerts
 CREATE POLICY "Admin can read all alerts"
   ON public.title_alerts FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.users u
-      WHERE u.id = auth.uid() AND u.is_admin = true
-    )
-  );
+  TO authenticated
+  USING ((SELECT private.is_admin()));
 
 -- title_alerts: service role inserts (via API route with service key)
 -- No INSERT policy needed for anon/authenticated — inserts happen server-side
