@@ -5,7 +5,7 @@ import { Sidebar } from "@/components/ui";
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/dashboard/register", label: "Register Thesis" },
-  { href: "/verify", label: "Browse Registry" },
+  { href: "/dashboard/browse", label: "Browse Registry" },
   { href: "/dashboard/settings", label: "Settings" },
 ];
 
