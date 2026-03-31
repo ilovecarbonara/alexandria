@@ -30,7 +30,7 @@ export function Sidebar({ title, items, children }: SidebarProps) {
             <Link
               key={item.href}
               href={item.href}
-              className={`rounded-[2px] px-3 py-2 font-mono text-sm transition-colors ${
+              className={`rounded-xs px-3 py-2 font-mono text-sm transition-colors ${
                 active
                   ? "bg-accent/15 text-accent"
                   : "text-white/60 hover:text-white/90 hover:bg-white/5"

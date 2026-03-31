@@ -20,7 +20,7 @@ export function Button({
 }: ButtonProps) {
   return (
     <button
-      className={`rounded-[2px] px-4 py-2 font-mono text-sm transition-opacity disabled:opacity-50 disabled:cursor-not-allowed ${variantClasses[variant]} ${className}`}
+      className={`rounded-xs px-4 py-2 font-mono text-sm transition-opacity disabled:opacity-50 disabled:cursor-not-allowed ${variantClasses[variant]} ${className}`}
       {...props}
     >
       {children}

@@ -23,7 +23,7 @@ export function Select({
       )}
       <select
         id={id}
-        className={`rounded-[2px] border border-border bg-surface px-3 py-2 font-mono text-sm text-white/90 focus:border-accent focus:outline-none ${error ? "border-dispute" : ""} ${className}`}
+        className={`rounded-xs border border-border bg-surface px-3 py-2 font-mono text-sm text-white/90 focus:border-accent focus:outline-none ${error ? "border-dispute" : ""} ${className}`}
         {...props}
       >
         <option value="">Select…</option>

@@ -25,7 +25,7 @@ interface StatusChipProps {
 export function StatusChip({ status, className = "" }: StatusChipProps) {
   return (
     <span
-      className={`inline-block rounded-[2px] px-2 py-0.5 font-mono text-xs uppercase ${statusStyles[status]} ${className}`}
+      className={`inline-block rounded-xs px-2 py-0.5 font-mono text-xs uppercase ${statusStyles[status]} ${className}`}
     >
       {status}
     </span>

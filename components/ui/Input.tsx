@@ -15,7 +15,7 @@ export function Input({ label, error, className = "", id, ...props }: InputProps
       )}
       <input
         id={id}
-        className={`rounded-[2px] border border-border bg-surface px-3 py-2 font-mono text-sm text-white/90 placeholder:text-white/30 focus:border-accent focus:outline-none ${error ? "border-dispute" : ""} ${className}`}
+        className={`rounded-xs border border-border bg-surface px-3 py-2 font-mono text-sm text-white/90 placeholder:text-white/30 focus:border-accent focus:outline-none ${error ? "border-dispute" : ""} ${className}`}
         {...props}
       />
       {error && <span className="text-xs text-dispute font-mono">{error}</span>}
