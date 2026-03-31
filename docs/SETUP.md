@@ -2,6 +2,7 @@
 
 ## Prerequisites
 - Node.js 18+
+- Resend
 - A Supabase project (free tier works)
 - An Alchemy account (free tier works)
 - A Sepolia testnet wallet with test ETH
@@ -93,11 +94,13 @@ VALUES (
 
 Replace `<supabase-auth-user-uuid>` with the UUID from Supabase Auth → Users.
 
-## 7. Configure Supabase SMTP (for title alert emails)
+## 7. Configure Resend (for email notifications)
 
-1. Supabase Dashboard → Project Settings → Auth → SMTP Settings
-2. Enable custom SMTP and fill in your provider details
-3. This is used for title-similarity alert emails dispatched from API routes
+1. Go to https://resend.com and sign up
+2. Create an API key: Resend Dashboard → API Keys → Create API Key
+3. Paste it into `RESEND_API_KEY` in `.env.local`
+4. Resend is used for title-similarity alert emails and thesis status-change notifications
+5. In production, set `NEXT_PUBLIC_APP_URL` to your deployed URL so email links point to the correct domain
 
 ## 8. Run the Dev Server
 
