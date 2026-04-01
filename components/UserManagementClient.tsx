@@ -29,6 +29,7 @@ export function UserManagementClient({
   const [users, setUsers] = useState(initialUsers);
   const [acting, setActing] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "pending" | "active" | "deactivated">("all");
+  const [error, setError] = useState<string | null>(null);
 
   const filtered = users.filter((u) => {
     if (filter === "pending") return !u.is_approved;
@@ -48,6 +49,7 @@ export function UserManagementClient({
     action: "approve" | "reject" | "deactivate" | "activate",
   ) {
     setActing(userId);
+    setError(null);
     const actions = { approve: approveUser, reject: rejectUser, deactivate: deactivateUser, activate: activateUser };
     const result = await actions[action](userId);
     if (!result.error) {
@@ -68,6 +70,8 @@ export function UserManagementClient({
           }
         }),
       );
+    } else {
+      setError(result.error);
     }
     setActing(null);
   }
@@ -95,6 +99,12 @@ export function UserManagementClient({
           </select>
         </div>
       </div>
+
+      {error && (
+        <div className="rounded-xs border border-dispute/30 bg-dispute/20 px-4 py-3 font-mono text-sm text-dispute">
+          {error}
+        </div>
+      )}
 
       <Card className="p-0">
         {filtered.length === 0 ? (

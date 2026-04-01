@@ -22,11 +22,13 @@ export function DisputeManagementClient({
   const [disputes, setDisputes] = useState(initialDisputes);
   const [resolving, setResolving] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "open" | "resolved">("all");
+  const [error, setError] = useState<string | null>(null);
 
   const filtered = filter === "all" ? disputes : disputes.filter((d) => d.status === filter);
 
   async function handleResolve(disputeId: string) {
     setResolving(disputeId);
+    setError(null);
     const res = await fetch(`/api/disputes/${disputeId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -39,6 +41,8 @@ export function DisputeManagementClient({
           d.id === disputeId ? { ...d, status: "resolved" as const } : d,
         ),
       );
+    } else {
+      setError("Failed to resolve dispute. Please try again.");
     }
     setResolving(null);
   }
@@ -67,6 +71,12 @@ export function DisputeManagementClient({
           </select>
         </div>
       </div>
+
+      {error && (
+        <div className="rounded-xs border border-dispute/30 bg-dispute/20 px-4 py-3 font-mono text-sm text-dispute">
+          {error}
+        </div>
+      )}
 
       <Card className="p-0">
         {filtered.length === 0 ? (

@@ -30,6 +30,7 @@ export function ThesisRegistryClient({
   const [theses, setTheses] = useState(initialTheses);
   const [updating, setUpdating] = useState<string | null>(null);
   const [filter, setFilter] = useState<ThesisStatus | "">("");
+  const [error, setError] = useState<string | null>(null);
 
   const filtered = filter
     ? theses.filter((t) => t.status === filter)
@@ -37,11 +38,14 @@ export function ThesisRegistryClient({
 
   async function handleStatusChange(thesisId: string, newStatus: ThesisStatus) {
     setUpdating(thesisId);
+    setError(null);
     const result = await updateThesisStatus(thesisId, newStatus);
     if (!result.error) {
       setTheses((prev) =>
         prev.map((t) => (t.id === thesisId ? { ...t, status: newStatus } : t)),
       );
+    } else {
+      setError(result.error);
     }
     setUpdating(null);
   }
@@ -71,6 +75,12 @@ export function ThesisRegistryClient({
           </select>
         </div>
       </div>
+
+      {error && (
+        <div className="rounded-xs border border-dispute/30 bg-dispute/20 px-4 py-3 font-mono text-sm text-dispute">
+          {error}
+        </div>
+      )}
 
       <Card className="p-0">
         {filtered.length === 0 ? (

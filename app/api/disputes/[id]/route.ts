@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { logActivity } from "@/lib/actions/activity";
 
 export async function PATCH(
   request: NextRequest,
@@ -43,6 +44,8 @@ export async function PATCH(
   if (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
+
+  await logActivity(`Resolved dispute ${id}`);
 
   return Response.json({ success: true });
 }
