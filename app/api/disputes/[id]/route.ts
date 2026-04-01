@@ -20,15 +20,21 @@ export async function PATCH(
 
   const { data: profile } = await supabase
     .from("users")
-    .select("is_admin")
+    .select("is_admin, is_active")
     .eq("id", user.id)
     .single();
 
-  if (!profile?.is_admin) {
+  if (!profile?.is_admin || !profile.is_active) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const body = await request.json();
+  let body: { status?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return Response.json({ error: "Invalid request body" }, { status: 400 });
+  }
+
   const { status } = body;
 
   if (status !== "resolved") {

@@ -1,7 +1,8 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "./auth-guards";
 import { logActivity } from "./activity";
+import { MAX_REASON_LENGTH } from "@/lib/validation";
 
 export async function flagDispute(
   thesisId: string,
@@ -11,18 +12,28 @@ export async function flagDispute(
     return { error: "Thesis ID and reason are required." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: "Unauthorized" };
+  if (reason.trim().length > MAX_REASON_LENGTH) {
+    return { error: `Reason must be ${MAX_REASON_LENGTH} characters or less.` };
   }
 
-  const { error } = await supabase.from("disputes").insert({
+  const auth = await requireAuth();
+  if ("error" in auth) return { error: auth.error };
+
+  // Prevent self-flagging
+  const { data: thesis } = await auth.supabase
+    .from("theses")
+    .select("user_id")
+    .eq("id", thesisId)
+    .single();
+
+  if (!thesis) return { error: "Thesis not found." };
+  if (thesis.user_id === auth.user.id) {
+    return { error: "You cannot flag your own thesis." };
+  }
+
+  const { error } = await auth.supabase.from("disputes").insert({
     thesis_id: thesisId,
-    flagged_by: user.id,
+    flagged_by: auth.user.id,
     reason: reason.trim(),
   });
 

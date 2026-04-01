@@ -1,8 +1,8 @@
-import { createServiceClient } from "@/lib/supabase/service";
+import { createClient } from "@/lib/supabase/server";
 import { Card, StatusChip } from "@/components/ui";
 
 export default async function AdminAlertsPage() {
-  const service = createServiceClient();
+  const service = await createClient();
 
   const { data: alerts } = await service
     .from("title_alerts")

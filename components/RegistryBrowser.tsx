@@ -10,6 +10,7 @@ import {
   StatusChip,
   HashDisplay,
 } from "@/components/ui";
+import { DisputeButton } from "@/components/DisputeButton";
 import {
   THESIS_CATEGORIES,
   THESIS_LEVELS,
@@ -21,6 +22,7 @@ import type { ThesisStatus } from "@/lib/supabase/types";
 
 type ThesisResult = {
   id: string;
+  user_id: string;
   title: string;
   author_name: string;
   thesis_level: string;
@@ -56,7 +58,7 @@ async function hashFile(file: File): Promise<string> {
 
 // --- Component ---
 
-export function RegistryBrowser() {
+export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
   const [levelFilter, setLevelFilter] = useState("");
@@ -320,6 +322,9 @@ export function RegistryBrowser() {
                       <th className="px-6 py-3 font-mono text-xs uppercase text-white/40">
                         Tx Hash
                       </th>
+                      <th className="px-6 py-3 font-mono text-xs uppercase text-white/40">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -360,6 +365,11 @@ export function RegistryBrowser() {
                           >
                             <HashDisplay hash={thesis.tx_hash} />
                           </a>
+                        </td>
+                        <td className="px-6 py-4">
+                          {currentUserId && thesis.user_id !== currentUserId && (
+                            <DisputeButton thesisId={thesis.id} />
+                          )}
                         </td>
                       </tr>
                     ))}

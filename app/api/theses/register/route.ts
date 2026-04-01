@@ -8,6 +8,7 @@ import {
   THESIS_CATEGORIES,
   SUBMISSION_TYPES,
 } from "@/lib/constants";
+import { MAX_TITLE_LENGTH, MAX_AUTHOR_NAME_LENGTH } from "@/lib/validation";
 
 const VALID_LEVELS = THESIS_LEVELS.map((l) => l.value as string);
 const VALID_TYPES = SUBMISSION_TYPES.map((t) => t.value as string);
@@ -30,6 +31,21 @@ export async function POST(request: NextRequest) {
 
   if (!user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Verify account is approved and active
+  const { data: profile } = await supabase
+    .from("users")
+    .select("is_approved, is_active")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile || !profile.is_active) {
+    return Response.json({ error: "Account deactivated." }, { status: 403 });
+  }
+
+  if (!profile.is_approved) {
+    return Response.json({ error: "Account not yet approved." }, { status: 403 });
   }
 
   // Parse and validate body
@@ -60,6 +76,20 @@ export async function POST(request: NextRequest) {
     !sha256Hash
   ) {
     return Response.json({ error: "All fields are required." }, { status: 400 });
+  }
+
+  if (title.trim().length > MAX_TITLE_LENGTH) {
+    return Response.json(
+      { error: `Title must be ${MAX_TITLE_LENGTH} characters or less.` },
+      { status: 400 },
+    );
+  }
+
+  if (authorName.trim().length > MAX_AUTHOR_NAME_LENGTH) {
+    return Response.json(
+      { error: `Author name must be ${MAX_AUTHOR_NAME_LENGTH} characters or less.` },
+      { status: 400 },
+    );
   }
 
   // Validate sha256Hash format (64 hex chars)

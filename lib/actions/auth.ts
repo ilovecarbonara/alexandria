@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { MAX_FULL_NAME_LENGTH } from "@/lib/validation";
 
 export async function signUp(
   _prevState: { error: string } | null,
@@ -14,6 +15,10 @@ export async function signUp(
 
   if (!fullName || !email || !password) {
     return { error: "All fields are required." };
+  }
+
+  if (fullName.length > MAX_FULL_NAME_LENGTH) {
+    return { error: `Name must be ${MAX_FULL_NAME_LENGTH} characters or less.` };
   }
 
   if (!email.endsWith("@uspf.edu.ph")) {

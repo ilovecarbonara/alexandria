@@ -1,22 +1,12 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireAdmin } from "./auth-guards";
 
 export async function getAnalyticsData() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const auth = await requireAdmin();
+  if ("error" in auth) return { error: auth.error };
 
-  if (!user) return { error: "Unauthorized" };
-
-  const { data: profile } = await supabase
-    .from("users")
-    .select("is_admin")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile?.is_admin) return { error: "Forbidden" };
+  const supabase = auth.supabase;
 
   const [thesesRes, disputesRes, alertsRes] = await Promise.all([
     supabase.from("theses").select("thesis_category, thesis_level, status, registered_at"),

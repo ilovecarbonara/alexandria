@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { createServiceClient } from "@/lib/supabase/service";
 import { Card, Button, StatusChip } from "@/components/ui";
 
 export default async function AdminDashboardPage() {
@@ -18,7 +17,7 @@ export default async function AdminDashboardPage() {
         .select("id, title, author_name, status, registered_at")
         .order("registered_at", { ascending: false })
         .limit(5),
-      createServiceClient()
+      supabase
         .from("activity_logs")
         .select("id, action, created_at, user_id")
         .order("created_at", { ascending: false })

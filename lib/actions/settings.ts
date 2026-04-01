@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "./auth-guards";
 
 export async function changePassword(
   newPassword: string,
@@ -9,8 +9,10 @@ export async function changePassword(
     return { error: "Password must be at least 6 characters." };
   }
 
-  const supabase = await createClient();
-  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  const auth = await requireAuth();
+  if ("error" in auth) return { error: auth.error };
+
+  const { error } = await auth.supabase.auth.updateUser({ password: newPassword });
 
   if (error) {
     return { error: error.message };

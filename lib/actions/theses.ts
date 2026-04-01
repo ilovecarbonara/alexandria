@@ -3,7 +3,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendStatusChangeEmail } from "@/lib/email";
+import { requireAdmin } from "./auth-guards";
 import { logActivity } from "./activity";
+import { sanitizeSearchTerm } from "@/lib/validation";
 import type { ThesisLevel, ThesisStatus, SubmissionType } from "@/lib/supabase/types";
 
 export interface SearchFilters {
@@ -21,15 +23,17 @@ export async function searchTheses(filters: SearchFilters) {
   let query = supabase
     .from("theses")
     .select(
-      "id, title, author_name, thesis_level, thesis_category, submission_type, sha256_hash, tx_hash, status, registered_at",
+      "id, user_id, title, author_name, thesis_level, thesis_category, submission_type, sha256_hash, tx_hash, status, registered_at",
     )
     .order("registered_at", { ascending: false });
 
   if (filters.query?.trim()) {
-    const term = filters.query.trim().replace(/[,()]/g, "");
-    query = query.or(
-      `title.ilike.%${term}%,author_name.ilike.%${term}%`,
-    );
+    const term = sanitizeSearchTerm(filters.query);
+    if (term) {
+      query = query.or(
+        `title.ilike.%${term}%,author_name.ilike.%${term}%`,
+      );
+    }
   }
 
   if (filters.level) {
@@ -72,20 +76,8 @@ export async function updateThesisStatus(
     return { error: "Thesis ID and status are required." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return { error: "Unauthorized" };
-
-  const { data: profile } = await supabase
-    .from("users")
-    .select("is_admin")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile?.is_admin) return { error: "Forbidden" };
+  const auth = await requireAdmin();
+  if ("error" in auth) return { error: auth.error };
 
   const service = createServiceClient();
 

@@ -11,7 +11,7 @@ const statusStyles: Record<Status, string> = {
   sent: "bg-success/20 text-success",
   failed: "bg-dispute/20 text-dispute",
   accepted: "bg-success/20 text-success",
-  flagged: "bg-pending/20 text-pending",
+  flagged: "bg-dispute/20 text-dispute",
   rejected: "bg-dispute/20 text-dispute",
   active: "bg-success/20 text-success",
   deactivated: "bg-white/10 text-white/40",

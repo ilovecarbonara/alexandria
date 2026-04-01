@@ -1,8 +1,8 @@
-import { createServiceClient } from "@/lib/supabase/service";
+import { createClient } from "@/lib/supabase/server";
 import { DisputeManagementClient } from "@/components/DisputeManagementClient";
 
 export default async function AdminDisputesPage() {
-  const service = createServiceClient();
+  const service = await createClient();
 
   // Fetch disputes with related thesis title and user name
   const { data: disputes } = await service

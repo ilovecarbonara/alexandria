@@ -41,7 +41,11 @@ export function Sidebar({ title, items, children }: SidebarProps) {
           );
         })}
       </nav>
-      {children}
+      {children && (
+        <div className="border-t border-border p-2">
+          {children}
+        </div>
+      )}
     </aside>
   );
 }
