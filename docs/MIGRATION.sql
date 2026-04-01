@@ -185,6 +185,12 @@ CREATE POLICY "Admin can update disputes"
   TO authenticated
   USING ((SELECT private.is_admin()));
 
+-- activity_logs: admin can read all
+CREATE POLICY "Admin can read all activity logs"
+  ON public.activity_logs FOR SELECT
+  TO authenticated
+  USING ((SELECT private.is_admin()));
+
 -- activity_logs: user can read own logs
 CREATE POLICY "Users can read own activity logs"
   ON public.activity_logs FOR SELECT
