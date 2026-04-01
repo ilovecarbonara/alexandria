@@ -57,7 +57,7 @@ export async function sendTitleAlertEmail({
           </tr>
           <tr>
             <td style="padding: 4px 12px 4px 0; color: #999;">Transaction:</td>
-            <td style="padding: 4px 0;"><a href="${etherscanUrl}" style="color: #5CC8FF;">${txHash}</a></td>
+            <td style="padding: 4px 0;"><a href="${etherscanUrl}" style="color: #5CC8FF;">${escapeHtml(txHash)}</a></td>
           </tr>
         </table>
         <p>This is an informational alert only. No action is required.</p>
@@ -110,7 +110,7 @@ export async function sendStatusChangeEmail({
           </tr>
           <tr>
             <td style="padding: 4px 12px 4px 0; color: #999;">Transaction:</td>
-            <td style="padding: 4px 0;"><a href="${etherscanUrl}" style="color: #5CC8FF;">${txHash}</a></td>
+            <td style="padding: 4px 0;"><a href="${etherscanUrl}" style="color: #5CC8FF;">${escapeHtml(txHash)}</a></td>
           </tr>
         </table>
       </div>

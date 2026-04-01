@@ -72,7 +72,11 @@ export async function signIn(
     return { error: error.message };
   }
 
-  const { data: profile } = await supabase
+  // Use service client — anon client may fail RLS within the same server action
+  // due to cookie propagation timing immediately after signInWithPassword
+  const service = createServiceClient();
+
+  const { data: profile } = await service
     .from("users")
     .select("is_approved, is_admin, is_active")
     .eq("id", data.user.id)
@@ -88,8 +92,7 @@ export async function signIn(
     return { error: "Your account has been deactivated. Contact an administrator." };
   }
 
-  // Update last_active_at — uses service role since users lack UPDATE on own row
-  const service = createServiceClient();
+  // Update last_active_at
   await service
     .from("users")
     .update({ last_active_at: new Date().toISOString() })

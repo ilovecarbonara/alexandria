@@ -65,6 +65,10 @@ export async function deactivateUser(
   const auth = await requireAdmin();
   if ("error" in auth) return { error: auth.error };
 
+  if (userId === auth.user.id) {
+    return { error: "You cannot deactivate your own account." };
+  }
+
   const service = createServiceClient();
   const { error } = await service
     .from("users")

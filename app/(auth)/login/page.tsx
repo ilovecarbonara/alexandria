@@ -1,25 +1,31 @@
 "use client";
 
-import { useActionState } from "react";
+import { Suspense, useActionState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "@/lib/actions/auth";
 import { Button, Input, Card } from "@/components/ui";
 
+function DeactivatedBanner() {
+  const searchParams = useSearchParams();
+  if (searchParams.get("error") !== "deactivated") return null;
+  return (
+    <p className="mb-4 font-mono text-xs text-dispute">
+      Your account has been deactivated. Contact an administrator.
+    </p>
+  );
+}
+
 export default function LoginPage() {
   const [state, formAction, isPending] = useActionState(signIn, null);
-  const searchParams = useSearchParams();
-  const deactivated = searchParams.get("error") === "deactivated";
 
   return (
     <Card>
       <h2 className="mb-4 font-heading text-lg text-white">Log In</h2>
 
-      {deactivated && (
-        <p className="mb-4 font-mono text-xs text-dispute">
-          Your account has been deactivated. Contact an administrator.
-        </p>
-      )}
+      <Suspense fallback={null}>
+        <DeactivatedBanner />
+      </Suspense>
 
       <form action={formAction} className="flex flex-col gap-4">
         <Input
