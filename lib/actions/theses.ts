@@ -124,3 +124,24 @@ export async function updateThesisStatus(
 
   return {};
 }
+
+export async function getUserThesesForLinking(): Promise<{
+  error?: string;
+  data?: { id: string; title: string; submission_type: string; registered_at: string }[];
+}> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { error: "Not authenticated" };
+
+  const { data, error } = await supabase
+    .from("theses")
+    .select("id, title, submission_type, registered_at")
+    .eq("user_id", user.id)
+    .order("registered_at", { ascending: false });
+
+  if (error) return { error: error.message };
+  return { data: data ?? [] };
+}

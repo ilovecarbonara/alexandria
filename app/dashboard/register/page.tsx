@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button, Input, Select, Card } from "@/components/ui";
 import { HashDisplay } from "@/components/ui";
 import {
@@ -8,6 +8,7 @@ import {
   THESIS_LEVELS,
   SUBMISSION_TYPES,
 } from "@/lib/constants";
+import { getUserThesesForLinking } from "@/lib/actions/theses";
 
 type FormState = {
   error?: string;
@@ -29,6 +30,16 @@ export default function RegisterThesisPage() {
   const [fileName, setFileName] = useState<string | null>(null);
   const [hash, setHash] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [previousThesisId, setPreviousThesisId] = useState("");
+  const [linkableTheses, setLinkableTheses] = useState<
+    { id: string; title: string; submission_type: string; registered_at: string }[]
+  >([]);
+
+  useEffect(() => {
+    getUserThesesForLinking().then((result) => {
+      if (result.data) setLinkableTheses(result.data);
+    });
+  }, []);
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -86,6 +97,7 @@ export default function RegisterThesisPage() {
           thesisCategory,
           submissionType,
           sha256Hash: hash,
+          previousThesisId: previousThesisId || null,
         }),
       });
 
@@ -141,6 +153,7 @@ export default function RegisterThesisPage() {
                   setState({});
                   setHash(null);
                   setFileName(null);
+                  setPreviousThesisId("");
                 }}
               >
                 Register Another
@@ -258,6 +271,32 @@ export default function RegisterThesisPage() {
               ))}
             </div>
           </div>
+
+          {linkableTheses.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <label
+                htmlFor="previousThesisId"
+                className="text-sm text-white/60 font-mono"
+              >
+                This is a revision of
+              </label>
+              <select
+                id="previousThesisId"
+                value={previousThesisId}
+                onChange={(e) => setPreviousThesisId(e.target.value)}
+                className="rounded-xs border border-border bg-surface px-3 py-2 font-mono text-sm text-white/90 focus:border-accent focus:outline-none"
+              >
+                <option value="">None — new registration</option>
+                {linkableTheses.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.title.length > 50 ? t.title.slice(0, 50) + "…" : t.title}
+                    {"  "}[{t.submission_type === "final" ? "Final" : "Draft"}]{"  "}
+                    {new Date(t.registered_at).toLocaleDateString()}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {state.error && (
             <p className="text-sm text-dispute font-mono">{state.error}</p>

@@ -56,6 +56,7 @@ export async function POST(request: NextRequest) {
     thesisCategory: string;
     submissionType: string;
     sha256Hash: string;
+    previousThesisId?: string | null;
   };
 
   try {
@@ -64,7 +65,7 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const { title, authorName, thesisLevel, thesisCategory, submissionType, sha256Hash } =
+  const { title, authorName, thesisLevel, thesisCategory, submissionType, sha256Hash, previousThesisId } =
     body;
 
   if (
@@ -106,6 +107,39 @@ export async function POST(request: NextRequest) {
   }
   if (!VALID_CATEGORIES.includes(thesisCategory)) {
     return Response.json({ error: "Invalid thesis category." }, { status: 400 });
+  }
+
+  // Validate previousThesisId if provided
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+  if (previousThesisId) {
+    if (!UUID_RE.test(previousThesisId)) {
+      return Response.json(
+        { error: "Invalid previous thesis ID format." },
+        { status: 400 },
+      );
+    }
+
+    const service = createServiceClient();
+    const { data: prevThesis, error: prevError } = await service
+      .from("theses")
+      .select("id, user_id")
+      .eq("id", previousThesisId)
+      .single();
+
+    if (prevError || !prevThesis) {
+      return Response.json(
+        { error: "Previous thesis not found." },
+        { status: 400 },
+      );
+    }
+
+    if (prevThesis.user_id !== user.id) {
+      return Response.json(
+        { error: "Cannot link to another user's thesis." },
+        { status: 400 },
+      );
+    }
   }
 
   // Check blockchain for duplicate
@@ -155,6 +189,7 @@ export async function POST(request: NextRequest) {
       sha256_hash: sha256Hash,
       tx_hash: txHash,
       block_timestamp: new Date(blockTimestamp * 1000).toISOString(),
+      previous_thesis_id: previousThesisId || null,
     })
     .select("id")
     .single();
