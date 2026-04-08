@@ -53,6 +53,7 @@ export interface Database {
           sha256_hash: string;
           tx_hash: string;
           block_timestamp: string;
+          previous_thesis_id: string | null;
           status: ThesisStatus;
           registered_at: string;
         };
@@ -68,6 +69,7 @@ export interface Database {
           sha256_hash: string;
           tx_hash: string;
           block_timestamp: string;
+          previous_thesis_id?: string | null;
           status?: ThesisStatus;
           registered_at?: string;
         };
@@ -83,6 +85,7 @@ export interface Database {
           sha256_hash?: string;
           tx_hash?: string;
           block_timestamp?: string;
+          previous_thesis_id?: string | null;
           status?: ThesisStatus;
           registered_at?: string;
         };

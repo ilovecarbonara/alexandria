@@ -46,6 +46,7 @@ CREATE TABLE public.theses (
   sha256_hash      text NOT NULL UNIQUE,
   tx_hash          text NOT NULL,
   block_timestamp  timestamptz NOT NULL,
+  previous_thesis_id uuid REFERENCES public.theses(id) ON DELETE SET NULL,
   status           thesis_status NOT NULL DEFAULT 'pending',
   registered_at    timestamptz NOT NULL DEFAULT now()
 );
@@ -85,6 +86,7 @@ CREATE TABLE public.title_alerts (
 
 CREATE INDEX idx_theses_user_id ON public.theses(user_id);
 CREATE INDEX idx_theses_sha256_hash ON public.theses(sha256_hash);
+CREATE INDEX idx_theses_previous_thesis_id ON public.theses(previous_thesis_id);
 CREATE INDEX idx_theses_title_trgm ON public.theses USING gin (title_normalized gin_trgm_ops);
 CREATE INDEX idx_disputes_thesis_id ON public.disputes(thesis_id);
 CREATE INDEX idx_theses_status ON public.theses(status);

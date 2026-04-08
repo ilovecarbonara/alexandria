@@ -28,6 +28,7 @@
 | sha256_hash      | text      | unique per entry                           |
 | tx_hash          | text      | blockchain transaction hash                |
 | block_timestamp  | timestamp | timestamp from blockchain                  |
+| previous_thesis_id | uuid (FK) | nullable, references theses.id — links version chain |
 | registered_at    | timestamp | system registration time                   |
 | status           | enum      | pending, accepted, flagged, rejected       |
 
