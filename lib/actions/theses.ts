@@ -147,14 +147,30 @@ export async function getUserThesesForLinking(): Promise<{
 
   if (!user) return { error: "Not authenticated" };
 
-  const { data, error } = await supabase
+  // Only show drafts — finals aren't valid revision targets
+  const { data: drafts, error } = await supabase
     .from("theses")
     .select("id, title, submission_type, registered_at")
     .eq("user_id", user.id)
+    .eq("submission_type", "draft")
     .order("registered_at", { ascending: false });
 
   if (error) return { error: error.message };
-  return { data: data ?? [] };
+
+  // Exclude drafts that already have a child revision linked to them
+  const { data: allTheses } = await supabase
+    .from("theses")
+    .select("previous_thesis_id")
+    .eq("user_id", user.id)
+    .not("previous_thesis_id", "is", null);
+
+  const parentIds = new Set(
+    (allTheses ?? []).map((t) => t.previous_thesis_id),
+  );
+
+  const available = (drafts ?? []).filter((d) => !parentIds.has(d.id));
+
+  return { data: available };
 }
 
 export async function getCurrentUserFullName(): Promise<{

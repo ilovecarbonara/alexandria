@@ -7,7 +7,7 @@ export async function checkTitleSimilarity(thesisId: string) {
 
   const { data: thesis, error: thesisError } = await service
     .from("theses")
-    .select("id, title, title_normalized, tx_hash, registered_at")
+    .select("id, title, title_normalized, tx_hash, registered_at, user_id")
     .eq("id", thesisId)
     .single();
 
@@ -36,7 +36,14 @@ export async function checkTitleSimilarity(thesisId: string) {
 
   if (!matches || matches.length === 0) return;
 
-  for (const match of matches) {
+  // Skip same-author matches (e.g. Draft → Final by the same user)
+  const otherAuthorMatches = matches.filter(
+    (m) => m.user_id !== thesis.user_id,
+  );
+
+  if (otherAuthorMatches.length === 0) return;
+
+  for (const match of otherAuthorMatches) {
     const { data: matchedUser } = await service
       .from("users")
       .select("email, full_name")
