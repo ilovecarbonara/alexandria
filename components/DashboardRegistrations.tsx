@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Modal, StatusChip, HashDisplay, Pagination } from "@/components/ui";
+import Link from "next/link";
+import { Modal, StatusChip, HashDisplay, Pagination, Card, Button } from "@/components/ui";
 import { ThesisActions } from "@/components/ThesisActions";
 import { PAGE_SIZE } from "@/lib/constants";
 import type { ThesisStatus } from "@/lib/supabase/types";
@@ -31,7 +32,7 @@ const ExpandIcon = () => (
   </svg>
 );
 
-export function DashboardRegistrations({
+export function   DashboardRegistrations({
   theses,
   chainParticipantIds,
 }: DashboardRegistrationsProps) {
@@ -46,19 +47,30 @@ export function DashboardRegistrations({
 
   return (
     <>
-      {/* Expand button row */}
-      <div className="flex items-center justify-end border-b border-border px-6 py-2">
-        <button
-          type="button"
-          onClick={() => { setModalOpen(true); setModalPage(1); }}
-          className="flex items-center gap-1.5 rounded-xs px-2 py-1 font-mono text-xs text-white/40 transition-colors hover:bg-white/5 hover:text-white/70"
-          title="Expand table"
-        >
-          <ExpandIcon />
-          <span>Expand</span>
-        </button>
-      </div>
-
+      <Card className="p-0">
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
+          <h2 className="font-heading text-lg text-white">My Registrations</h2>
+          {theses.length > 0 && (
+            <button
+              type="button"
+              onClick={() => { setModalOpen(true); setModalPage(1); }}
+              className="flex items-center gap-1.5 rounded-xs px-2 py-1 font-mono text-xs text-white/40 transition-colors hover:bg-white/5 hover:text-white/70"
+              title="Expand table"
+            >
+              <ExpandIcon />
+              <span>Expand</span>
+            </button>
+          )}
+        </div>
+        {theses.length === 0 ? (
+          <div className="px-6 py-12 text-center">
+            <p className="font-mono text-sm text-white/40">No theses registered yet.</p>
+            <Link href="/dashboard/register" className="mt-4 inline-block">
+              <Button>Register Your First Thesis</Button>
+            </Link>
+          </div>
+        ) : (
+          <>
       {/* Collapsed table */}
       <div className="overflow-x-auto">
         <table className="w-full">
@@ -115,6 +127,9 @@ export function DashboardRegistrations({
         </table>
       </div>
       <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+          </>
+        )}
+      </Card>
 
       {/* Expanded full-detail modal */}
       <Modal

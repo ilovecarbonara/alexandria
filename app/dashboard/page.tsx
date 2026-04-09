@@ -106,26 +106,10 @@ export default async function DashboardPage() {
       </div>
 
       {/* My Registrations Table */}
-      <Card className="p-0">
-        <div className="border-b border-border px-6 py-4">
-          <h2 className="font-heading text-lg text-white">My Registrations</h2>
-        </div>
-        {theses.length === 0 ? (
-          <div className="px-6 py-12 text-center">
-            <p className="font-mono text-sm text-white/40">
-              No theses registered yet.
-            </p>
-            <Link href="/dashboard/register" className="mt-4 inline-block">
-              <Button>Register Your First Thesis</Button>
-            </Link>
-          </div>
-        ) : (
-          <DashboardRegistrations
-            theses={theses}
-            chainParticipantIds={Array.from(chainParticipants)}
-          />
-        )}
-      </Card>
+      <DashboardRegistrations
+        theses={theses}
+        chainParticipantIds={Array.from(chainParticipants)}
+      />
 
       {/* Bottom Row: Recent Activity + Quick Actions */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
