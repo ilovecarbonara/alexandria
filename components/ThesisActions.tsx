@@ -28,7 +28,7 @@ export function ThesisActions({
   const [historyOpen, setHistoryOpen] = useState(false);
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 whitespace-nowrap">
       <CertificateButton thesisId={thesisId} thesis={thesis} className="text-xs px-2 py-1" />
       {hasVersionChain && (
         <>

@@ -88,7 +88,7 @@ export function AlertsTableClient({
                   {alert.matchedThesisTitle}
                 </td>
                 {showNotifiedUser && (
-                  <td className="px-6 py-4 font-mono text-sm text-white/60">
+                  <td className="max-w-36 truncate px-6 py-4 font-mono text-sm text-white/60">
                     {alert.notifiedUserName ?? "Unknown"}
                   </td>
                 )}

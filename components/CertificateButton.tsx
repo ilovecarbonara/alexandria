@@ -59,7 +59,7 @@ export function CertificateButton({ thesisId, thesis, className }: CertificateBu
       disabled={loading}
       className={className}
     >
-      {loading ? "Generating…" : "Download Certificate"}
+      {loading ? "Generating…" : "Certificate"}
     </Button>
   );
 }

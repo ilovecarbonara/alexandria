@@ -345,13 +345,13 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                         <td className="max-w-48 truncate px-6 py-4 font-mono text-sm text-white/90">
                           {thesis.title}
                         </td>
-                        <td className="whitespace-nowrap px-6 py-4 font-mono text-sm text-white/60">
+                        <td className="max-w-36 truncate px-6 py-4 font-mono text-sm text-white/60">
                           {thesis.author_name}
                         </td>
                         <td className="whitespace-nowrap px-6 py-4 font-mono text-sm capitalize text-white/60">
                           {thesis.thesis_level}
                         </td>
-                        <td className="whitespace-nowrap px-6 py-4 font-mono text-sm text-white/60">
+                        <td className="max-w-40 truncate px-6 py-4 font-mono text-sm text-white/60">
                           {thesis.thesis_category}
                         </td>
                         <td className="whitespace-nowrap px-6 py-4 font-mono text-sm capitalize text-white/60">

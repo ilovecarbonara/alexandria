@@ -155,10 +155,10 @@ export function UserManagementClient({
                       key={user.id}
                       className="border-b border-border last:border-b-0"
                     >
-                      <td className="px-6 py-4 font-mono text-sm text-white/90">
+                      <td className="max-w-40 truncate px-6 py-4 font-mono text-sm text-white/90">
                         {user.full_name}
                       </td>
-                      <td className="px-6 py-4 font-mono text-sm text-white/60">
+                      <td className="max-w-48 truncate px-6 py-4 font-mono text-sm text-white/60">
                         {user.email}
                       </td>
                       <td className="px-6 py-4">

@@ -125,7 +125,7 @@ export function DisputeManagementClient({
                     <td className="max-w-48 truncate px-6 py-4 font-mono text-sm text-white/90">
                       {dispute.thesis_title}
                     </td>
-                    <td className="px-6 py-4 font-mono text-sm text-white/60">
+                    <td className="max-w-36 truncate px-6 py-4 font-mono text-sm text-white/60">
                       {dispute.flagged_by_name}
                     </td>
                     <td className="max-w-64 truncate px-6 py-4 font-mono text-sm text-white/60">

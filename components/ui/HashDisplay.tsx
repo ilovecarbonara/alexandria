@@ -8,7 +8,7 @@ export function HashDisplay({ hash, className = "" }: HashDisplayProps) {
 
   return (
     <span
-      className={`font-mono text-hash ${className}`}
+      className={`whitespace-nowrap font-mono text-hash ${className}`}
       title={hash}
     >
       {truncated}
