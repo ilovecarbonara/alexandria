@@ -35,6 +35,7 @@ export async function searchTheses(filters: SearchFilters) {
     .select(
       "id, user_id, title, author_name, thesis_level, thesis_category, submission_type, sha256_hash, tx_hash, status, registered_at",
     )
+    .neq("status", "pending")
     .order("registered_at", { ascending: false });
 
   if (filters.query?.trim()) {

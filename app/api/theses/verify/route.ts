@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { verifyOnChain } from "@/lib/blockchain/actions";
 import { createClient } from "@/lib/supabase/server";
+import { getVersionChain } from "@/lib/actions/theses";
 
 export async function GET(request: NextRequest) {
   const hash = request.nextUrl.searchParams.get("hash");
@@ -40,9 +41,19 @@ export async function GET(request: NextRequest) {
     .eq("sha256_hash", normalizedHash)
     .single();
 
+  // Fetch version chain if thesis exists
+  let versionChain = undefined;
+  if (thesis) {
+    const chainResult = await getVersionChain(thesis.id);
+    if (chainResult.data && chainResult.data.length > 1) {
+      versionChain = chainResult.data;
+    }
+  }
+
   return Response.json({
     isRegistered: true,
     blockchain: blockchainResult.record,
     thesis: thesis ?? null,
+    versionChain,
   });
 }

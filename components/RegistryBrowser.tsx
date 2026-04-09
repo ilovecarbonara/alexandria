@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { searchTheses, type SearchFilters } from "@/lib/actions/theses";
+import { searchTheses, type SearchFilters, type VersionChainEntry } from "@/lib/actions/theses";
 import {
   Button,
   Card,
@@ -45,6 +45,7 @@ type VerifyResult = {
     registeredBy: string;
   };
   thesis?: ThesisResult | null;
+  versionChain?: VersionChainEntry[];
 };
 
 // --- Helpers ---
@@ -592,6 +593,84 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                       </>
                     )}
                   </div>
+
+                  {/* Version Chain */}
+                  {verifyResult.versionChain &&
+                    verifyResult.versionChain.length > 1 && (
+                      <div className="mt-5 border-t border-success/20 pt-4">
+                        <h3 className="mb-3 font-mono text-xs uppercase text-white/40">
+                          Version History
+                        </h3>
+                        <div>
+                          {verifyResult.versionChain.map((entry, index) => {
+                            const isCurrent =
+                              entry.id === verifyResult.thesis?.id;
+                            const isLast =
+                              index ===
+                              verifyResult.versionChain!.length - 1;
+
+                            return (
+                              <div key={entry.id} className="flex gap-3">
+                                {/* Timeline track */}
+                                <div className="flex flex-col items-center">
+                                  <div
+                                    className={`mt-0.5 h-3 w-3 shrink-0 rounded-full border-2 ${
+                                      isCurrent
+                                        ? "border-accent bg-accent"
+                                        : "border-white/30 bg-transparent"
+                                    }`}
+                                  />
+                                  {!isLast && (
+                                    <div className="w-px flex-1 bg-white/10" />
+                                  )}
+                                </div>
+
+                                {/* Content */}
+                                <div className={isLast ? "pb-0" : "pb-5"}>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-mono text-xs text-white/40">
+                                      v{index + 1}
+                                    </span>
+                                    <span
+                                      className={`inline-block rounded-xs px-1.5 py-0.5 font-mono text-xs uppercase ${
+                                        entry.submissionType === "final"
+                                          ? "bg-success/20 text-success"
+                                          : "bg-pending/20 text-pending"
+                                      }`}
+                                    >
+                                      {entry.submissionType}
+                                    </span>
+                                    {isCurrent && (
+                                      <span className="font-mono text-xs text-accent">
+                                        current
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p
+                                    className={`mt-1 font-mono text-sm ${
+                                      isCurrent
+                                        ? "text-white"
+                                        : "text-white/70"
+                                    }`}
+                                  >
+                                    {entry.title}
+                                  </p>
+                                  <div className="mt-1 flex items-center gap-2 font-mono text-xs text-white/40">
+                                    <span>
+                                      {new Date(
+                                        entry.registeredAt,
+                                      ).toLocaleDateString()}
+                                    </span>
+                                    <span>·</span>
+                                    <HashDisplay hash={entry.sha256Hash} />
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                 </div>
               ) : (
                 <div className="rounded-xs border border-white/10 bg-white/5 p-5">
