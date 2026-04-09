@@ -8,7 +8,8 @@
 
 ## F2: Thesis Registration
 - User uploads PDF + fills metadata form
-- Fields: author name, title, level (dropdown), category (dropdown), submission type (radio)
+- Fields: author name (pre-filled from user profile, editable), title, level (dropdown), category (dropdown), submission type (radio)
+- If the user has existing draft registrations without a child revision, a "This is a revision of" dropdown appears — linking the new thesis as the next entry in a version chain (see F12)
 - On submit:
   1. SHA-256 hash generated client-side via Web Crypto API — PDF never leaves the browser. Node crypto module is NOT used for registration.
   2. PDF deleted immediately after hashing — never persisted
@@ -16,7 +17,7 @@
   4. If duplicate → show error, stop
   5. If draft → proceed to blockchain registration regardless of other drafts
   6. Submit hash + metadata to smart contract → get tx_hash
-  7. Save record to Supabase theses table (including title_normalized)
+  7. Save record to Supabase theses table (including title_normalized, previous_thesis_id if revision)
   8. Trigger title similarity check (F8) — non-blocking, runs after save
   9. Trigger certificate generation
   10. Show success state with tx link
@@ -28,6 +29,7 @@
   sha256 hash, tx hash, timestamp, QR code linking to Sepolia Etherscan tx
 - Certificate text frames the document as a REGISTRATION RECORD,
   not a proof of authorship
+- If the thesis belongs to a version chain (>1 entry), the certificate includes a "Version History" table showing version number, type, SHA-256 hash, tx hash, and date for each chain entry
 - Downloadable as PDF
 - Regeneratable at any time from dashboard
 
@@ -35,8 +37,10 @@
 - Two modes: Search and Verify
 - Search: keyword input + filters (level, category, date range) → returns
   thesis metadata only — never the PDF
+- Search excludes pending-status theses (only accepted/flagged/rejected shown)
 - Verify: upload PDF (hashed client-side) OR paste hash → checks blockchain
   → returns registration record or no match
+- If the verified thesis belongs to a version chain (>1 entry), a version history timeline is displayed alongside the metadata
 
 ## F5: Dispute Flag System
 - Any authenticated user can flag any thesis registration
@@ -54,13 +58,18 @@
   - Count display: open vs resolved disputes
   - Count display: title alerts sent (total, last 30 days)
 - Dispute management table: view flags, mark as resolved
+- Thesis registry table: view all theses, change status (pending → accepted/flagged/rejected)
 - Title alert log table: view matched pairs, similarity scores, sent/failed status
+- All admin tables are paginated (15 per page) with expand-to-modal for full details
 
 ## F7: User Dashboard
-- List of own registered theses
-- Each row: title, level, type, date, tx link, download certificate button
-- Dispute flag button per thesis entry
-- Notification indicator for received title alerts (see F8)
+- List of own registered theses with pagination (15 per page)
+- Each row: title, status, date, tx hash link, actions (certificate download, version history)
+- Content is truncated to one line with ellipsis; an "Expand" button opens a full-detail modal overlay
+- "History" button appears on theses that participate in a version chain — opens a modal with a timeline view
+- Title Alerts page (sidebar nav item): table of similarity alerts scoped to the user, each with a dispute/flag action
+- Alert count displayed as a stat card on the main dashboard
+- Stat cards: registered theses count, active disputes, title alerts, recent activity
 
 ## F8: Title-Based Alert System
 - Triggers automatically after every successful registration (step 8 of F2)
@@ -91,6 +100,7 @@
 - A single incoming registration may trigger multiple alerts if it
   matches multiple existing entries
 - Draft registrations also trigger the similarity check
+- Same-author matches are skipped entirely — no alert created, no email sent (e.g., user registering a Final after their own Draft)
 
 ## F9: Thesis Status Workflow
 - New registrations default to status: pending
@@ -114,3 +124,12 @@
 - Actions include: thesis registration, dispute creation, status changes
 - Admin can view recent activity in the admin dashboard
 - Logs are append-only and never modified
+
+## F12: Version Chain
+- Theses can be linked in a linear version chain via `previous_thesis_id`
+- Each thesis has at most one predecessor and one successor
+- Only draft theses without an existing child revision are available as revision targets
+- Chain is displayed as a vertical timeline with version numbering (v1, v2, …), submission type badges, and current-entry highlighting
+- Version chain appears in: user dashboard (modal), public verification (inline timeline), and certificate PDF (table)
+- Chain data is built in-memory from the user's theses — walks backward to find the root, then forward to produce chronological order
+- Cycle-safe traversal via Set guards

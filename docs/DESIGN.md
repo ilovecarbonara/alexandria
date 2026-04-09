@@ -27,5 +27,10 @@
 ## Component Patterns
 - Cards: bg-[#13161C], border border-[#222733], rounded-[2px]
 - Buttons (primary): bg-[#4A90D9] text-white, no border-radius above 2px
+- Buttons (secondary): bg-surface text-white/90, border border-border
+- Buttons (danger): bg-[#C0392B] text-white
+- Buttons (danger-outline): transparent bg, border-[#C0392B] text, border-[#C0392B] — used for sign-out
 - Status chips: square, colored bg matching state color, DM Mono text
 - Hash display: text-[#5CC8FF] font-mono, truncated with full value on hover
+- Tables: paginated (15/page), content truncated to single line with ellipsis
+- Table expand: icon button opens a full-detail modal overlay (not inline row expansion)

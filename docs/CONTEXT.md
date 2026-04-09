@@ -19,6 +19,7 @@ to establish a tamper-proof, publicly verifiable proof of existence and registra
 - PDF is NEVER stored. Hash only.
 - Duplicate detection happens BEFORE blockchain submission.
 - Draft registrations are allowed and create separate blockchain entries.
+- Theses can be linked in version chains (Draft → Final) via previous_thesis_id.
 - Admin account is seeded manually — not via public registration.
 - Public verification requires NO login.
 - Blockchain records are NEVER altered, even on dispute.
@@ -33,7 +34,7 @@ to establish a tamper-proof, publicly verifiable proof of existence and registra
 ## Roles
 - Public: search + verify only
 - Authenticated User: register theses, view dashboard, flag disputes,
-  receive title-alert notifications
+  receive title-alert notifications, view title alerts, link thesis revisions
 - Admin: manage disputes, manage thesis statuses (accept/flag/reject),
   manage users (approve/deactivate/reactivate), monitor title alerts,
   view analytics dashboard, view activity logs
