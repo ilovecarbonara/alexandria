@@ -20,7 +20,7 @@ export default function VerifyPage() {
             </span>
           </div>
           <Link href="/login">
-            <Button variant="secondary" className="text-xs">
+            <Button variant="primary" className="text-xs">
               Login &rarr;
             </Button>
           </Link>
@@ -38,7 +38,7 @@ export default function VerifyPage() {
         <div className="mx-auto mt-6 h-px w-12 bg-border" />
       </section>
 
-      <main className="mx-auto max-w-6xl space-y-10 px-6 py-10">
+      <main className="mx-auto max-w-6xl space-y-10 px-6 py-2">
         <RegistryBrowser />
       </main>
     </div>
