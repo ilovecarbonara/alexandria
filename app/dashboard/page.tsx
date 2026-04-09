@@ -152,7 +152,7 @@ export default async function DashboardPage() {
             <Link href="/dashboard/register">
               <Button className="w-full">Register a Thesis</Button>
             </Link>
-            <Link href="/verify">
+            <Link href="/dashboard/browse">
               <Button variant="secondary" className="w-full">
                 Browse Registry
               </Button>
