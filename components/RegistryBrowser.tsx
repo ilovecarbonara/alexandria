@@ -5,8 +5,8 @@ import { searchTheses, type SearchFilters, type VersionChainEntry } from "@/lib/
 import {
   Button,
   Card,
-  Input,
   Select,
+  DatePicker,
   StatusChip,
   HashDisplay,
   Pagination,
@@ -15,7 +15,6 @@ import { DisputeButton } from "@/components/DisputeButton";
 import {
   THESIS_CATEGORIES,
   THESIS_LEVELS,
-  SUBMISSION_TYPES,
   PAGE_SIZE,
 } from "@/lib/constants";
 import type { ThesisStatus } from "@/lib/supabase/types";
@@ -210,31 +209,39 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
       {/* SECTION 1: Search the Registry */}
       {/* =============================== */}
       <Card className="p-0">
-        <div className="border-b border-border px-6 py-4">
-          <h2 className="font-heading text-lg text-white">
-            Search the Registry
-          </h2>
-        </div>
-
-        <form onSubmit={handleSearch} className="space-y-4 p-6">
-          {/* Keyword */}
-          <Input
-            id="search-query"
-            label="Keyword (title or author)"
-            placeholder="Search by title or author name…"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+        <form onSubmit={handleSearch} className="p-6 pb-4">
+          {/* Search bar row */}
+          <div className="flex gap-3">
+            <div className="relative flex-1">
+              <svg
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/30"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Search by title, author name, or keyword…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full rounded-xs border border-border bg-surface py-2.5 pl-10 pr-3 font-mono text-sm text-white/90 placeholder:text-white/30 focus:border-accent focus:outline-none"
+              />
+            </div>
+            <Button type="submit" disabled={searchLoading}>
+              {searchLoading ? "Searching…" : "Search"}
+            </Button>
+          </div>
 
           {/* Filter row */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Select
-              id="search-level"
-              label="Level"
-              options={[...THESIS_LEVELS]}
-              value={levelFilter}
-              onChange={(e) => setLevelFilter(e.target.value)}
-            />
+          <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-3">
             <Select
               id="search-category"
               label="Category"
@@ -246,43 +253,43 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
               onChange={(e) => setCategoryFilter(e.target.value)}
             />
             <Select
-              id="search-type"
-              label="Submission Type"
-              options={[...SUBMISSION_TYPES]}
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
+              id="search-level"
+              label="Level"
+              options={[...THESIS_LEVELS]}
+              value={levelFilter}
+              onChange={(e) => setLevelFilter(e.target.value)}
             />
+
             <div className="flex flex-col gap-1">
               <label className="font-mono text-sm text-white/60">
                 Date Range
               </label>
               <div className="flex items-center gap-2">
-                <input
-                  type="date"
+                <DatePicker
                   value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                  className="w-full rounded-xs border border-border bg-surface px-3 py-2 font-mono text-sm text-white/90 focus:border-accent focus:outline-none"
+                  placeholder="From…"
+                  onChange={(v) => setDateFrom(v)}
+                  className="w-40"
                 />
-                <span className="font-mono text-xs text-white/40">to</span>
-                <input
-                  type="date"
+                <span className="shrink-0 self-end pb-2.5 font-mono text-xs text-white/40">to</span>
+                <DatePicker
                   value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                  className="w-full rounded-xs border border-border bg-surface px-3 py-2 font-mono text-sm text-white/90 focus:border-accent focus:outline-none"
+                  placeholder="To…"
+                  onChange={(v) => setDateTo(v)}
+                  className="w-40"
                 />
               </div>
             </div>
           </div>
-
-          {/* Actions */}
-          <div className="flex items-center gap-3">
-            <Button type="submit" disabled={searchLoading}>
-              {searchLoading ? "Searching…" : "Search"}
-            </Button>
-            <Button type="button" variant="secondary" onClick={clearSearch}>
-              Clear
-            </Button>
-          </div>
+          {(levelFilter || categoryFilter || typeFilter || dateFrom || dateTo) && (
+            <button
+              type="button"
+              onClick={clearSearch}
+              className="mt-2 font-mono text-xs text-white/40 hover:text-white/70 transition-colors"
+            >
+              Clear filters
+            </button>
+          )}
         </form>
 
         {/* Search error */}
@@ -321,17 +328,16 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                         Type
                       </th>
                       <th className="px-6 py-3 font-mono text-xs uppercase text-white/40">
-                        Date
-                      </th>
-                      <th className="px-6 py-3 font-mono text-xs uppercase text-white/40">
-                        Status
+                        Registered Date
                       </th>
                       <th className="px-6 py-3 font-mono text-xs uppercase text-white/40">
                         Tx Hash
                       </th>
-                      <th className="px-6 py-3 font-mono text-xs uppercase text-white/40">
-                        Actions
-                      </th>
+                      {currentUserId && (
+                        <th className="px-6 py-3 font-mono text-xs uppercase text-white/40">
+                          Actions
+                        </th>
+                      )}
                     </tr>
                   </thead>
                   <tbody>
@@ -358,12 +364,10 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                           {thesis.submission_type}
                         </td>
                         <td className="whitespace-nowrap px-6 py-4 font-mono text-sm text-white/60">
-                          {new Date(
-                            thesis.registered_at,
-                          ).toLocaleDateString()}
-                        </td>
-                        <td className="px-6 py-4">
-                          <StatusChip status={thesis.status} />
+                          {new Date(thesis.registered_at).toLocaleDateString(
+                            "en-US",
+                            { month: "short", day: "numeric", year: "numeric" },
+                          )}
                         </td>
                         <td className="px-6 py-4">
                           <a
@@ -375,11 +379,13 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                             <HashDisplay hash={thesis.tx_hash} />
                           </a>
                         </td>
-                        <td className="px-6 py-4">
-                          {currentUserId && thesis.user_id !== currentUserId && (
-                            <DisputeButton thesisId={thesis.id} />
-                          )}
-                        </td>
+                        {currentUserId && (
+                          <td className="px-6 py-4">
+                            {thesis.user_id !== currentUserId && (
+                              <DisputeButton thesisId={thesis.id} />
+                            )}
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -413,89 +419,145 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
         </div>
 
         <div className="p-6">
-          {/* Mode Toggle */}
-          <div className="mb-6 flex gap-2">
-            <button
-              type="button"
+          {/* Side-by-side panels */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {/* Upload panel */}
+            <div
               onClick={() => {
                 setVerifyMode("upload");
-                clearVerify();
+                fileRef.current?.click();
               }}
-              className={`rounded-xs px-4 py-2 font-mono text-sm transition-opacity ${
-                verifyMode === "upload"
-                  ? "bg-accent text-white"
-                  : "bg-surface text-white/60 border border-border hover:bg-border/50"
+              className={`group flex cursor-pointer flex-col items-center justify-center rounded-xs border-2 border-dashed px-6 py-10 text-center transition-colors ${
+                verifyMode === "upload" && fileName
+                  ? "border-accent/50 bg-accent/5"
+                  : "border-border hover:border-white/20"
               }`}
             >
-              Upload PDF
+              <svg
+                className="mb-3 text-white/20 group-hover:text-white/40 transition-colors"
+                width="32"
+                height="32"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+              </svg>
+              {fileName ? (
+                <>
+                  <p className="font-mono text-sm text-white/90">{fileName}</p>
+                  {fileHash && (
+                    <p className="mt-1 font-mono text-xs text-white/40">
+                      SHA-256: <HashDisplay hash={fileHash} />
+                    </p>
+                  )}
+                </>
+              ) : (
+                <>
+                  <p className="font-mono text-sm text-white/50">
+                    Drag and drop PDF thesis file here
+                  </p>
+                  <p className="mt-1 font-mono text-xs text-white/30">
+                    or{" "}
+                    <span className="text-accent underline">browse files</span>
+                  </p>
+                </>
+              )}
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".pdf,application/pdf"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+            </div>
+
+            {/* Hash paste panel */}
+            <div
+              onClick={() => setVerifyMode("paste")}
+              className={`flex flex-col justify-center rounded-xs border px-6 py-10 transition-colors ${
+                verifyMode === "paste"
+                  ? "border-accent/50 bg-accent/5"
+                  : "border-border hover:border-white/20"
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <svg
+                  className="text-white/20"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="4 17 10 11 4 5" />
+                  <line x1="12" y1="19" x2="20" y2="19" />
+                </svg>
+                <span className="font-mono text-xs text-white/40 uppercase tracking-wide">
+                  Paste SHA-256 Hash
+                </span>
+              </div>
+              <input
+                type="text"
+                placeholder="Enter 64-character hex hash…"
+                value={hashInput}
+                onChange={(e) => {
+                  setHashInput(e.target.value);
+                  setVerifyMode("paste");
+                }}
+                maxLength={64}
+                className="w-full rounded-xs border border-border bg-surface px-3 py-2 font-mono text-sm text-white/90 placeholder:text-white/30 focus:border-accent focus:outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+            <button
+              type="button"
+              onClick={(e) => {
+                setVerifyMode("upload");
+                handleVerify(e as unknown as React.FormEvent);
+              }}
+              disabled={verifyLoading || !fileHash}
+              className="rounded-xs border border-accent/40 py-2.5 font-mono text-sm text-accent transition-colors hover:bg-accent/10 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {verifyLoading && verifyMode === "upload"
+                ? "Verifying…"
+                : "Verify File Integrity"}
             </button>
             <button
               type="button"
-              onClick={() => {
+              onClick={(e) => {
                 setVerifyMode("paste");
-                clearVerify();
+                handleVerify(e as unknown as React.FormEvent);
               }}
-              className={`rounded-xs px-4 py-2 font-mono text-sm transition-opacity ${
-                verifyMode === "paste"
-                  ? "bg-accent text-white"
-                  : "bg-surface text-white/60 border border-border hover:bg-border/50"
-              }`}
+              disabled={verifyLoading || !hashInput.trim()}
+              className="rounded-xs border border-accent/40 py-2.5 font-mono text-sm text-accent transition-colors hover:bg-accent/10 disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Paste Hash
+              {verifyLoading && verifyMode === "paste"
+                ? "Verifying…"
+                : "Run Validation"}
             </button>
           </div>
 
-          <form onSubmit={handleVerify} className="space-y-4">
-            {verifyMode === "upload" ? (
-              <div className="flex flex-col gap-2">
-                <label className="font-mono text-sm text-white/60">
-                  Upload PDF to verify
-                </label>
-                <div className="flex items-center gap-3">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => fileRef.current?.click()}
-                  >
-                    Choose File
-                  </Button>
-                  <span className="truncate font-mono text-sm text-white/60">
-                    {fileName || "No file selected"}
-                  </span>
-                </div>
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept=".pdf,application/pdf"
-                  className="hidden"
-                  onChange={handleFileChange}
-                />
-                {fileHash && (
-                  <div className="mt-1 font-mono text-xs text-white/40">
-                    SHA-256: <HashDisplay hash={fileHash} />
-                  </div>
-                )}
-              </div>
-            ) : (
-              <Input
-                id="hash-input"
-                label="SHA-256 Hash"
-                placeholder="Enter 64-character hex hash…"
-                value={hashInput}
-                onChange={(e) => setHashInput(e.target.value)}
-                maxLength={64}
-              />
-            )}
-
-            <div className="flex items-center gap-3">
-              <Button type="submit" disabled={verifyLoading}>
-                {verifyLoading ? "Verifying…" : "Verify"}
-              </Button>
-              <Button type="button" variant="secondary" onClick={clearVerify}>
-                Clear
-              </Button>
-            </div>
-          </form>
+          {/* Clear */}
+          {(fileName || hashInput) && (
+            <button
+              type="button"
+              onClick={clearVerify}
+              className="mt-3 font-mono text-xs text-white/40 hover:text-white/70 transition-colors"
+            >
+              Clear
+            </button>
+          )}
 
           {/* Verify error */}
           {verifyError && (
