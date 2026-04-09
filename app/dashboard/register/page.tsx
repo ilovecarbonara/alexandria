@@ -279,29 +279,17 @@ export default function RegisterThesisPage() {
           </div>
 
           {linkableTheses.length > 0 && (
-            <div className="flex flex-col gap-1">
-              <label
-                htmlFor="previousThesisId"
-                className="text-sm text-white/60 font-mono"
-              >
-                This is a revision of
-              </label>
-              <select
-                id="previousThesisId"
-                value={previousThesisId}
-                onChange={(e) => setPreviousThesisId(e.target.value)}
-                className="rounded-xs border border-border bg-surface px-3 py-2 font-mono text-sm text-white/90 focus:border-accent focus:outline-none"
-              >
-                <option value="">None — new registration</option>
-                {linkableTheses.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.title.length > 50 ? t.title.slice(0, 50) + "…" : t.title}
-                    {"  "}[{t.submission_type === "final" ? "Final" : "Draft"}]{"  "}
-                    {new Date(t.registered_at).toLocaleDateString()}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <Select
+              id="previousThesisId"
+              label="This is a revision of"
+              placeholder="None — new registration"
+              value={previousThesisId}
+              onChange={(e) => setPreviousThesisId(e.target.value)}
+              options={linkableTheses.map((t) => ({
+                value: t.id,
+                label: `${t.title.length > 50 ? t.title.slice(0, 50) + "…" : t.title}  [${t.submission_type === "final" ? "Final" : "Draft"}]  ${new Date(t.registered_at).toLocaleDateString()}`,
+              }))}
+            />
           )}
 
           {state.error && (

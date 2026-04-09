@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Card, StatusChip, HashDisplay, Button, Pagination } from "@/components/ui";
+import { Card, StatusChip, HashDisplay, Button, Pagination, Select } from "@/components/ui";
 import { updateThesisStatus } from "@/lib/actions/theses";
 import { THESIS_STATUSES, PAGE_SIZE } from "@/lib/constants";
 import type { ThesisStatus } from "@/lib/supabase/types";
@@ -64,22 +64,18 @@ export function ThesisRegistryClient({
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <label className="font-mono text-xs text-white/40">Filter:</label>
-          <select
+          <Select
+            placeholder="All statuses"
             value={filter}
             onChange={(e) => {
               setFilter(e.target.value as ThesisStatus | "");
               setPage(1);
             }}
-            className="rounded-xs border border-border bg-surface px-3 py-1.5 font-mono text-sm text-white/90 focus:border-accent focus:outline-none"
-          >
-            <option value="">All statuses</option>
-            {THESIS_STATUSES.map((s) => (
-              <option key={s.value} value={s.value}>
-                {s.label}
-              </option>
-            ))}
-          </select>
+            options={THESIS_STATUSES.map((s) => ({
+              value: s.value,
+              label: s.label,
+            }))}
+          />
         </div>
       </div>
 
@@ -167,7 +163,7 @@ export function ThesisRegistryClient({
                       <StatusChip status={thesis.status} />
                     </td>
                     <td className="px-6 py-4">
-                      <select
+                      <Select
                         value={thesis.status}
                         disabled={updating === thesis.id}
                         onChange={(e) =>
@@ -176,14 +172,12 @@ export function ThesisRegistryClient({
                             e.target.value as ThesisStatus,
                           )
                         }
-                        className="rounded-xs border border-border bg-surface px-2 py-1 font-mono text-xs text-white/90 focus:border-accent focus:outline-none disabled:opacity-50"
-                      >
-                        {THESIS_STATUSES.map((s) => (
-                          <option key={s.value} value={s.value}>
-                            {s.label}
-                          </option>
-                        ))}
-                      </select>
+                        placeholder="Status"
+                        options={THESIS_STATUSES.map((s) => ({
+                          value: s.value,
+                          label: s.label,
+                        }))}
+                      />
                     </td>
                   </tr>
                 ))}

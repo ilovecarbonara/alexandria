@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Card, StatusChip, Button, Pagination } from "@/components/ui";
+import { Card, StatusChip, Button, Pagination, Select } from "@/components/ui";
 import {
   approveUser,
   rejectUser,
@@ -91,20 +91,20 @@ export function UserManagementClient({
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <label className="font-mono text-xs text-white/40">Filter:</label>
-          <select
+          <Select
+            placeholder="All users"
             value={filter}
             onChange={(e) => {
               setFilter(e.target.value as typeof filter);
               setPage(1);
             }}
-            className="rounded-xs border border-border bg-surface px-3 py-1.5 font-mono text-sm text-white/90 focus:border-accent focus:outline-none"
-          >
-            <option value="all">All users</option>
-            <option value="pending">Pending approval</option>
-            <option value="active">Active</option>
-            <option value="deactivated">Deactivated</option>
-          </select>
+            options={[
+              { value: "all", label: "All users" },
+              { value: "pending", label: "Pending approval" },
+              { value: "active", label: "Active" },
+              { value: "deactivated", label: "Deactivated" },
+            ]}
+          />
         </div>
       </div>
 

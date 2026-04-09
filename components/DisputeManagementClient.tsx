@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Card, StatusChip, Button, Pagination } from "@/components/ui";
+import { Card, StatusChip, Button, Pagination, Select } from "@/components/ui";
 import { PAGE_SIZE } from "@/lib/constants";
 interface Dispute {
   id: string;
@@ -63,19 +63,19 @@ export function DisputeManagementClient({
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <label className="font-mono text-xs text-white/40">Filter:</label>
-          <select
+          <Select
+            placeholder="All"
             value={filter}
             onChange={(e) => {
               setFilter(e.target.value as typeof filter);
               setPage(1);
             }}
-            className="rounded-xs border border-border bg-surface px-3 py-1.5 font-mono text-sm text-white/90 focus:border-accent focus:outline-none"
-          >
-            <option value="all">All</option>
-            <option value="open">Open</option>
-            <option value="resolved">Resolved</option>
-          </select>
+            options={[
+              { value: "all", label: "All" },
+              { value: "open", label: "Open" },
+              { value: "resolved", label: "Resolved" },
+            ]}
+          />
         </div>
       </div>
 
