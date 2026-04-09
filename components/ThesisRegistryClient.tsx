@@ -89,18 +89,20 @@ export function ThesisRegistryClient({
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Select
-            placeholder="All statuses"
-            value={filter}
-            onChange={(e) => {
-              setFilter(e.target.value as ThesisStatus | "");
-              setPage(1);
-            }}
-            options={THESIS_STATUSES.map((s) => ({
-              value: s.value,
-              label: s.label,
-            }))}
-          />
+          <div className="w-44">
+            <Select
+              placeholder="All statuses"
+              value={filter}
+              onChange={(e) => {
+                setFilter(e.target.value as ThesisStatus | "");
+                setPage(1);
+              }}
+              options={THESIS_STATUSES.map((s) => ({
+                value: s.value,
+                label: s.label,
+              }))}
+            />
+          </div>
         </div>
       </div>
 

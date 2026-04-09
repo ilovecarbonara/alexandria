@@ -91,20 +91,22 @@ export function UserManagementClient({
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Select
-            placeholder="All users"
-            value={filter}
-            onChange={(e) => {
-              setFilter(e.target.value as typeof filter);
-              setPage(1);
-            }}
-            options={[
-              { value: "all", label: "All users" },
-              { value: "pending", label: "Pending approval" },
-              { value: "active", label: "Active" },
-              { value: "deactivated", label: "Deactivated" },
-            ]}
-          />
+          <div className="w-44">
+            <Select
+              placeholder="All users"
+              value={filter}
+              onChange={(e) => {
+                setFilter(e.target.value as typeof filter);
+                setPage(1);
+              }}
+              options={[
+                { value: "all", label: "All users" },
+                { value: "pending", label: "Pending approval" },
+                { value: "active", label: "Active" },
+                { value: "deactivated", label: "Deactivated" },
+              ]}
+            />
+          </div>
         </div>
       </div>
 

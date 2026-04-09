@@ -35,7 +35,7 @@ export default async function AdminLayout({
 
   return (
     <div className="flex h-screen">
-      <Sidebar title="Alexandria Admin" items={NAV_ITEMS}>
+      <Sidebar title="Alexandria" items={NAV_ITEMS}>
         <form action={signOut}>
           <Button variant="danger-outline" type="submit" className="w-full">
             Sign Out

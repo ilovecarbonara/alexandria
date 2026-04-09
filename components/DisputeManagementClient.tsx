@@ -63,19 +63,21 @@ export function DisputeManagementClient({
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Select
-            placeholder="All"
-            value={filter}
-            onChange={(e) => {
-              setFilter(e.target.value as typeof filter);
-              setPage(1);
-            }}
-            options={[
-              { value: "all", label: "All" },
-              { value: "open", label: "Open" },
-              { value: "resolved", label: "Resolved" },
-            ]}
-          />
+          <div className="w-44">
+            <Select
+              placeholder="All"
+              value={filter}
+              onChange={(e) => {
+                setFilter(e.target.value as typeof filter);
+                setPage(1);
+              }}
+              options={[
+                { value: "all", label: "All" },
+                { value: "open", label: "Open" },
+                { value: "resolved", label: "Resolved" },
+              ]}
+            />
+          </div>
         </div>
       </div>
 

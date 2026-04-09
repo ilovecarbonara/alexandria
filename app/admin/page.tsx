@@ -21,7 +21,7 @@ export default async function AdminDashboardPage() {
         .from("activity_logs")
         .select("id, action, created_at, user_id")
         .order("created_at", { ascending: false })
-        .limit(10),
+        .limit(5),
     ]);
 
   const totalTheses = thesesRes.count ?? 0;
