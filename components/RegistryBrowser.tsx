@@ -82,6 +82,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
   const [verifyResult, setVerifyResult] = useState<VerifyResult | null>(null);
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [verifyError, setVerifyError] = useState("");
+  const [dragging, setDragging] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // --- Search handlers ---
@@ -129,13 +130,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
 
   // --- Verify handlers ---
 
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) {
-      setFileName(null);
-      setFileHash(null);
-      return;
-    }
+  async function processFile(file: File) {
     if (file.type !== "application/pdf") {
       setVerifyError("Only PDF files are accepted.");
       setFileName(null);
@@ -145,9 +140,45 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
     setFileName(file.name);
     setVerifyError("");
     setVerifyResult(null);
+    setVerifyMode("upload");
     const hash = await hashFile(file);
     setFileHash(hash);
     if (fileRef.current) fileRef.current.value = "";
+  }
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) {
+      setFileName(null);
+      setFileHash(null);
+      return;
+    }
+    await processFile(file);
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) processFile(file);
+  }
+
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  function handleDragEnter(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragging(true);
+  }
+
+  function handleDragLeave(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragging(false);
   }
 
   async function handleVerify(e: React.FormEvent) {
@@ -427,10 +458,16 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                 setVerifyMode("upload");
                 fileRef.current?.click();
               }}
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragEnter={handleDragEnter}
+              onDragLeave={handleDragLeave}
               className={`group flex cursor-pointer flex-col items-center justify-center rounded-xs border-2 border-dashed px-6 py-10 text-center transition-colors ${
-                verifyMode === "upload" && fileName
-                  ? "border-accent/50 bg-accent/5"
-                  : "border-border hover:border-white/20"
+                dragging
+                  ? "border-accent bg-accent/10"
+                  : verifyMode === "upload" && fileName
+                    ? "border-accent/50 bg-accent/5"
+                    : "border-border hover:border-white/20"
               }`}
             >
               <svg
