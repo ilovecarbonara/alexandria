@@ -140,6 +140,19 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
+
+    // Prevent branching: ensure no other thesis already links to this parent
+    const { count } = await service
+      .from("theses")
+      .select("id", { count: "exact", head: true })
+      .eq("previous_thesis_id", previousThesisId);
+
+    if (count && count > 0) {
+      return Response.json(
+        { error: "This thesis already has a revision linked to it." },
+        { status: 409 },
+      );
+    }
   }
 
   // Check blockchain for duplicate
