@@ -13,6 +13,8 @@ export interface VersionChainEntry {
   title: string;
   submissionType: SubmissionType;
   sha256Hash: string;
+  txHash: string;
+  blockTimestamp: string;
   registeredAt: string;
 }
 
@@ -172,7 +174,7 @@ export async function getVersionChain(
   const { data: userTheses, error: fetchErr } = await supabase
     .from("theses")
     .select(
-      "id, title, submission_type, sha256_hash, registered_at, previous_thesis_id",
+      "id, title, submission_type, sha256_hash, tx_hash, block_timestamp, registered_at, previous_thesis_id",
     )
     .eq("user_id", target.user_id);
 
@@ -214,6 +216,8 @@ export async function getVersionChain(
       title: node.title,
       submissionType: node.submission_type as SubmissionType,
       sha256Hash: node.sha256_hash,
+      txHash: node.tx_hash,
+      blockTimestamp: node.block_timestamp,
       registeredAt: node.registered_at,
     });
 

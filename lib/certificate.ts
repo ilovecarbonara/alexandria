@@ -1,6 +1,13 @@
 import { jsPDF } from "jspdf";
 import QRCode from "qrcode";
 
+export interface VersionHistoryEntry {
+  submissionType: string;
+  sha256Hash: string;
+  txHash: string;
+  blockTimestamp: string;
+}
+
 export interface CertificateData {
   authorName: string;
   title: string;
@@ -10,6 +17,7 @@ export interface CertificateData {
   sha256Hash: string;
   txHash: string;
   blockTimestamp: string;
+  versionHistory?: VersionHistoryEntry[];
 }
 
 const PAGE_WIDTH = 210;
@@ -169,6 +177,98 @@ export async function generateCertificate(data: CertificateData): Promise<jsPDF>
   doc.text("Scan to verify on Sepolia Etherscan", PAGE_WIDTH / 2, y, {
     align: "center",
   });
+
+  // --- Version History Table (only for chains with multiple entries) ---
+  if (data.versionHistory && data.versionHistory.length > 1) {
+    y += 10;
+    doc.setDrawColor(COLORS.border);
+    doc.setLineWidth(0.2);
+    doc.line(MARGIN + 5, y, PAGE_WIDTH - MARGIN - 5, y);
+
+    y += 7;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(COLORS.accent);
+    doc.text("VERSION HISTORY", PAGE_WIDTH / 2, y, { align: "center" });
+
+    y += 6;
+
+    // Table layout
+    const tableX = MARGIN + 5;
+    const colWidths = [10, 18, 50, 50, CONTENT_WIDTH - 10 - 10 - 18 - 50 - 50];
+    const headers = ["#", "Type", "SHA-256", "Tx Hash", "Date"];
+    const rowHeight = 6;
+
+    // Header row
+    doc.setFillColor(COLORS.surface);
+    doc.rect(tableX, y, CONTENT_WIDTH - 10, rowHeight, "F");
+    doc.setDrawColor(COLORS.border);
+    doc.rect(tableX, y, CONTENT_WIDTH - 10, rowHeight, "S");
+
+    doc.setFont("courier", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(COLORS.muted);
+
+    let colX = tableX;
+    for (let i = 0; i < headers.length; i++) {
+      doc.text(headers[i], colX + 2, y + 4);
+      colX += colWidths[i];
+    }
+
+    y += rowHeight;
+
+    // Data rows
+    doc.setFont("courier", "normal");
+    doc.setFontSize(7);
+
+    for (let i = 0; i < data.versionHistory.length; i++) {
+      const entry = data.versionHistory[i];
+      const rowY = y;
+
+      // Alternating row background
+      if (i % 2 === 0) {
+        doc.setFillColor("#0F1117");
+        doc.rect(tableX, rowY, CONTENT_WIDTH - 10, rowHeight, "F");
+      }
+
+      doc.setDrawColor(COLORS.border);
+      doc.rect(tableX, rowY, CONTENT_WIDTH - 10, rowHeight, "S");
+
+      colX = tableX;
+
+      // Version number
+      doc.setTextColor(COLORS.muted);
+      doc.text(`v${i + 1}`, colX + 2, rowY + 4);
+      colX += colWidths[0];
+
+      // Submission type
+      doc.setTextColor(COLORS.text);
+      doc.text(capitalize(entry.submissionType), colX + 2, rowY + 4);
+      colX += colWidths[1];
+
+      // SHA-256 (truncated)
+      doc.setTextColor(COLORS.hash);
+      doc.text(entry.sha256Hash.slice(0, 16) + "…", colX + 2, rowY + 4);
+      colX += colWidths[2];
+
+      // Tx Hash (truncated)
+      doc.text(entry.txHash.slice(0, 16) + "…", colX + 2, rowY + 4);
+      colX += colWidths[3];
+
+      // Date
+      doc.setTextColor(COLORS.muted);
+      const dateStr = new Date(entry.blockTimestamp).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+      doc.text(dateStr, colX + 2, rowY + 4);
+
+      y += rowHeight;
+    }
+
+    y += 2;
+  }
 
   // --- Disclaimer ---
   y += 10;

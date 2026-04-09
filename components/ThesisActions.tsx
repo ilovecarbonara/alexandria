@@ -29,7 +29,7 @@ export function ThesisActions({
 
   return (
     <div className="flex items-center gap-2">
-      <CertificateButton thesis={thesis} className="text-xs px-2 py-1" />
+      <CertificateButton thesisId={thesisId} thesis={thesis} className="text-xs px-2 py-1" />
       {hasVersionChain && (
         <>
           <button

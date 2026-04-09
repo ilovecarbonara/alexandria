@@ -3,20 +3,34 @@
 import { useState } from "react";
 import { Button } from "@/components/ui";
 import { generateCertificate, type CertificateData } from "@/lib/certificate";
+import { getVersionChain } from "@/lib/actions/theses";
 import { createClient } from "@/lib/supabase/client";
 
 interface CertificateButtonProps {
+  thesisId: string;
   thesis: CertificateData;
   className?: string;
 }
 
-export function CertificateButton({ thesis, className }: CertificateButtonProps) {
+export function CertificateButton({ thesisId, thesis, className }: CertificateButtonProps) {
   const [loading, setLoading] = useState(false);
 
   async function handleDownload() {
     setLoading(true);
     try {
-      const doc = await generateCertificate(thesis);
+      // Fetch version chain and attach to certificate data if chain exists
+      const certData = { ...thesis };
+      const chainResult = await getVersionChain(thesisId);
+      if (chainResult.data && chainResult.data.length > 1) {
+        certData.versionHistory = chainResult.data.map((entry) => ({
+          submissionType: entry.submissionType,
+          sha256Hash: entry.sha256Hash,
+          txHash: entry.txHash,
+          blockTimestamp: entry.blockTimestamp,
+        }));
+      }
+
+      const doc = await generateCertificate(certData);
       doc.save(`alexandria-${thesis.sha256Hash.slice(0, 8)}.pdf`);
 
       // Log activity
