@@ -42,7 +42,7 @@ export function DisputeButton({ thesisId }: DisputeButtonProps) {
       >
         Flag
       </Button>
-      <Modal open={open} onClose={() => setOpen(false)} title="File a Dispute">
+      <Modal open={open} onClose={() => setOpen(false)} title="File a Dispute" className="min-w-[60vw]">
         {success ? (
           <p className="font-mono text-sm text-success">
             Dispute filed successfully.

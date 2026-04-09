@@ -6,10 +6,11 @@ interface ModalProps {
   open: boolean;
   onClose: () => void;
   title?: string;
+  className?: string;
   children: ReactNode;
 }
 
-export function Modal({ open, onClose, title, children }: ModalProps) {
+export function Modal({ open, onClose, title, className, children }: ModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -26,9 +27,9 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
     <dialog
       ref={dialogRef}
       onClose={onClose}
-      className="rounded-xs border border-border bg-surface p-0 text-white/90 backdrop:bg-black/60"
+      className="m-auto rounded-xs border border-border bg-surface p-0 text-white/90 backdrop:bg-black/60"
     >
-      <div className="min-w-80 max-w-lg">
+      <div className={className ?? "min-w-80 max-w-lg"}>
         {title && (
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
             <h3 className="font-heading text-base">{title}</h3>

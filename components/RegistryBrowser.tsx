@@ -10,6 +10,7 @@ import {
   StatusChip,
   HashDisplay,
   Pagination,
+  Modal,
 } from "@/components/ui";
 import { DisputeButton } from "@/components/DisputeButton";
 import {
@@ -75,6 +76,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
   const [searchPage, setSearchPage] = useState(1);
 
   // Verify state
+  const [verifyOpen, setVerifyOpen] = useState(false);
   const [verifyMode, setVerifyMode] = useState<"upload" | "paste">("upload");
   const [hashInput, setHashInput] = useState("");
   const [fileName, setFileName] = useState<string | null>(null);
@@ -235,7 +237,14 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
   // --- Render ---
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
+      {/* Verify a Document button */}
+      <div className="flex justify-end">
+        <Button type="button" onClick={() => setVerifyOpen(true)}>
+          Verify a Document
+        </Button>
+      </div>
+
       {/* =============================== */}
       {/* SECTION 1: Search the Registry */}
       {/* =============================== */}
@@ -356,9 +365,6 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                         Category
                       </th>
                       <th className="px-6 py-3 font-mono text-xs uppercase text-white/40">
-                        Type
-                      </th>
-                      <th className="px-6 py-3 font-mono text-xs uppercase text-white/40">
                         Registered Date
                       </th>
                       <th className="px-6 py-3 font-mono text-xs uppercase text-white/40">
@@ -390,9 +396,6 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                         </td>
                         <td className="max-w-40 truncate px-6 py-4 font-mono text-sm text-white/60">
                           {thesis.thesis_category}
-                        </td>
-                        <td className="whitespace-nowrap px-6 py-4 font-mono text-sm capitalize text-white/60">
-                          {thesis.submission_type}
                         </td>
                         <td className="whitespace-nowrap px-6 py-4 font-mono text-sm text-white/60">
                           {new Date(thesis.registered_at).toLocaleDateString(
@@ -440,16 +443,15 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
       </Card>
 
       {/* ================================ */}
-      {/* SECTION 2: Verify a Document    */}
+      {/* Verify a Document Modal         */}
       {/* ================================ */}
-      <Card className="p-0">
-        <div className="border-b border-border px-6 py-4">
-          <h2 className="font-heading text-lg text-white">
-            Verify a Document
-          </h2>
-        </div>
-
-        <div className="p-6">
+      <Modal
+        open={verifyOpen}
+        onClose={() => setVerifyOpen(false)}
+        title="Verify a Document"
+        className="min-w-[60vw]"
+      >
+        <div className="space-y-4">
           {/* Side-by-side panels */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {/* Upload panel */}
@@ -795,7 +797,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
             </div>
           )}
         </div>
-      </Card>
+      </Modal>
     </div>
   );
 }
