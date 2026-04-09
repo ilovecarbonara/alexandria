@@ -26,7 +26,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
     <dialog
       ref={dialogRef}
       onClose={onClose}
-      className="rounded-[2px] border border-border bg-surface p-0 text-white/90 backdrop:bg-black/60"
+      className="rounded-xs border border-border bg-surface p-0 text-white/90 backdrop:bg-black/60"
     >
       <div className="min-w-80 max-w-lg">
         {title && (

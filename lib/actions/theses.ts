@@ -8,6 +8,14 @@ import { logActivity } from "./activity";
 import { sanitizeSearchTerm } from "@/lib/validation";
 import type { ThesisLevel, ThesisStatus, SubmissionType } from "@/lib/supabase/types";
 
+export interface VersionChainEntry {
+  id: string;
+  title: string;
+  submissionType: SubmissionType;
+  sha256Hash: string;
+  registeredAt: string;
+}
+
 export interface SearchFilters {
   query?: string;
   level?: ThesisLevel | "";
@@ -144,4 +152,73 @@ export async function getUserThesesForLinking(): Promise<{
 
   if (error) return { error: error.message };
   return { data: data ?? [] };
+}
+
+export async function getVersionChain(
+  thesisId: string,
+): Promise<{ error?: string; data?: VersionChainEntry[] }> {
+  const supabase = await createClient();
+
+  // Fetch the target thesis to identify the owning user
+  const { data: target, error: targetErr } = await supabase
+    .from("theses")
+    .select("user_id")
+    .eq("id", thesisId)
+    .single();
+
+  if (targetErr || !target) return { error: "Thesis not found." };
+
+  // Fetch all theses by the same user — chain members always share an owner
+  const { data: userTheses, error: fetchErr } = await supabase
+    .from("theses")
+    .select(
+      "id, title, submission_type, sha256_hash, registered_at, previous_thesis_id",
+    )
+    .eq("user_id", target.user_id);
+
+  if (fetchErr) return { error: "Failed to load version history." };
+
+  const theses = userTheses ?? [];
+  const byId = new Map(theses.map((t) => [t.id, t]));
+
+  // Map each parent → its child for forward traversal
+  const childOf = new Map<string, string>();
+  for (const t of theses) {
+    if (t.previous_thesis_id) {
+      childOf.set(t.previous_thesis_id, t.id);
+    }
+  }
+
+  // Walk backward from thesisId to find the chain root
+  let rootId = thesisId;
+  const seen = new Set<string>();
+  while (true) {
+    seen.add(rootId);
+    const node = byId.get(rootId);
+    if (!node?.previous_thesis_id || seen.has(node.previous_thesis_id)) break;
+    rootId = node.previous_thesis_id;
+  }
+
+  // Walk forward from root to build the ordered chain
+  const chain: VersionChainEntry[] = [];
+  let currentId: string | undefined = rootId;
+  seen.clear();
+
+  while (currentId && !seen.has(currentId)) {
+    seen.add(currentId);
+    const node = byId.get(currentId);
+    if (!node) break;
+
+    chain.push({
+      id: node.id,
+      title: node.title,
+      submissionType: node.submission_type as SubmissionType,
+      sha256Hash: node.sha256_hash,
+      registeredAt: node.registered_at,
+    });
+
+    currentId = childOf.get(currentId);
+  }
+
+  return { data: chain };
 }

@@ -38,6 +38,15 @@ export default async function DashboardPage() {
   const activeDisputeCount = disputesRes.data?.length ?? 0;
   const recentActivity = activityRes.data ?? [];
 
+  // Determine which theses participate in a version chain
+  const chainParticipants = new Set<string>();
+  for (const t of theses) {
+    if (t.previous_thesis_id) {
+      chainParticipants.add(t.id);
+      chainParticipants.add(t.previous_thesis_id);
+    }
+  }
+
   return (
     <div className="space-y-8">
       {/* Welcome Banner */}
@@ -175,6 +184,7 @@ export default async function DashboardPage() {
                           txHash: thesis.tx_hash,
                           blockTimestamp: thesis.block_timestamp,
                         }}
+                        hasVersionChain={chainParticipants.has(thesis.id)}
                       />
                     </td>
                   </tr>
