@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { Card, StatusChip } from "@/components/ui";
+import { AlertsTableClient } from "@/components/AlertsTableClient";
 
 export default async function AdminAlertsPage() {
   const service = await createClient();
@@ -20,11 +20,7 @@ export default async function AdminAlertsPage() {
             Title similarity alerts log
           </p>
         </div>
-        <Card>
-          <p className="py-8 text-center font-mono text-sm text-white/40">
-            No title alerts recorded yet.
-          </p>
-        </Card>
+        <AlertsTableClient alerts={[]} showNotifiedUser />
       </div>
     );
   }
@@ -50,6 +46,17 @@ export default async function AdminAlertsPage() {
     (usersRes.data ?? []).map((u) => [u.id, u.full_name]),
   );
 
+  const enrichedAlerts = alerts.map((a) => ({
+    id: a.id,
+    newThesisTitle: thesisMap.get(a.new_thesis_id) ?? "Unknown",
+    matchedThesisTitle: thesisMap.get(a.matched_thesis_id) ?? "Unknown",
+    notifiedUserName: userMap.get(a.notified_user_id) ?? "Unknown",
+    newThesisId: a.new_thesis_id,
+    similarityScore: a.similarity_score,
+    status: a.status,
+    createdAt: a.created_at,
+  }));
+
   return (
     <div className="space-y-6">
       <div>
@@ -58,62 +65,7 @@ export default async function AdminAlertsPage() {
           Title similarity alerts log — {alerts.length} total
         </p>
       </div>
-
-      <Card className="p-0">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border text-left">
-                <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">
-                  New Thesis
-                </th>
-                <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">
-                  Matched Thesis
-                </th>
-                <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">
-                  Notified User
-                </th>
-                <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">
-                  Similarity
-                </th>
-                <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">
-                  Status
-                </th>
-                <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">
-                  Date
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {alerts.map((alert) => (
-                <tr
-                  key={alert.id}
-                  className="border-b border-border last:border-b-0"
-                >
-                  <td className="max-w-48 truncate px-6 py-4 font-mono text-sm text-white/90">
-                    {thesisMap.get(alert.new_thesis_id) ?? "Unknown"}
-                  </td>
-                  <td className="max-w-48 truncate px-6 py-4 font-mono text-sm text-white/90">
-                    {thesisMap.get(alert.matched_thesis_id) ?? "Unknown"}
-                  </td>
-                  <td className="px-6 py-4 font-mono text-sm text-white/60">
-                    {userMap.get(alert.notified_user_id) ?? "Unknown"}
-                  </td>
-                  <td className="px-6 py-4 font-mono text-sm text-hash">
-                    {(alert.similarity_score * 100).toFixed(1)}%
-                  </td>
-                  <td className="px-6 py-4">
-                    <StatusChip status={alert.status} />
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 font-mono text-sm text-white/60">
-                    {new Date(alert.created_at).toLocaleDateString()}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+      <AlertsTableClient alerts={enrichedAlerts} showNotifiedUser />
     </div>
   );
 }

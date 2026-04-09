@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/dashboard/register", label: "Register Thesis" },
   { href: "/dashboard/browse", label: "Browse Registry" },
+  { href: "/dashboard/alerts", label: "Title Alerts" },
   { href: "/dashboard/settings", label: "Settings" },
 ];
 

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Card, StatusChip, Button } from "@/components/ui";
-
+import { Card, StatusChip, Button, Pagination } from "@/components/ui";
+import { PAGE_SIZE } from "@/lib/constants";
 interface Dispute {
   id: string;
   reason: string;
@@ -23,8 +23,12 @@ export function DisputeManagementClient({
   const [resolving, setResolving] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "open" | "resolved">("all");
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
 
   const filtered = filter === "all" ? disputes : disputes.filter((d) => d.status === filter);
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   async function handleResolve(disputeId: string) {
     setResolving(disputeId);
@@ -62,7 +66,10 @@ export function DisputeManagementClient({
           <label className="font-mono text-xs text-white/40">Filter:</label>
           <select
             value={filter}
-            onChange={(e) => setFilter(e.target.value as typeof filter)}
+            onChange={(e) => {
+              setFilter(e.target.value as typeof filter);
+              setPage(1);
+            }}
             className="rounded-xs border border-border bg-surface px-3 py-1.5 font-mono text-sm text-white/90 focus:border-accent focus:outline-none"
           >
             <option value="all">All</option>
@@ -84,6 +91,7 @@ export function DisputeManagementClient({
             No disputes found.
           </p>
         ) : (
+          <>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -109,7 +117,7 @@ export function DisputeManagementClient({
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((dispute) => (
+                {paginated.map((dispute) => (
                   <tr
                     key={dispute.id}
                     className="border-b border-border last:border-b-0"
@@ -151,6 +159,12 @@ export function DisputeManagementClient({
               </tbody>
             </table>
           </div>
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          />
+          </>
         )}
       </Card>
     </div>

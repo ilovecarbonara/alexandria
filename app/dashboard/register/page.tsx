@@ -8,7 +8,7 @@ import {
   THESIS_LEVELS,
   SUBMISSION_TYPES,
 } from "@/lib/constants";
-import { getUserThesesForLinking } from "@/lib/actions/theses";
+import { getUserThesesForLinking, getCurrentUserFullName } from "@/lib/actions/theses";
 
 type FormState = {
   error?: string;
@@ -34,10 +34,14 @@ export default function RegisterThesisPage() {
   const [linkableTheses, setLinkableTheses] = useState<
     { id: string; title: string; submission_type: string; registered_at: string }[]
   >([]);
+  const [authorName, setAuthorName] = useState("");
 
   useEffect(() => {
     getUserThesesForLinking().then((result) => {
       if (result.data) setLinkableTheses(result.data);
+    });
+    getCurrentUserFullName().then((result) => {
+      if (result.fullName) setAuthorName(result.fullName);
     });
   }, []);
 
@@ -227,6 +231,8 @@ export default function RegisterThesisPage() {
             name="authorName"
             label="Author Name"
             placeholder="Enter author name"
+            value={authorName}
+            onChange={(e) => setAuthorName(e.target.value)}
             required
           />
 

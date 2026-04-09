@@ -24,6 +24,8 @@ export const SUBMISSION_TYPES = [
   { value: "final", label: "Final" },
 ] as const;
 
+export const PAGE_SIZE = 15;
+
 export const THESIS_STATUSES = [
   { value: "pending", label: "Pending" },
   { value: "accepted", label: "Accepted" },

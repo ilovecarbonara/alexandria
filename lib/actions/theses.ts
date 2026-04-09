@@ -157,6 +157,27 @@ export async function getUserThesesForLinking(): Promise<{
   return { data: data ?? [] };
 }
 
+export async function getCurrentUserFullName(): Promise<{
+  error?: string;
+  fullName?: string;
+}> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { error: "Not authenticated" };
+
+  const { data, error } = await supabase
+    .from("users")
+    .select("full_name")
+    .eq("id", user.id)
+    .single();
+
+  if (error) return { error: error.message };
+  return { fullName: data?.full_name };
+}
+
 export async function getVersionChain(
   thesisId: string,
 ): Promise<{ error?: string; data?: VersionChainEntry[] }> {

@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { Card, Button, StatusChip, HashDisplay } from "@/components/ui";
-import { ThesisActions } from "@/components/ThesisActions";
+import { Card, Button } from "@/components/ui";
+import { DashboardRegistrations } from "@/components/DashboardRegistrations";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -13,7 +13,7 @@ export default async function DashboardPage() {
   if (!user) redirect("/login");
 
   // Parallel queries
-  const [profileRes, thesesRes, disputesRes, activityRes] = await Promise.all([
+  const [profileRes, thesesRes, disputesRes, activityRes, alertCountRes] = await Promise.all([
     supabase.from("users").select("full_name").eq("id", user.id).single(),
     supabase
       .from("theses")
@@ -31,12 +31,17 @@ export default async function DashboardPage() {
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(5),
+    supabase
+      .from("title_alerts")
+      .select("id", { count: "exact", head: true })
+      .eq("notified_user_id", user.id),
   ]);
 
   const fullName = profileRes.data?.full_name ?? "User";
   const theses = thesesRes.data ?? [];
   const activeDisputeCount = disputesRes.data?.length ?? 0;
   const recentActivity = activityRes.data ?? [];
+  const alertCount = alertCountRes.count ?? 0;
 
   // Determine which theses participate in a version chain
   const chainParticipants = new Set<string>();
@@ -65,7 +70,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <p className="font-mono text-xs text-white/40 uppercase">
             My Registered Theses
@@ -80,6 +85,14 @@ export default async function DashboardPage() {
           </p>
           <p className="mt-2 font-heading text-3xl text-white">
             {activeDisputeCount}
+          </p>
+        </Card>
+        <Card>
+          <p className="font-mono text-xs text-white/40 uppercase">
+            Title Alerts
+          </p>
+          <p className="mt-2 font-heading text-3xl text-pending">
+            {alertCount}
           </p>
         </Card>
         <Card>
@@ -107,91 +120,10 @@ export default async function DashboardPage() {
             </Link>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border text-left">
-                  <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">
-                    Title
-                  </th>
-                  <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">
-                    Level
-                  </th>
-                  <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">
-                    Category
-                  </th>
-                  <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">
-                    Type
-                  </th>
-                  <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">
-                    Date
-                  </th>
-                  <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">
-                    Tx Hash
-                  </th>
-                  <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {theses.map((thesis) => (
-                  <tr
-                    key={thesis.id}
-                    className="border-b border-border last:border-b-0"
-                  >
-                    <td className="max-w-50 truncate px-6 py-4 font-mono text-sm text-white/90">
-                      {thesis.title}
-                    </td>
-                    <td className="px-6 py-4 font-mono text-sm text-white/60 capitalize">
-                      {thesis.thesis_level}
-                    </td>
-                    <td className="px-6 py-4 font-mono text-sm text-white/60">
-                      {thesis.thesis_category}
-                    </td>
-                    <td className="px-6 py-4 font-mono text-sm text-white/60 capitalize">
-                      {thesis.submission_type}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 font-mono text-sm text-white/60">
-                      {new Date(thesis.registered_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4">
-                      <StatusChip status={thesis.status} />
-                    </td>
-                    <td className="px-6 py-4">
-                      <a
-                        href={`https://sepolia.etherscan.io/tx/${thesis.tx_hash}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:underline"
-                      >
-                        <HashDisplay hash={thesis.tx_hash} />
-                      </a>
-                    </td>
-                    <td className="px-6 py-4">
-                      <ThesisActions
-                        thesisId={thesis.id}
-                        thesis={{
-                          authorName: thesis.author_name,
-                          title: thesis.title,
-                          thesisLevel: thesis.thesis_level,
-                          thesisCategory: thesis.thesis_category,
-                          submissionType: thesis.submission_type,
-                          sha256Hash: thesis.sha256_hash,
-                          txHash: thesis.tx_hash,
-                          blockTimestamp: thesis.block_timestamp,
-                        }}
-                        hasVersionChain={chainParticipants.has(thesis.id)}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DashboardRegistrations
+            theses={theses}
+            chainParticipantIds={Array.from(chainParticipants)}
+          />
         )}
       </Card>
 

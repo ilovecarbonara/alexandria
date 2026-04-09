@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Card, StatusChip, HashDisplay, Button } from "@/components/ui";
+import { Card, StatusChip, HashDisplay, Button, Pagination } from "@/components/ui";
 import { updateThesisStatus } from "@/lib/actions/theses";
-import { THESIS_STATUSES } from "@/lib/constants";
+import { THESIS_STATUSES, PAGE_SIZE } from "@/lib/constants";
 import type { ThesisStatus } from "@/lib/supabase/types";
 
 interface Thesis {
@@ -31,10 +31,14 @@ export function ThesisRegistryClient({
   const [updating, setUpdating] = useState<string | null>(null);
   const [filter, setFilter] = useState<ThesisStatus | "">("");
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
 
   const filtered = filter
     ? theses.filter((t) => t.status === filter)
     : theses;
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   async function handleStatusChange(thesisId: string, newStatus: ThesisStatus) {
     setUpdating(thesisId);
@@ -63,7 +67,10 @@ export function ThesisRegistryClient({
           <label className="font-mono text-xs text-white/40">Filter:</label>
           <select
             value={filter}
-            onChange={(e) => setFilter(e.target.value as ThesisStatus | "")}
+            onChange={(e) => {
+              setFilter(e.target.value as ThesisStatus | "");
+              setPage(1);
+            }}
             className="rounded-xs border border-border bg-surface px-3 py-1.5 font-mono text-sm text-white/90 focus:border-accent focus:outline-none"
           >
             <option value="">All statuses</option>
@@ -88,6 +95,7 @@ export function ThesisRegistryClient({
             No theses found.
           </p>
         ) : (
+          <>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -122,7 +130,7 @@ export function ThesisRegistryClient({
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((thesis) => (
+                {paginated.map((thesis) => (
                   <tr
                     key={thesis.id}
                     className="border-b border-border last:border-b-0"
@@ -182,6 +190,12 @@ export function ThesisRegistryClient({
               </tbody>
             </table>
           </div>
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          />
+          </>
         )}
       </Card>
     </div>

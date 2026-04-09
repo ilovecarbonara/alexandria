@@ -6,3 +6,4 @@ export { StatusChip } from "./StatusChip";
 export { HashDisplay } from "./HashDisplay";
 export { Sidebar } from "./Sidebar";
 export { Modal } from "./Modal";
+export { Pagination } from "./Pagination";

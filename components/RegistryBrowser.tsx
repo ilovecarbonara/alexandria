@@ -9,12 +9,14 @@ import {
   Select,
   StatusChip,
   HashDisplay,
+  Pagination,
 } from "@/components/ui";
 import { DisputeButton } from "@/components/DisputeButton";
 import {
   THESIS_CATEGORIES,
   THESIS_LEVELS,
   SUBMISSION_TYPES,
+  PAGE_SIZE,
 } from "@/lib/constants";
 import type { ThesisStatus } from "@/lib/supabase/types";
 
@@ -71,6 +73,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
+  const [searchPage, setSearchPage] = useState(1);
 
   // Verify state
   const [verifyMode, setVerifyMode] = useState<"upload" | "paste">("upload");
@@ -108,6 +111,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
       setSearchResults(result.data ?? []);
     }
 
+    setSearchPage(1);
     setSearchLoading(false);
   }
 
@@ -121,6 +125,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
     setSearchResults([]);
     setSearchError("");
     setHasSearched(false);
+    setSearchPage(1);
   }
 
   // --- Verify handlers ---
@@ -295,6 +300,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                 No theses found matching your criteria.
               </p>
             ) : (
+              <>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
@@ -329,7 +335,9 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {searchResults.map((thesis) => (
+                    {searchResults
+                      .slice((searchPage - 1) * PAGE_SIZE, searchPage * PAGE_SIZE)
+                      .map((thesis) => (
                       <tr
                         key={thesis.id}
                         className="border-b border-border last:border-b-0"
@@ -383,6 +391,12 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                   </p>
                 )}
               </div>
+              <Pagination
+                currentPage={searchPage}
+                totalPages={Math.ceil(searchResults.length / PAGE_SIZE)}
+                onPageChange={setSearchPage}
+              />
+              </>
             )}
           </div>
         )}
