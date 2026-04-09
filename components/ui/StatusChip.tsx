@@ -3,18 +3,18 @@ type Status =
   | "accepted" | "flagged" | "rejected" | "active" | "deactivated";
 
 const statusStyles: Record<Status, string> = {
-  verified: "bg-success/20 text-success",
-  pending: "bg-pending/20 text-pending",
-  disputed: "bg-dispute/20 text-dispute",
-  open: "bg-pending/20 text-pending",
-  resolved: "bg-success/20 text-success",
-  sent: "bg-success/20 text-success",
-  failed: "bg-dispute/20 text-dispute",
-  accepted: "bg-success/20 text-success",
-  flagged: "bg-dispute/20 text-dispute",
-  rejected: "bg-dispute/20 text-dispute",
-  active: "bg-success/20 text-success",
-  deactivated: "bg-white/10 text-white/40",
+  verified: "border-l-success text-success",
+  pending: "border-l-pending text-pending",
+  disputed: "border-l-dispute text-dispute",
+  open: "border-l-pending text-pending",
+  resolved: "border-l-success text-success",
+  sent: "border-l-success text-success",
+  failed: "border-l-dispute text-dispute",
+  accepted: "border-l-success text-success",
+  flagged: "border-l-dispute text-dispute",
+  rejected: "border-l-dispute text-dispute",
+  active: "border-l-success text-success",
+  deactivated: "border-l-white/40 text-white/40",
 };
 
 interface StatusChipProps {
@@ -25,7 +25,7 @@ interface StatusChipProps {
 export function StatusChip({ status, className = "" }: StatusChipProps) {
   return (
     <span
-      className={`inline-block rounded-xs px-2 py-0.5 font-mono text-xs uppercase ${statusStyles[status]} ${className}`}
+      className={`inline-block border-l-2 pl-2 py-0.5 font-mono text-xs uppercase ${statusStyles[status]} ${className}`}
     >
       {status}
     </span>
