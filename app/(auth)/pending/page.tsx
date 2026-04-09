@@ -13,7 +13,7 @@ export default function PendingPage() {
         access the system once an admin has verified your registration.
       </p>
       <form action={signOut}>
-        <Button variant="secondary" type="submit">
+        <Button variant="danger-outline" type="submit">
           Sign Out
         </Button>
       </form>

@@ -49,7 +49,7 @@ export function Pagination({
           <button
             key={page}
             onClick={() => onPageChange(page)}
-            className={`min-w-[2rem] rounded-xs px-2 py-1.5 font-mono text-xs transition-colors ${
+            className={`min-w-8 rounded-xs px-2 py-1.5 font-mono text-xs transition-colors ${
               page === currentPage
                 ? "bg-accent text-white"
                 : "text-white/60 hover:bg-white/5"
