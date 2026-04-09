@@ -73,12 +73,12 @@ export default function RegisterThesisPage() {
 
     const formData = new FormData(e.currentTarget);
     const title = (formData.get("title") as string)?.trim();
-    const authorName = (formData.get("authorName") as string)?.trim();
+    const trimmedAuthor = authorName.trim();
     const thesisLevel = formData.get("thesisLevel") as string;
     const thesisCategory = formData.get("thesisCategory") as string;
     const submissionType = formData.get("submissionType") as string;
 
-    if (!title || !authorName || !thesisLevel || !thesisCategory || !submissionType) {
+    if (!title || !trimmedAuthor || !thesisLevel || !thesisCategory || !submissionType) {
       setState({ error: "All fields are required." });
       setLoading(false);
       return;
@@ -96,7 +96,7 @@ export default function RegisterThesisPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title,
-          authorName,
+          authorName: trimmedAuthor,
           thesisLevel,
           thesisCategory,
           submissionType,

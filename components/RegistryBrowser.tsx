@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { searchTheses, type SearchFilters, type VersionChainEntry } from "@/lib/actions/theses";
 import {
   Button,
@@ -16,9 +16,10 @@ import { DisputeButton } from "@/components/DisputeButton";
 import {
   THESIS_CATEGORIES,
   THESIS_LEVELS,
-  PAGE_SIZE,
 } from "@/lib/constants";
 import type { ThesisStatus } from "@/lib/supabase/types";
+
+const SEARCH_PAGE_SIZE = 25;
 
 // --- Types ---
 
@@ -70,9 +71,8 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [searchResults, setSearchResults] = useState<ThesisResult[]>([]);
-  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(true);
   const [searchError, setSearchError] = useState("");
-  const [hasSearched, setHasSearched] = useState(false);
   const [searchPage, setSearchPage] = useState(1);
 
   // Verify state
@@ -87,13 +87,29 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
   const [dragging, setDragging] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // --- Load all theses on mount ---
+
+  useEffect(() => {
+    async function loadInitial() {
+      setSearchLoading(true);
+      const result = await searchTheses({});
+      if (result.error) {
+        setSearchError(result.error);
+        setSearchResults([]);
+      } else {
+        setSearchResults(result.data ?? []);
+      }
+      setSearchLoading(false);
+    }
+    loadInitial();
+  }, []);
+
   // --- Search handlers ---
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     setSearchLoading(true);
     setSearchError("");
-    setHasSearched(true);
 
     const filters: SearchFilters = {
       query: searchQuery,
@@ -117,17 +133,25 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
     setSearchLoading(false);
   }
 
-  function clearSearch() {
+  async function clearSearch() {
     setSearchQuery("");
     setLevelFilter("");
     setCategoryFilter("");
     setTypeFilter("");
     setDateFrom("");
     setDateTo("");
-    setSearchResults([]);
     setSearchError("");
-    setHasSearched(false);
     setSearchPage(1);
+    // Reload all theses
+    setSearchLoading(true);
+    const result = await searchTheses({});
+    if (result.error) {
+      setSearchError(result.error);
+      setSearchResults([]);
+    } else {
+      setSearchResults(result.data ?? []);
+    }
+    setSearchLoading(false);
   }
 
   // --- Verify handlers ---
@@ -340,7 +364,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
         )}
 
         {/* Search results */}
-        {hasSearched && !searchError && (
+        {!searchError && (
           <div className="border-t border-border">
             {searchResults.length === 0 ? (
               <p className="px-6 py-10 text-center font-mono text-sm text-white/40">
@@ -379,7 +403,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                   </thead>
                   <tbody>
                     {searchResults
-                      .slice((searchPage - 1) * PAGE_SIZE, searchPage * PAGE_SIZE)
+                      .slice((searchPage - 1) * SEARCH_PAGE_SIZE, searchPage * SEARCH_PAGE_SIZE)
                       .map((thesis) => (
                       <tr
                         key={thesis.id}
@@ -415,7 +439,9 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                         </td>
                         {currentUserId && (
                           <td className="px-6 py-4">
-                            {thesis.user_id !== currentUserId && (
+                            {thesis.user_id === currentUserId ? (
+                              <span className="font-mono text-sm text-white/30">&mdash;</span>
+                            ) : (
                               <DisputeButton thesisId={thesis.id} />
                             )}
                           </td>
@@ -424,16 +450,10 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                     ))}
                   </tbody>
                 </table>
-                {searchResults.length >= 50 && (
-                  <p className="px-6 py-3 font-mono text-xs text-white/30">
-                    Showing first 50 results. Refine your search for more
-                    specific matches.
-                  </p>
-                )}
               </div>
               <Pagination
                 currentPage={searchPage}
-                totalPages={Math.ceil(searchResults.length / PAGE_SIZE)}
+                totalPages={Math.ceil(searchResults.length / SEARCH_PAGE_SIZE)}
                 onPageChange={setSearchPage}
               />
               </>

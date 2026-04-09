@@ -70,7 +70,7 @@ export async function searchTheses(filters: SearchFilters) {
     query = query.lt("registered_at", endDate.toISOString());
   }
 
-  const { data, error } = await query.limit(50);
+  const { data, error } = await query;
 
   if (error) {
     return { error: "Failed to search theses." };
