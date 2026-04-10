@@ -13,6 +13,7 @@ import {
   Modal,
 } from "@/components/ui";
 import { DisputeButton } from "@/components/DisputeButton";
+import { VersionTimeline } from "@/components/VersionTimeline";
 import {
   THESIS_CATEGORIES,
   THESIS_LEVELS,
@@ -75,6 +76,9 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
   const [searchLoading, setSearchLoading] = useState(true);
   const [searchError, setSearchError] = useState("");
   const [searchPage, setSearchPage] = useState(1);
+  const [chainParticipants, setChainParticipants] = useState<Set<string>>(new Set());
+  const [historyThesisId, setHistoryThesisId] = useState<string | null>(null);
+  const [selectedThesis, setSelectedThesis] = useState<ThesisResult | null>(null);
 
   // Verify state
   const [verifyOpen, setVerifyOpen] = useState(false);
@@ -99,6 +103,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
         setSearchResults([]);
       } else {
         setSearchResults(result.data ?? []);
+        setChainParticipants(new Set(result.chainParticipantIds ?? []));
       }
       setSearchLoading(false);
     }
@@ -128,6 +133,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
       setSearchResults([]);
     } else {
       setSearchResults(result.data ?? []);
+      setChainParticipants(new Set(result.chainParticipantIds ?? []));
     }
 
     setSearchPage(1);
@@ -151,6 +157,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
       setSearchResults([]);
     } else {
       setSearchResults(result.data ?? []);
+      setChainParticipants(new Set(result.chainParticipantIds ?? []));
     }
     setSearchLoading(false);
   }
@@ -399,25 +406,14 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                         Author
                       </th>
                       <th className="px-6 py-3 font-mono text-xs uppercase text-white/40">
-                        Level
-                      </th>
-                      <th className="px-6 py-3 font-mono text-xs uppercase text-white/40">
-                        Category
-                      </th>
-                      <th className="px-6 py-3 font-mono text-xs uppercase text-white/40">
-                        Type
-                      </th>
-                      <th className="px-6 py-3 font-mono text-xs uppercase text-white/40">
-                        Registered Date
+                        Date
                       </th>
                       <th className="px-6 py-3 font-mono text-xs uppercase text-white/40">
                         Tx Hash
                       </th>
-                      {currentUserId && (
-                        <th className="px-6 py-3 font-mono text-xs uppercase text-white/40">
-                          Actions
-                        </th>
-                      )}
+                      <th className="px-6 py-3 font-mono text-xs uppercase text-white/40">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -426,22 +422,14 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                       .map((thesis) => (
                       <tr
                         key={thesis.id}
-                        className="border-b border-border last:border-b-0"
+                        onClick={() => setSelectedThesis(thesis)}
+                        className="cursor-pointer border-b border-border last:border-b-0 transition-colors hover:bg-white/5"
                       >
-                        <td className="max-w-48 truncate px-6 py-4 font-mono text-sm text-white/90">
+                        <td className="max-w-64 truncate px-6 py-4 font-mono text-sm text-white/90">
                           {thesis.title}
                         </td>
                         <td className="max-w-36 truncate px-6 py-4 font-mono text-sm text-white/60">
                           {thesis.author_name}
-                        </td>
-                        <td className="whitespace-nowrap px-6 py-4 font-mono text-sm capitalize text-white/60">
-                          {thesis.thesis_level}
-                        </td>
-                        <td className="max-w-40 truncate px-6 py-4 font-mono text-sm text-white/60">
-                          {thesis.thesis_category}
-                        </td>
-                        <td className="whitespace-nowrap px-6 py-4 font-mono text-sm capitalize text-white/60">
-                          {thesis.submission_type}
                         </td>
                         <td className="whitespace-nowrap px-6 py-4 font-mono text-sm text-white/60">
                           {new Date(thesis.registered_at).toLocaleDateString(
@@ -455,19 +443,32 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                             target="_blank"
                             rel="noopener noreferrer"
                             className="hover:underline"
+                            onClick={(e) => e.stopPropagation()}
                           >
                             <HashDisplay hash={thesis.tx_hash} />
                           </a>
                         </td>
-                        {currentUserId && (
-                          <td className="px-6 py-4">
-                            {thesis.user_id === currentUserId ? (
-                              <span className="font-mono text-sm text-white/30">&mdash;</span>
-                            ) : (
+                        <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                          {chainParticipants.has(thesis.id) || (currentUserId && thesis.user_id !== currentUserId) ? (
+                          <div className="flex items-center gap-2 whitespace-nowrap">
+                            {chainParticipants.has(thesis.id) && (
+                              <Button
+                                variant="secondary"
+                                onClick={() => setHistoryThesisId(thesis.id)}
+                                className="text-xs px-2 py-1 inline-flex items-center gap-1.5"
+                              >
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                                History
+                              </Button>
+                            )}
+                            {currentUserId && thesis.user_id !== currentUserId && (
                               <DisputeButton thesisId={thesis.id} />
                             )}
-                          </td>
-                        )}
+                          </div>
+                          ) : (
+                            <span className="font-mono text-sm text-white/30">&mdash;</span>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -483,6 +484,134 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
           </div>
         )}
       </Card>
+
+      {/* ================================ */}
+      {/* Thesis Detail Modal              */}
+      {/* ================================ */}
+      <Modal
+        open={!!selectedThesis}
+        onClose={() => setSelectedThesis(null)}
+        title="Thesis Details"
+        className={selectedThesis && chainParticipants.has(selectedThesis.id) ? "min-w-[60vw]" : "min-w-[40vw]"}
+      >
+        {selectedThesis && (
+          <div className="space-y-5">
+            {chainParticipants.has(selectedThesis.id) ? (
+              /* Side-by-side layout: metadata left, version history right */
+              <div className="flex gap-6">
+                <div className="min-w-0 flex-1 space-y-5">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <Field label="Title" value={selectedThesis.title} />
+                    <Field label="Author" value={selectedThesis.author_name} />
+                    <Field label="Level" value={selectedThesis.thesis_level} capitalize />
+                    <Field label="Category" value={selectedThesis.thesis_category} />
+                    <Field label="Submission Type" value={selectedThesis.submission_type} capitalize />
+                    <div className="flex flex-col gap-1">
+                      <span className="font-mono text-xs text-white/40">Status</span>
+                      <StatusChip status={selectedThesis.status} />
+                    </div>
+                    <Field
+                      label="Registered"
+                      value={new Date(selectedThesis.registered_at).toLocaleString()}
+                    />
+                    <div className="flex flex-col gap-1">
+                      <span className="font-mono text-xs text-white/40">SHA-256 Hash</span>
+                      <HashDisplay hash={selectedThesis.sha256_hash} />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="font-mono text-xs text-white/40">Transaction</span>
+                      <a
+                        href={`https://sepolia.etherscan.io/tx/${selectedThesis.tx_hash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:underline"
+                      >
+                        <HashDisplay hash={selectedThesis.tx_hash} />
+                      </a>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  {currentUserId && selectedThesis.user_id !== currentUserId && (
+                    <div className="flex items-center gap-2 border-t border-border pt-4">
+                      <DisputeButton thesisId={selectedThesis.id} />
+                    </div>
+                  )}
+                </div>
+
+                {/* Version Timeline — right side */}
+                <div className="w-64 shrink-0 border-l border-border pl-6 max-h-[60vh] overflow-y-auto">
+                  <h3 className="mb-3 font-mono text-xs uppercase text-white/40 sticky top-0 bg-card pb-2">
+                    Version History
+                  </h3>
+                  <VersionTimeline
+                    thesisId={selectedThesis.id}
+                    currentThesisId={selectedThesis.id}
+                  />
+                </div>
+              </div>
+            ) : (
+              /* Standard layout: no version chain */
+              <>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Field label="Title" value={selectedThesis.title} />
+                  <Field label="Author" value={selectedThesis.author_name} />
+                  <Field label="Level" value={selectedThesis.thesis_level} capitalize />
+                  <Field label="Category" value={selectedThesis.thesis_category} />
+                  <Field label="Submission Type" value={selectedThesis.submission_type} capitalize />
+                  <div className="flex flex-col gap-1">
+                    <span className="font-mono text-xs text-white/40">Status</span>
+                    <StatusChip status={selectedThesis.status} />
+                  </div>
+                  <Field
+                    label="Registered"
+                    value={new Date(selectedThesis.registered_at).toLocaleString()}
+                  />
+                  <div className="flex flex-col gap-1">
+                    <span className="font-mono text-xs text-white/40">SHA-256 Hash</span>
+                    <HashDisplay hash={selectedThesis.sha256_hash} />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="font-mono text-xs text-white/40">Transaction</span>
+                    <a
+                      href={`https://sepolia.etherscan.io/tx/${selectedThesis.tx_hash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:underline"
+                    >
+                      <HashDisplay hash={selectedThesis.tx_hash} />
+                    </a>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                {currentUserId && selectedThesis.user_id !== currentUserId && (
+                  <div className="flex items-center gap-2 border-t border-border pt-4">
+                    <DisputeButton thesisId={selectedThesis.id} />
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+      </Modal>
+
+      {/* ================================ */}
+      {/* Version History Modal            */}
+      {/* ================================ */}
+      <Modal
+        open={!!historyThesisId}
+        onClose={() => setHistoryThesisId(null)}
+        title="Version History"
+        className="min-w-[40vw]"
+      >
+        {historyThesisId && (
+          <VersionTimeline
+            thesisId={historyThesisId}
+            currentThesisId={historyThesisId}
+          />
+        )}
+      </Modal>
 
       {/* ================================ */}
       {/* Verify a Document Modal         */}

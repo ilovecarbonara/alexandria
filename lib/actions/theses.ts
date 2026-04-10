@@ -33,7 +33,7 @@ export async function searchTheses(filters: SearchFilters) {
   let query = supabase
     .from("theses")
     .select(
-      "id, user_id, title, author_name, thesis_level, thesis_category, submission_type, sha256_hash, tx_hash, status, registered_at",
+      "id, user_id, title, author_name, thesis_level, thesis_category, submission_type, sha256_hash, tx_hash, status, registered_at, previous_thesis_id",
     )
     .neq("status", "pending")
     .order("registered_at", { ascending: false });
@@ -92,7 +92,20 @@ export async function searchTheses(filters: SearchFilters) {
     (t) => !(t.submission_type === "draft" && supersededIds.has(t.id)),
   );
 
-  return { data: filtered };
+  // Build chain participant set for History buttons
+  const chainParticipantIds: string[] = [];
+  const seen = new Set<string>();
+  for (const t of filtered) {
+    if (t.previous_thesis_id) {
+      if (!seen.has(t.id)) { seen.add(t.id); chainParticipantIds.push(t.id); }
+      if (!seen.has(t.previous_thesis_id)) { seen.add(t.previous_thesis_id); chainParticipantIds.push(t.previous_thesis_id); }
+    }
+    if (supersededIds.has(t.id)) {
+      if (!seen.has(t.id)) { seen.add(t.id); chainParticipantIds.push(t.id); }
+    }
+  }
+
+  return { data: filtered, chainParticipantIds };
 }
 
 export async function updateThesisStatus(

@@ -7,7 +7,7 @@ export default function VerifyPage() {
     <div className="min-h-screen bg-bg">
       {/* Header */}
       <header className="border-b border-border">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-360 items-center justify-between px-6 py-4">
           <div className="flex items-baseline gap-3">
             <Link
               href="/"
@@ -38,7 +38,7 @@ export default function VerifyPage() {
         <div className="mx-auto mt-6 h-px w-12 bg-border" />
       </section>
 
-      <main className="mx-auto max-w-6xl space-y-10 px-6 py-2">
+      <main className="mx-auto max-w-360 space-y-10 px-6 py-2">
         <RegistryBrowser />
       </main>
     </div>

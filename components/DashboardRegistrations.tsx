@@ -32,7 +32,7 @@ const ExpandIcon = () => (
   </svg>
 );
 
-export function   DashboardRegistrations({
+export function DashboardRegistrations({
   theses,
   chainParticipantIds,
 }: DashboardRegistrationsProps) {
