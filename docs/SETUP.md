@@ -32,6 +32,8 @@ cp .env.example .env.local
 | `DEPLOYER_PRIVATE_KEY` | Your Sepolia wallet private key (see below) |
 | `CONTRACT_ADDRESS` | Filled after deploying the contract (step 5) |
 | `TITLE_ALERT_THRESHOLD` | Similarity threshold, default `0.75` |
+| `RESEND_API_KEY` | Resend Dashboard → API Keys → Create API Key |
+| `NEXT_PUBLIC_APP_URL` | Your deployed URL (e.g. `https://your-app.vercel.app`). Defaults to `http://localhost:3000` in dev |
 
 ## 3. Create a Sepolia Wallet
 

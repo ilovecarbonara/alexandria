@@ -19,8 +19,7 @@
   6. Submit hash + metadata to smart contract → get tx_hash
   7. Save record to Supabase theses table (including title_normalized, previous_thesis_id if revision)
   8. Trigger title similarity check (F8) — non-blocking, runs after save
-  9. Trigger certificate generation
-  10. Show success state with tx link
+  9. Show success state with tx link
 
 ## F3: Certificate Generation
 - Generated on demand (not stored)
@@ -35,7 +34,7 @@
 
 ## F4: Public Verification Interface (no login)
 - Two modes: Search and Verify
-- Search: keyword input + filters (level, category, date range) → returns
+- Search: keyword input + filters (level, category, submission type, date range) → returns
   thesis metadata only — never the PDF
 - Search excludes pending-status theses (only accepted/flagged/rejected shown)
 - Verify: upload PDF (hashed client-side) OR paste hash → checks blockchain
@@ -43,7 +42,7 @@
 - If the verified thesis belongs to a version chain (>1 entry), a version history timeline is displayed alongside the metadata
 
 ## F5: Dispute Flag System
-- Any authenticated user can flag any thesis registration
+- Any authenticated user can flag any thesis registration (except their own)
 - Flag form: thesis reference + reason text
 - Saves to disputes table with status: open
 - Does NOT alter blockchain record
@@ -67,6 +66,7 @@
 - Each row: title, status, date, tx hash link, actions (certificate download, version history)
 - Content is truncated to one line with ellipsis; an "Expand" button opens a full-detail modal overlay
 - "History" button appears on theses that participate in a version chain — opens a modal with a timeline view
+- Browse Registry page (sidebar nav item): authenticated users can search/verify/flag theses using the same registry browser as the public verification page, with dispute flagging enabled
 - Title Alerts page (sidebar nav item): table of similarity alerts scoped to the user, each with a dispute/flag action
 - Alert count displayed as a stat card on the main dashboard
 - Stat cards: registered theses count, active disputes, title alerts, recent activity
@@ -133,3 +133,7 @@
 - Version chain appears in: user dashboard (modal), public verification (inline timeline), and certificate PDF (table)
 - Chain data is built in-memory from the user's theses — walks backward to find the root, then forward to produce chronological order
 - Cycle-safe traversal via Set guards
+
+## F13: Settings
+- User settings page: password change (current password verification + new password with confirmation)
+- Admin settings page: read-only display of system configuration (blockchain network, contract address, title similarity threshold and its source)

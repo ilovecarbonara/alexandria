@@ -32,5 +32,5 @@
 - Buttons (danger-outline): transparent bg, border-[#C0392B] text, border-[#C0392B] — used for sign-out
 - Status chips: square, colored bg matching state color, DM Mono text
 - Hash display: text-[#5CC8FF] font-mono, truncated with full value on hover
-- Tables: paginated (15/page), content truncated to single line with ellipsis
+- Tables: paginated (15/page for dashboard/admin, 25/page for public search), content truncated to single line with ellipsis
 - Table expand: icon button opens a full-detail modal overlay (not inline row expansion)
