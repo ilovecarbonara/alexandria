@@ -8,7 +8,7 @@ import {
   THESIS_CATEGORIES,
   SUBMISSION_TYPES,
 } from "@/lib/constants";
-import { MAX_TITLE_LENGTH, MAX_AUTHOR_NAME_LENGTH } from "@/lib/validation";
+import { MAX_TITLE_LENGTH, MAX_AUTHOR_NAME_LENGTH, validateTitle, validateAuthorName, validateUUID } from "@/lib/validation";
 
 const VALID_LEVELS = THESIS_LEVELS.map((l) => l.value as string);
 const VALID_TYPES = SUBMISSION_TYPES.map((t) => t.value as string);
@@ -79,18 +79,14 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "All fields are required." }, { status: 400 });
   }
 
-  if (title.trim().length > MAX_TITLE_LENGTH) {
-    return Response.json(
-      { error: `Title must be ${MAX_TITLE_LENGTH} characters or less.` },
-      { status: 400 },
-    );
+  const titleError = validateTitle(title);
+  if (titleError) {
+    return Response.json({ error: titleError }, { status: 400 });
   }
 
-  if (authorName.trim().length > MAX_AUTHOR_NAME_LENGTH) {
-    return Response.json(
-      { error: `Author name must be ${MAX_AUTHOR_NAME_LENGTH} characters or less.` },
-      { status: 400 },
-    );
+  const authorError = validateAuthorName(authorName);
+  if (authorError) {
+    return Response.json({ error: authorError }, { status: 400 });
   }
 
   // Validate sha256Hash format (64 hex chars)
@@ -109,11 +105,8 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Invalid thesis category." }, { status: 400 });
   }
 
-  // Validate previousThesisId if provided
-  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
   if (previousThesisId) {
-    if (!UUID_RE.test(previousThesisId)) {
+    if (!validateUUID(previousThesisId)) {
       return Response.json(
         { error: "Invalid previous thesis ID format." },
         { status: 400 },

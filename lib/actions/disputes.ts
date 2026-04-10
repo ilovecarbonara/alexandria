@@ -2,7 +2,7 @@
 
 import { requireAuth } from "./auth-guards";
 import { logActivity } from "./activity";
-import { MAX_REASON_LENGTH } from "@/lib/validation";
+import { MAX_REASON_LENGTH, validateUUID } from "@/lib/validation";
 
 export async function flagDispute(
   thesisId: string,
@@ -10,6 +10,10 @@ export async function flagDispute(
 ): Promise<{ error?: string }> {
   if (!thesisId || !reason?.trim()) {
     return { error: "Thesis ID and reason are required." };
+  }
+
+  if (!validateUUID(thesisId)) {
+    return { error: "Invalid thesis ID format." };
   }
 
   if (reason.trim().length > MAX_REASON_LENGTH) {

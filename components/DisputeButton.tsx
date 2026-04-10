@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Modal, Input } from "@/components/ui";
+import { Button, Modal } from "@/components/ui";
 import { flagDispute } from "@/lib/actions/disputes";
+import { MAX_REASON_LENGTH } from "@/lib/validation";
 
 interface DisputeButtonProps {
   thesisId: string;
@@ -49,13 +50,34 @@ export function DisputeButton({ thesisId }: DisputeButtonProps) {
           </p>
         ) : (
           <div className="space-y-4">
-            <Input
-              id="dispute-reason"
-              label="Reason"
-              placeholder="Describe the issue…"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-            />
+            <div className="flex flex-col gap-1">
+              <label
+                htmlFor="dispute-reason"
+                className="text-sm text-white/60 font-mono"
+              >
+                Reason
+              </label>
+              <textarea
+                id="dispute-reason"
+                placeholder="Describe the issue…"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                maxLength={MAX_REASON_LENGTH}
+                rows={4}
+                className="rounded-xs border border-border bg-surface px-3 py-2 font-mono text-sm text-white/90 placeholder:text-white/30 focus:border-accent focus:outline-none resize-y"
+              />
+              <div className="flex justify-end">
+                <span
+                  className={`font-mono text-xs ${
+                    reason.length > 1800
+                      ? "text-dispute"
+                      : "text-white/30"
+                  }`}
+                >
+                  {reason.length}/{MAX_REASON_LENGTH}
+                </span>
+              </div>
+            </div>
             {error && (
               <p className="font-mono text-xs text-dispute">{error}</p>
             )}

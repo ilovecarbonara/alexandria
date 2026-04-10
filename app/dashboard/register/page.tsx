@@ -9,6 +9,12 @@ import {
   SUBMISSION_TYPES,
 } from "@/lib/constants";
 import { getUserThesesForLinking, getCurrentUserFullName } from "@/lib/actions/theses";
+import {
+  MAX_TITLE_LENGTH,
+  MAX_AUTHOR_NAME_LENGTH,
+  validateTitle,
+  validateAuthorName,
+} from "@/lib/validation";
 
 type FormState = {
   error?: string;
@@ -35,6 +41,8 @@ export default function RegisterThesisPage() {
     { id: string; title: string; submission_type: string; registered_at: string }[]
   >([]);
   const [authorName, setAuthorName] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string | null>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     getUserThesesForLinking().then((result) => {
@@ -44,6 +52,29 @@ export default function RegisterThesisPage() {
       if (result.fullName) setAuthorName(result.fullName);
     });
   }, []);
+
+  function validateField(name: string, value: string): string | null {
+    switch (name) {
+      case "title":
+        return validateTitle(value);
+      case "authorName":
+        return validateAuthorName(value);
+      default:
+        return null;
+    }
+  }
+
+  function handleFieldBlur(e: React.FocusEvent<HTMLInputElement>) {
+    const { name, value } = e.target;
+    setTouched((prev) => ({ ...prev, [name]: true }));
+    setFieldErrors((prev) => ({ ...prev, [name]: validateField(name, value) }));
+  }
+
+  function handleFieldChange(name: string, value: string) {
+    if (touched[name]) {
+      setFieldErrors((prev) => ({ ...prev, [name]: validateField(name, value) }));
+    }
+  }
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -223,6 +254,10 @@ export default function RegisterThesisPage() {
             name="title"
             label="Thesis Title"
             placeholder="Enter thesis title"
+            maxLength={MAX_TITLE_LENGTH}
+            onBlur={handleFieldBlur}
+            onChange={(e) => handleFieldChange("title", e.target.value)}
+            error={fieldErrors.title ?? undefined}
             required
           />
 
@@ -231,8 +266,14 @@ export default function RegisterThesisPage() {
             name="authorName"
             label="Author Name"
             placeholder="Enter author name"
+            maxLength={MAX_AUTHOR_NAME_LENGTH}
             value={authorName}
-            onChange={(e) => setAuthorName(e.target.value)}
+            onChange={(e) => {
+              setAuthorName(e.target.value);
+              handleFieldChange("authorName", e.target.value);
+            }}
+            onBlur={handleFieldBlur}
+            error={fieldErrors.authorName ?? undefined}
             required
           />
 

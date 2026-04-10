@@ -3,10 +3,13 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { requireAdmin } from "./auth-guards";
 import { logActivity } from "./activity";
+import { validateUUID } from "@/lib/validation";
 
 export async function approveUser(
   userId: string,
 ): Promise<{ error?: string }> {
+  if (!validateUUID(userId)) return { error: "Invalid user ID format." };
+
   const auth = await requireAdmin();
   if ("error" in auth) return { error: auth.error };
 
@@ -25,6 +28,8 @@ export async function approveUser(
 export async function rejectUser(
   userId: string,
 ): Promise<{ error?: string }> {
+  if (!validateUUID(userId)) return { error: "Invalid user ID format." };
+
   const auth = await requireAdmin();
   if ("error" in auth) return { error: auth.error };
 
@@ -43,6 +48,8 @@ export async function rejectUser(
 export async function deactivateUser(
   userId: string,
 ): Promise<{ error?: string }> {
+  if (!validateUUID(userId)) return { error: "Invalid user ID format." };
+
   const auth = await requireAdmin();
   if ("error" in auth) return { error: auth.error };
 
@@ -65,6 +72,8 @@ export async function deactivateUser(
 export async function activateUser(
   userId: string,
 ): Promise<{ error?: string }> {
+  if (!validateUUID(userId)) return { error: "Invalid user ID format." };
+
   const auth = await requireAdmin();
   if ("error" in auth) return { error: auth.error };
 

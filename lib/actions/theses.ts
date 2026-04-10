@@ -5,7 +5,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { sendStatusChangeEmail } from "@/lib/email";
 import { requireAdmin } from "./auth-guards";
 import { logActivity } from "./activity";
-import { sanitizeSearchTerm } from "@/lib/validation";
+import { sanitizeSearchTerm, validateUUID, validateDateRange } from "@/lib/validation";
 import type { ThesisLevel, ThesisStatus, SubmissionType } from "@/lib/supabase/types";
 
 export interface VersionChainEntry {
@@ -28,6 +28,10 @@ export interface SearchFilters {
 }
 
 export async function searchTheses(filters: SearchFilters) {
+  // Validate date range before querying
+  const dateError = validateDateRange(filters.dateFrom, filters.dateTo);
+  if (dateError) return { error: dateError };
+
   const supabase = await createClient();
 
   let query = supabase
@@ -114,6 +118,10 @@ export async function updateThesisStatus(
 ): Promise<{ error?: string }> {
   if (!thesisId || !status) {
     return { error: "Thesis ID and status are required." };
+  }
+
+  if (!validateUUID(thesisId)) {
+    return { error: "Invalid thesis ID format." };
   }
 
   const auth = await requireAdmin();
@@ -226,6 +234,10 @@ export async function getCurrentUserFullName(): Promise<{
 export async function getVersionChain(
   thesisId: string,
 ): Promise<{ error?: string; data?: VersionChainEntry[] }> {
+  if (!validateUUID(thesisId)) {
+    return { error: "Invalid thesis ID format." };
+  }
+
   const supabase = await createClient();
 
   // Fetch the target thesis to identify the owning user

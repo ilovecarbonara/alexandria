@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, Button, Input } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 import { changePassword } from "@/lib/actions/settings";
+import { validatePassword } from "@/lib/validation";
 
 export default function SettingsPage() {
   const [profile, setProfile] = useState<{
@@ -12,11 +13,63 @@ export default function SettingsPage() {
   } | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const [currentPassword, setCurrentPassword] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [pwLoading, setPwLoading] = useState(false);
   const [pwError, setPwError] = useState<string | null>(null);
   const [pwSuccess, setPwSuccess] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string | null>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  const validateField = useCallback(
+    (name: string, value: string): string | null => {
+      switch (name) {
+        case "currentPassword":
+          return value ? null : "Current password is required.";
+        case "password":
+          return validatePassword(value);
+        case "confirmPassword":
+          if (!value) return "Please confirm your new password.";
+          return value !== password ? "Passwords do not match." : null;
+        default:
+          return null;
+      }
+    },
+    [password],
+  );
+
+  const handleBlur = useCallback(
+    (e: React.FocusEvent<HTMLInputElement>) => {
+      const { name, value } = e.target;
+      setTouched((prev) => ({ ...prev, [name]: true }));
+      setFieldErrors((prev) => ({ ...prev, [name]: validateField(name, value) }));
+    },
+    [validateField],
+  );
+
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const { name, value } = e.target;
+      switch (name) {
+        case "currentPassword": setCurrentPassword(value); break;
+        case "password": setPassword(value); break;
+        case "confirmPassword": setConfirmPassword(value); break;
+      }
+      if (touched[name]) {
+        setFieldErrors((prev) => ({ ...prev, [name]: validateField(name, value) }));
+      }
+      if (name === "password" && touched.confirmPassword && confirmPassword) {
+        setFieldErrors((prev) => ({
+          ...prev,
+          confirmPassword: confirmPassword !== value ? "Passwords do not match." : null,
+        }));
+      }
+      setPwError(null);
+      setPwSuccess(false);
+    },
+    [touched, validateField, confirmPassword],
+  );
 
   useEffect(() => {
     async function loadProfile() {
@@ -46,26 +99,33 @@ export default function SettingsPage() {
     setPwError(null);
     setPwSuccess(false);
 
-    if (password.length < 6) {
-      setPwError("Password must be at least 6 characters.");
-      return;
+    // Validate all fields inline (covers un-blurred inputs)
+    const fields = { currentPassword, password, confirmPassword };
+    const newErrors: Record<string, string | null> = {};
+    let hasError = false;
+    for (const [name, value] of Object.entries(fields)) {
+      const err = validateField(name, value);
+      newErrors[name] = err;
+      if (err) hasError = true;
     }
+    setFieldErrors(newErrors);
+    setTouched({ currentPassword: true, password: true, confirmPassword: true });
 
-    if (password !== confirmPassword) {
-      setPwError("Passwords do not match.");
-      return;
-    }
+    if (hasError) return;
 
     setPwLoading(true);
-    const result = await changePassword(password);
+    const result = await changePassword(currentPassword, password);
     setPwLoading(false);
 
     if (result.error) {
       setPwError(result.error);
     } else {
       setPwSuccess(true);
+      setCurrentPassword("");
       setPassword("");
       setConfirmPassword("");
+      setFieldErrors({});
+      setTouched({});
     }
   }
 
@@ -111,21 +171,39 @@ export default function SettingsPage() {
         </h2>
         <form onSubmit={handlePasswordChange} className="space-y-4">
           <Input
+            id="current-password"
+            name="currentPassword"
+            type="password"
+            label="Current Password"
+            placeholder="Enter current password"
+            value={currentPassword}
+            onBlur={handleBlur}
+            onChange={handleChange}
+            error={fieldErrors.currentPassword ?? undefined}
+            required
+          />
+          <Input
             id="new-password"
+            name="password"
             type="password"
             label="New Password"
             placeholder="Enter new password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onBlur={handleBlur}
+            onChange={handleChange}
+            error={fieldErrors.password ?? undefined}
             required
           />
           <Input
             id="confirm-password"
+            name="confirmPassword"
             type="password"
             label="Confirm Password"
             placeholder="Confirm new password"
             value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
+            onBlur={handleBlur}
+            onChange={handleChange}
+            error={fieldErrors.confirmPassword ?? undefined}
             required
           />
           {pwError && (

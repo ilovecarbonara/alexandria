@@ -10,8 +10,8 @@ import {
   MIN_PASSWORD_LENGTH,
   MAX_PASSWORD_LENGTH,
   FULL_NAME_HTML_PATTERN,
-  FULL_NAME_PATTERN,
   validateFullName,
+  validatePassword,
 } from "@/lib/validation";
 
 export default function RegisterPage() {
@@ -32,12 +32,7 @@ export default function RegisterPage() {
             return "Only @uspf.edu.ph email addresses are allowed.";
           return null;
         case "password":
-          if (!value) return "Password is required.";
-          if (value.length < MIN_PASSWORD_LENGTH)
-            return `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`;
-          if (value.length > MAX_PASSWORD_LENGTH)
-            return `Password must be ${MAX_PASSWORD_LENGTH} characters or less.`;
-          return null;
+          return validatePassword(value);
         default:
           return null;
       }

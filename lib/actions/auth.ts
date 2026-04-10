@@ -4,11 +4,10 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import {
-  MAX_FULL_NAME_LENGTH,
   MAX_EMAIL_LENGTH,
-  MIN_PASSWORD_LENGTH,
   MAX_PASSWORD_LENGTH,
   validateFullName,
+  validatePassword,
 } from "@/lib/validation";
 
 export async function signUp(
@@ -34,13 +33,8 @@ export async function signUp(
     return { error: "Only @uspf.edu.ph email addresses are allowed." };
   }
 
-  if (password.length < MIN_PASSWORD_LENGTH) {
-    return { error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.` };
-  }
-
-  if (password.length > MAX_PASSWORD_LENGTH) {
-    return { error: `Password must be ${MAX_PASSWORD_LENGTH} characters or less.` };
-  }
+  const passwordError = validatePassword(password);
+  if (passwordError) return { error: passwordError };
 
   const supabase = await createClient();
 

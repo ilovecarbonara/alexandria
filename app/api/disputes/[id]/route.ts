@@ -2,12 +2,17 @@ import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { logActivity } from "@/lib/actions/activity";
+import { validateUUID } from "@/lib/validation";
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+
+  if (!validateUUID(id)) {
+    return Response.json({ error: "Invalid dispute ID format." }, { status: 400 });
+  }
 
   const supabase = await createClient();
   const {
