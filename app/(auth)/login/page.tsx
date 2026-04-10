@@ -1,10 +1,11 @@
 "use client";
 
-import { Suspense, useActionState } from "react";
+import { Suspense, useActionState, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "@/lib/actions/auth";
 import { Button, Input, Card } from "@/components/ui";
+import { MAX_EMAIL_LENGTH, MAX_PASSWORD_LENGTH } from "@/lib/validation";
 
 function DeactivatedBanner() {
   const searchParams = useSearchParams();
@@ -18,6 +19,49 @@ function DeactivatedBanner() {
 
 export default function LoginPage() {
   const [state, formAction, isPending] = useActionState(signIn, null);
+  const [errors, setErrors] = useState<Record<string, string | null>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  const validate = useCallback(
+    (name: string, value: string): string | null => {
+      switch (name) {
+        case "email":
+          if (!value) return "Email is required.";
+          if (value.length > MAX_EMAIL_LENGTH)
+            return `Email must be ${MAX_EMAIL_LENGTH} characters or less.`;
+          if (!value.endsWith("@uspf.edu.ph"))
+            return "Only @uspf.edu.ph email addresses are allowed.";
+          return null;
+        case "password":
+          if (!value) return "Password is required.";
+          if (value.length > MAX_PASSWORD_LENGTH)
+            return `Password must be ${MAX_PASSWORD_LENGTH} characters or less.`;
+          return null;
+        default:
+          return null;
+      }
+    },
+    [],
+  );
+
+  const handleBlur = useCallback(
+    (e: React.FocusEvent<HTMLInputElement>) => {
+      const { name, value } = e.target;
+      setTouched((prev) => ({ ...prev, [name]: true }));
+      setErrors((prev) => ({ ...prev, [name]: validate(name, value) }));
+    },
+    [validate],
+  );
+
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const { name, value } = e.target;
+      if (touched[name]) {
+        setErrors((prev) => ({ ...prev, [name]: validate(name, value) }));
+      }
+    },
+    [touched, validate],
+  );
 
   return (
     <Card>
@@ -34,6 +78,10 @@ export default function LoginPage() {
           type="email"
           label="University Email"
           placeholder="you@uspf.edu.ph"
+          maxLength={MAX_EMAIL_LENGTH}
+          onBlur={handleBlur}
+          onChange={handleChange}
+          error={errors.email ?? undefined}
           required
         />
 
@@ -43,6 +91,10 @@ export default function LoginPage() {
           type="password"
           label="Password"
           placeholder="Enter your password"
+          maxLength={MAX_PASSWORD_LENGTH}
+          onBlur={handleBlur}
+          onChange={handleChange}
+          error={errors.password ?? undefined}
           required
         />
 

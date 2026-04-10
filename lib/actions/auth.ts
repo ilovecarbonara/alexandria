@@ -3,7 +3,13 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { MAX_FULL_NAME_LENGTH } from "@/lib/validation";
+import {
+  MAX_FULL_NAME_LENGTH,
+  MAX_EMAIL_LENGTH,
+  MIN_PASSWORD_LENGTH,
+  MAX_PASSWORD_LENGTH,
+  validateFullName,
+} from "@/lib/validation";
 
 export async function signUp(
   _prevState: { error: string } | null,
@@ -17,16 +23,23 @@ export async function signUp(
     return { error: "All fields are required." };
   }
 
-  if (fullName.length > MAX_FULL_NAME_LENGTH) {
-    return { error: `Name must be ${MAX_FULL_NAME_LENGTH} characters or less.` };
+  const nameError = validateFullName(fullName);
+  if (nameError) return { error: nameError };
+
+  if (email.length > MAX_EMAIL_LENGTH) {
+    return { error: `Email must be ${MAX_EMAIL_LENGTH} characters or less.` };
   }
 
   if (!email.endsWith("@uspf.edu.ph")) {
     return { error: "Only @uspf.edu.ph email addresses are allowed." };
   }
 
-  if (password.length < 6) {
-    return { error: "Password must be at least 6 characters." };
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    return { error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.` };
+  }
+
+  if (password.length > MAX_PASSWORD_LENGTH) {
+    return { error: `Password must be ${MAX_PASSWORD_LENGTH} characters or less.` };
   }
 
   const supabase = await createClient();
@@ -64,6 +77,14 @@ export async function signIn(
 
   if (!email || !password) {
     return { error: "Email and password are required." };
+  }
+
+  if (email.length > MAX_EMAIL_LENGTH) {
+    return { error: `Email must be ${MAX_EMAIL_LENGTH} characters or less.` };
+  }
+
+  if (password.length > MAX_PASSWORD_LENGTH) {
+    return { error: `Password must be ${MAX_PASSWORD_LENGTH} characters or less.` };
   }
 
   const supabase = await createClient();
