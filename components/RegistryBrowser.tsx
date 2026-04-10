@@ -5,7 +5,7 @@ import { searchTheses, type SearchFilters, type VersionChainEntry } from "@/lib/
 import {
   Button,
   Card,
-  Select,
+  ComboBox,
   DatePicker,
   StatusChip,
   HashDisplay,
@@ -313,8 +313,8 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
           </div>
 
           {/* Filter row */}
-          <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">
-            <Select
+          <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-[1.5fr_1fr_1fr_1.5fr]">
+            <ComboBox
               id="search-category"
               label="Category"
               options={THESIS_CATEGORIES.map((c) => ({
@@ -324,14 +324,14 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
             />
-            <Select
+            <ComboBox
               id="search-level"
               label="Level"
               options={[...THESIS_LEVELS]}
               value={levelFilter}
               onChange={(e) => setLevelFilter(e.target.value)}
             />
-            <Select
+            <ComboBox
               id="search-type"
               label="Submission Type"
               options={[...SUBMISSION_TYPES]}
@@ -503,9 +503,9 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <Field label="Title" value={selectedThesis.title} />
                     <Field label="Author" value={selectedThesis.author_name} />
-                    <Field label="Level" value={selectedThesis.thesis_level} capitalize />
+                    <Field label="Level" value={selectedThesis.thesis_level} capitalize small />
                     <Field label="Category" value={selectedThesis.thesis_category} />
-                    <Field label="Submission Type" value={selectedThesis.submission_type} capitalize />
+                    <Field label="Submission Type" value={selectedThesis.submission_type} capitalize small />
                     <div className="flex flex-col gap-1">
                       <span className="font-mono text-xs text-white/40">Status</span>
                       <StatusChip status={selectedThesis.status} />
@@ -556,9 +556,9 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Field label="Title" value={selectedThesis.title} />
                   <Field label="Author" value={selectedThesis.author_name} />
-                  <Field label="Level" value={selectedThesis.thesis_level} capitalize />
+                  <Field label="Level" value={selectedThesis.thesis_level} capitalize small />
                   <Field label="Category" value={selectedThesis.thesis_category} />
-                  <Field label="Submission Type" value={selectedThesis.submission_type} capitalize />
+                  <Field label="Submission Type" value={selectedThesis.submission_type} capitalize small />
                   <div className="flex flex-col gap-1">
                     <span className="font-mono text-xs text-white/40">Status</span>
                     <StatusChip status={selectedThesis.status} />
@@ -803,6 +803,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                           label="Level"
                           value={verifyResult.thesis.thesis_level}
                           capitalize
+                          small
                         />
                         <Field
                           label="Category"
@@ -812,6 +813,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                           label="Submission Type"
                           value={verifyResult.thesis.submission_type}
                           capitalize
+                          small
                         />
                         <div className="flex flex-col gap-1">
                           <span className="font-mono text-xs text-white/40">
@@ -979,16 +981,18 @@ function Field({
   label,
   value,
   capitalize: cap,
+  small,
 }: {
   label: string;
   value: string;
   capitalize?: boolean;
+  small?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-1">
       <span className="font-mono text-xs text-white/40">{label}</span>
       <span
-        className={`font-mono text-sm text-white/90 ${cap ? "capitalize" : ""}`}
+        className={`font-mono ${small ? "text-xs" : "text-sm"} text-white/90 ${cap ? "capitalize" : ""}`}
       >
         {value}
       </span>
