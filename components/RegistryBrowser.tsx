@@ -16,6 +16,7 @@ import { DisputeButton } from "@/components/DisputeButton";
 import {
   THESIS_CATEGORIES,
   THESIS_LEVELS,
+  SUBMISSION_TYPES,
 } from "@/lib/constants";
 import type { ThesisStatus } from "@/lib/supabase/types";
 
@@ -305,7 +306,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
           </div>
 
           {/* Filter row */}
-          <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-3">
+          <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">
             <Select
               id="search-category"
               label="Category"
@@ -322,6 +323,13 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
               options={[...THESIS_LEVELS]}
               value={levelFilter}
               onChange={(e) => setLevelFilter(e.target.value)}
+            />
+            <Select
+              id="search-type"
+              label="Submission Type"
+              options={[...SUBMISSION_TYPES]}
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
             />
 
             <div className="flex flex-col gap-1">
@@ -397,6 +405,9 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                         Category
                       </th>
                       <th className="px-6 py-3 font-mono text-xs uppercase text-white/40">
+                        Type
+                      </th>
+                      <th className="px-6 py-3 font-mono text-xs uppercase text-white/40">
                         Registered Date
                       </th>
                       <th className="px-6 py-3 font-mono text-xs uppercase text-white/40">
@@ -428,6 +439,9 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                         </td>
                         <td className="max-w-40 truncate px-6 py-4 font-mono text-sm text-white/60">
                           {thesis.thesis_category}
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4 font-mono text-sm capitalize text-white/60">
+                          {thesis.submission_type}
                         </td>
                         <td className="whitespace-nowrap px-6 py-4 font-mono text-sm text-white/60">
                           {new Date(thesis.registered_at).toLocaleDateString(

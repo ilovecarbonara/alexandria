@@ -76,7 +76,23 @@ export async function searchTheses(filters: SearchFilters) {
     return { error: "Failed to search theses." };
   }
 
-  return { data: data ?? [] };
+  const results = data ?? [];
+
+  // Exclude superseded drafts (drafts that already have a child revision)
+  const { data: childLinks } = await supabase
+    .from("theses")
+    .select("previous_thesis_id")
+    .not("previous_thesis_id", "is", null);
+
+  const supersededIds = new Set(
+    (childLinks ?? []).map((t) => t.previous_thesis_id),
+  );
+
+  const filtered = results.filter(
+    (t) => !(t.submission_type === "draft" && supersededIds.has(t.id)),
+  );
+
+  return { data: filtered };
 }
 
 export async function updateThesisStatus(
