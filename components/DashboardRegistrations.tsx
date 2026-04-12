@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Modal, StatusChip, HashDisplay, Pagination, Card, Button } from "@/components/ui";
+import { Modal, Field, StatusChip, HashDisplay, Pagination, Card, Button } from "@/components/ui";
 import { ThesisActions } from "@/components/ThesisActions";
+import { VersionTimeline } from "@/components/VersionTimeline";
 import { PAGE_SIZE } from "@/lib/constants";
 import type { ThesisStatus } from "@/lib/supabase/types";
 
@@ -26,41 +27,21 @@ interface DashboardRegistrationsProps {
   chainParticipantIds: string[];
 }
 
-const ExpandIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M15 3h6v6" /><path d="M9 21H3v-6" /><path d="M21 3l-7 7" /><path d="M3 21l7-7" />
-  </svg>
-);
-
 export function DashboardRegistrations({
   theses,
   chainParticipantIds,
 }: DashboardRegistrationsProps) {
   const [page, setPage] = useState(1);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalPage, setModalPage] = useState(1);
+  const [selectedThesis, setSelectedThesis] = useState<Thesis | null>(null);
   const chainParticipants = new Set(chainParticipantIds);
   const totalPages = Math.ceil(theses.length / PAGE_SIZE);
   const paginated = theses.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const modalTotalPages = Math.ceil(theses.length / PAGE_SIZE);
-  const modalPaginated = theses.slice((modalPage - 1) * PAGE_SIZE, modalPage * PAGE_SIZE);
 
   return (
     <>
       <Card className="p-0">
-        <div className="flex items-center justify-between border-b border-border px-6 py-4">
+        <div className="border-b border-border px-6 py-4">
           <h2 className="font-heading text-lg text-white">My Registrations</h2>
-          {theses.length > 0 && (
-            <button
-              type="button"
-              onClick={() => { setModalOpen(true); setModalPage(1); }}
-              className="flex items-center gap-1.5 rounded-xs px-2 py-1 font-mono text-xs text-white/40 transition-colors hover:bg-white/5 hover:text-white/70"
-              title="Expand table"
-            >
-              <ExpandIcon />
-              <span>Expand</span>
-            </button>
-          )}
         </div>
         {theses.length === 0 ? (
           <div className="px-6 py-12 text-center">
@@ -71,7 +52,7 @@ export function DashboardRegistrations({
           </div>
         ) : (
           <>
-      {/* Collapsed table */}
+      {/* Table */}
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
@@ -85,7 +66,11 @@ export function DashboardRegistrations({
           </thead>
           <tbody>
             {paginated.map((thesis) => (
-              <tr key={thesis.id} className="border-b border-border last:border-b-0">
+              <tr
+                key={thesis.id}
+                onClick={() => setSelectedThesis(thesis)}
+                className="cursor-pointer border-b border-border last:border-b-0 transition-colors hover:bg-white/5"
+              >
                 <td className="max-w-64 truncate px-6 py-4 font-mono text-sm text-white/90">
                   {thesis.title}
                 </td>
@@ -95,7 +80,7 @@ export function DashboardRegistrations({
                 <td className="whitespace-nowrap px-6 py-4 font-mono text-sm text-white/60">
                   {new Date(thesis.registered_at).toLocaleDateString()}
                 </td>
-                <td className="px-6 py-4">
+                <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                   <a
                     href={`https://sepolia.etherscan.io/tx/${thesis.tx_hash}`}
                     target="_blank"
@@ -105,7 +90,7 @@ export function DashboardRegistrations({
                     <HashDisplay hash={thesis.tx_hash} />
                   </a>
                 </td>
-                <td className="px-6 py-4">
+                <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                   <ThesisActions
                     thesisId={thesis.id}
                     thesis={{
@@ -131,88 +116,130 @@ export function DashboardRegistrations({
         )}
       </Card>
 
-      {/* Expanded full-detail modal */}
+      {/* Thesis detail modal */}
       <Modal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title="My Registrations — Full Details"
-        className="w-[95vw] max-w-none"
+        open={!!selectedThesis}
+        onClose={() => setSelectedThesis(null)}
+        title="Thesis Details"
+        className={selectedThesis && chainParticipants.has(selectedThesis.id) ? "min-w-[60vw]" : "min-w-[40vw]"}
       >
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border text-left">
-                <th className="px-4 py-3 font-mono text-xs text-white/40 uppercase">Title</th>
-                <th className="px-4 py-3 font-mono text-xs text-white/40 uppercase">Level</th>
-                <th className="px-4 py-3 font-mono text-xs text-white/40 uppercase">Category</th>
-                <th className="px-4 py-3 font-mono text-xs text-white/40 uppercase">Type</th>
-                <th className="px-4 py-3 font-mono text-xs text-white/40 uppercase">Date</th>
-                <th className="px-4 py-3 font-mono text-xs text-white/40 uppercase">Status</th>
-                <th className="px-4 py-3 font-mono text-xs text-white/40 uppercase">SHA-256</th>
-                <th className="px-4 py-3 font-mono text-xs text-white/40 uppercase">Tx Hash</th>
-                <th className="px-4 py-3 font-mono text-xs text-white/40 uppercase">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {modalPaginated.map((thesis) => (
-                <tr key={thesis.id} className="border-b border-border last:border-b-0">
-                  <td className="max-w-48 truncate px-4 py-3 font-mono text-sm text-white/90">
-                    {thesis.title}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 font-mono text-sm text-white/60 capitalize">
-                    {thesis.thesis_level}
-                  </td>
-                  <td className="max-w-36 truncate px-4 py-3 font-mono text-sm text-white/60">
-                    {thesis.thesis_category}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 font-mono text-sm text-white/60 capitalize">
-                    {thesis.submission_type}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 font-mono text-sm text-white/60">
-                    {new Date(thesis.registered_at).toLocaleDateString("en-US", {
-                      month: "short", day: "numeric", year: "numeric",
-                    })}
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusChip status={thesis.status} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <HashDisplay hash={thesis.sha256_hash} />
-                  </td>
-                  <td className="px-4 py-3">
+        {selectedThesis && (
+          <div className="space-y-5">
+            {chainParticipants.has(selectedThesis.id) ? (
+              <div className="flex gap-6">
+                <div className="min-w-0 flex-1 space-y-5">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <Field label="Title" value={selectedThesis.title} />
+                    <Field label="Author" value={selectedThesis.author_name} />
+                    <Field label="Level" value={selectedThesis.thesis_level} capitalize small />
+                    <Field label="Category" value={selectedThesis.thesis_category} />
+                    <Field label="Submission Type" value={selectedThesis.submission_type} capitalize small />
+                    <div className="flex flex-col gap-1">
+                      <span className="font-mono text-xs text-white/40">Status</span>
+                      <StatusChip status={selectedThesis.status} />
+                    </div>
+                    <Field
+                      label="Registered"
+                      value={new Date(selectedThesis.registered_at).toLocaleString()}
+                    />
+                    <div className="flex flex-col gap-1">
+                      <span className="font-mono text-xs text-white/40">SHA-256 Hash</span>
+                      <HashDisplay hash={selectedThesis.sha256_hash} />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="font-mono text-xs text-white/40">Transaction</span>
+                      <a
+                        href={`https://sepolia.etherscan.io/tx/${selectedThesis.tx_hash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:underline"
+                      >
+                        <HashDisplay hash={selectedThesis.tx_hash} />
+                      </a>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 border-t border-border pt-4">
+                    <ThesisActions
+                      thesisId={selectedThesis.id}
+                      thesis={{
+                        authorName: selectedThesis.author_name,
+                        title: selectedThesis.title,
+                        thesisLevel: selectedThesis.thesis_level,
+                        thesisCategory: selectedThesis.thesis_category,
+                        submissionType: selectedThesis.submission_type,
+                        sha256Hash: selectedThesis.sha256_hash,
+                        txHash: selectedThesis.tx_hash,
+                        blockTimestamp: selectedThesis.block_timestamp,
+                      }}
+                      hasVersionChain
+                    />
+                  </div>
+                </div>
+
+                <div className="w-64 shrink-0 border-l border-border pl-6 max-h-[60vh] overflow-y-auto">
+                  <h3 className="mb-3 font-mono text-xs uppercase text-white/40 sticky top-0 bg-card pb-2">
+                    Version History
+                  </h3>
+                  <VersionTimeline
+                    thesisId={selectedThesis.id}
+                    currentThesisId={selectedThesis.id}
+                  />
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Field label="Title" value={selectedThesis.title} />
+                  <Field label="Author" value={selectedThesis.author_name} />
+                  <Field label="Level" value={selectedThesis.thesis_level} capitalize small />
+                  <Field label="Category" value={selectedThesis.thesis_category} />
+                  <Field label="Submission Type" value={selectedThesis.submission_type} capitalize small />
+                  <div className="flex flex-col gap-1">
+                    <span className="font-mono text-xs text-white/40">Status</span>
+                    <StatusChip status={selectedThesis.status} />
+                  </div>
+                  <Field
+                    label="Registered"
+                    value={new Date(selectedThesis.registered_at).toLocaleString()}
+                  />
+                  <div className="flex flex-col gap-1">
+                    <span className="font-mono text-xs text-white/40">SHA-256 Hash</span>
+                    <HashDisplay hash={selectedThesis.sha256_hash} />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="font-mono text-xs text-white/40">Transaction</span>
                     <a
-                      href={`https://sepolia.etherscan.io/tx/${thesis.tx_hash}`}
+                      href={`https://sepolia.etherscan.io/tx/${selectedThesis.tx_hash}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="hover:underline"
                     >
-                      <HashDisplay hash={thesis.tx_hash} />
+                      <HashDisplay hash={selectedThesis.tx_hash} />
                     </a>
-                  </td>
-                  <td className="px-4 py-3">
-                    <ThesisActions
-                      thesisId={thesis.id}
-                      thesis={{
-                        authorName: thesis.author_name,
-                        title: thesis.title,
-                        thesisLevel: thesis.thesis_level,
-                        thesisCategory: thesis.thesis_category,
-                        submissionType: thesis.submission_type,
-                        sha256Hash: thesis.sha256_hash,
-                        txHash: thesis.tx_hash,
-                        blockTimestamp: thesis.block_timestamp,
-                      }}
-                      hasVersionChain={chainParticipants.has(thesis.id)}
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="mt-2">
-          <Pagination currentPage={modalPage} totalPages={modalTotalPages} onPageChange={setModalPage} />
-        </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 border-t border-border pt-4">
+                  <ThesisActions
+                    thesisId={selectedThesis.id}
+                    thesis={{
+                      authorName: selectedThesis.author_name,
+                      title: selectedThesis.title,
+                      thesisLevel: selectedThesis.thesis_level,
+                      thesisCategory: selectedThesis.thesis_category,
+                      submissionType: selectedThesis.submission_type,
+                      sha256Hash: selectedThesis.sha256_hash,
+                      txHash: selectedThesis.tx_hash,
+                      blockTimestamp: selectedThesis.block_timestamp,
+                    }}
+                    hasVersionChain={false}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </Modal>
     </>
   );

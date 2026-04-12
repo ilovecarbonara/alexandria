@@ -7,6 +7,7 @@ import {
   Card,
   ComboBox,
   DatePicker,
+  Field,
   StatusChip,
   HashDisplay,
   Pagination,
@@ -971,31 +972,6 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
           )}
         </div>
       </Modal>
-    </div>
-  );
-}
-
-// --- Internal helper component ---
-
-function Field({
-  label,
-  value,
-  capitalize: cap,
-  small,
-}: {
-  label: string;
-  value: string;
-  capitalize?: boolean;
-  small?: boolean;
-}) {
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="font-mono text-xs text-white/40">{label}</span>
-      <span
-        className={`font-mono ${small ? "text-xs" : "text-sm"} text-white/90 ${cap ? "capitalize" : ""}`}
-      >
-        {value}
-      </span>
     </div>
   );
 }

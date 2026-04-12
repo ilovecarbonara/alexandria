@@ -44,6 +44,7 @@ export function ThesisActions({
             open={historyOpen}
             onClose={() => setHistoryOpen(false)}
             title="Version History"
+            className="min-w-[40vw]"
           >
             <VersionTimeline
               thesisId={thesisId}

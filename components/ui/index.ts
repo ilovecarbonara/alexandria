@@ -9,3 +9,4 @@ export { Sidebar } from "./Sidebar";
 export { Modal } from "./Modal";
 export { Pagination } from "./Pagination";
 export { DatePicker } from "./DatePicker";
+export { Field } from "./Field";
