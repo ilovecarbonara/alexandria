@@ -214,6 +214,19 @@ export async function POST(request: NextRequest) {
     action: "Thesis registered on blockchain",
   });
 
+  // Auto-accept the previous draft when a final version is linked
+  if (previousThesisId) {
+    await service
+      .from("theses")
+      .update({ status: "accepted" as const })
+      .eq("id", previousThesisId);
+
+    await service.from("activity_logs").insert({
+      user_id: user.id,
+      action: "Draft auto-accepted: final version submitted",
+    });
+  }
+
   // Run similarity check after the response is sent
   after(async () => {
     try {

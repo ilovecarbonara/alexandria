@@ -1,11 +1,29 @@
 "use client";
 
-import { useState } from "react";
-import { Card, Modal, Field, StatusChip, HashDisplay, Pagination, Select } from "@/components/ui";
+import { useState, useEffect } from "react";
+import {
+  Button,
+  Card,
+  ComboBox,
+  DatePicker,
+  Modal,
+  Field,
+  StatusChip,
+  HashDisplay,
+  Pagination,
+  Select,
+} from "@/components/ui";
 import { VersionTimeline } from "@/components/VersionTimeline";
-import { updateThesisStatus } from "@/lib/actions/theses";
-import { THESIS_STATUSES, PAGE_SIZE } from "@/lib/constants";
+import { searchTheses, updateThesisStatus, type SearchFilters } from "@/lib/actions/theses";
+import {
+  THESIS_STATUSES,
+  THESIS_CATEGORIES,
+  THESIS_LEVELS,
+  SUBMISSION_TYPES,
+} from "@/lib/constants";
 import type { ThesisStatus } from "@/lib/supabase/types";
+
+const SEARCH_PAGE_SIZE = 25;
 
 interface Thesis {
   id: string;
@@ -21,29 +39,107 @@ interface Thesis {
   user_email?: string;
 }
 
-interface ThesisRegistryClientProps {
-  initialTheses: Thesis[];
-  chainParticipantIds: string[];
-}
+export function ThesisRegistryClient() {
+  // Search / filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [levelFilter, setLevelFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState<ThesisStatus | "">("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
-export function ThesisRegistryClient({
-  initialTheses,
-  chainParticipantIds,
-}: ThesisRegistryClientProps) {
-  const [theses, setTheses] = useState(initialTheses);
-  const [updating, setUpdating] = useState<string | null>(null);
-  const [filter, setFilter] = useState<ThesisStatus | "">("");
-  const [error, setError] = useState<string | null>(null);
+  // Results state
+  const [theses, setTheses] = useState<Thesis[]>([]);
+  const [chainParticipants, setChainParticipants] = useState<Set<string>>(new Set());
+  const [supersededIds, setSupersededIds] = useState<Set<string>>(new Set());
+  const [searchLoading, setSearchLoading] = useState(true);
+  const [searchError, setSearchError] = useState("");
   const [page, setPage] = useState(1);
+
+  // Action state
+  const [updating, setUpdating] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [selectedThesis, setSelectedThesis] = useState<Thesis | null>(null);
-  const chainParticipants = new Set(chainParticipantIds);
 
-  const filtered = filter
-    ? theses.filter((t) => t.status === filter)
-    : theses;
+  const totalPages = Math.ceil(theses.length / SEARCH_PAGE_SIZE);
+  const paginated = theses.slice((page - 1) * SEARCH_PAGE_SIZE, page * SEARCH_PAGE_SIZE);
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  // --- Load all theses on mount ---
+
+  useEffect(() => {
+    async function loadInitial() {
+      setSearchLoading(true);
+      const result = await searchTheses({ includeAllStatuses: true, includeEmail: true });
+      if (result.error) {
+        setSearchError(result.error);
+        setTheses([]);
+      } else {
+        setTheses((result.data as Thesis[]) ?? []);
+        setChainParticipants(new Set(result.chainParticipantIds ?? []));
+        setSupersededIds(new Set(result.supersededIds ?? []));
+      }
+      setSearchLoading(false);
+    }
+    loadInitial();
+  }, []);
+
+  // --- Search handler ---
+
+  async function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    setSearchLoading(true);
+    setSearchError("");
+
+    const filters: SearchFilters = {
+      query: searchQuery,
+      level: levelFilter as SearchFilters["level"],
+      category: categoryFilter,
+      submissionType: typeFilter as SearchFilters["submissionType"],
+      status: statusFilter,
+      dateFrom: dateFrom || undefined,
+      dateTo: dateTo || undefined,
+      includeAllStatuses: true,
+      includeEmail: true,
+    };
+
+    const result = await searchTheses(filters);
+
+    if (result.error) {
+      setSearchError(result.error);
+      setTheses([]);
+    } else {
+      setTheses((result.data as Thesis[]) ?? []);
+      setChainParticipants(new Set(result.chainParticipantIds ?? []));
+      setSupersededIds(new Set(result.supersededIds ?? []));
+    }
+
+    setPage(1);
+    setSearchLoading(false);
+  }
+
+  async function clearSearch() {
+    setSearchQuery("");
+    setLevelFilter("");
+    setCategoryFilter("");
+    setTypeFilter("");
+    setStatusFilter("");
+    setDateFrom("");
+    setDateTo("");
+    setSearchError("");
+    setPage(1);
+    setSearchLoading(true);
+    const result = await searchTheses({ includeAllStatuses: true, includeEmail: true });
+    if (result.error) {
+      setSearchError(result.error);
+      setTheses([]);
+    } else {
+      setTheses((result.data as Thesis[]) ?? []);
+      setChainParticipants(new Set(result.chainParticipantIds ?? []));
+      setSupersededIds(new Set(result.supersededIds ?? []));
+    }
+    setSearchLoading(false);
+  }
 
   async function handleStatusChange(thesisId: string, newStatus: ThesisStatus) {
     setUpdating(thesisId);
@@ -76,29 +172,11 @@ export function ThesisRegistryClient({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-heading text-2xl text-white">Thesis Registry</h1>
-          <p className="mt-1 font-mono text-sm text-white/40">
-            Manage thesis registrations and statuses
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="w-44">
-            <Select
-              placeholder="All statuses"
-              value={filter}
-              onChange={(e) => {
-                setFilter(e.target.value as ThesisStatus | "");
-                setPage(1);
-              }}
-              options={THESIS_STATUSES.map((s) => ({
-                value: s.value,
-                label: s.label,
-              }))}
-            />
-          </div>
-        </div>
+      <div>
+        <h1 className="font-heading text-2xl text-white">Thesis Registry</h1>
+        <p className="mt-1 font-mono text-sm text-white/40">
+          Manage thesis registrations and statuses
+        </p>
       </div>
 
       {error && (
@@ -108,57 +186,179 @@ export function ThesisRegistryClient({
       )}
 
       <Card className="p-0">
-        {filtered.length === 0 ? (
-          <p className="px-6 py-12 text-center font-mono text-sm text-white/40">
-            No theses found.
-          </p>
-        ) : (
-          <>
-          {/* Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border text-left">
-                  <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">Title</th>
-                  <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">Author</th>
-                  <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">Type</th>
-                  <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">Date</th>
-                  <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">Status</th>
-                  <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginated.map((thesis) => (
-                  <tr
-                    key={thesis.id}
-                    onClick={() => setSelectedThesis(thesis)}
-                    className="cursor-pointer border-b border-border last:border-b-0 transition-colors hover:bg-white/5"
-                  >
-                    <td className="max-w-52 truncate px-6 py-4 font-mono text-sm text-white/90">
-                      {thesis.title}
-                    </td>
-                    <td className="max-w-36 truncate px-6 py-4 font-mono text-sm text-white/60">
-                      {thesis.author_name}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 font-mono text-sm text-white/60 capitalize">
-                      {thesis.submission_type}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 font-mono text-sm text-white/60">
-                      {new Date(thesis.registered_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4">
-                      <StatusChip status={thesis.status} />
-                    </td>
-                    <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                      {statusSelect(thesis)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <form onSubmit={handleSearch} className="p-6 pb-4">
+          {/* Search bar row */}
+          <div className="flex gap-3">
+            <div className="relative flex-1">
+              <svg
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/30"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Search by title, author name, or keyword…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full rounded-xs border border-border bg-surface py-2.5 pl-10 pr-3 font-mono text-sm text-white/90 placeholder:text-white/30 focus:border-accent focus:outline-none"
+              />
+            </div>
+            <Button type="submit" disabled={searchLoading}>
+              {searchLoading ? "Searching…" : "Search"}
+            </Button>
           </div>
-          <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
-          </>
+
+          {/* Filter row */}
+          <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-[1.5fr_1fr_1fr_1fr_1.5fr]">
+            <ComboBox
+              id="admin-search-category"
+              label="Category"
+              options={THESIS_CATEGORIES.map((c) => ({
+                value: c,
+                label: c,
+              }))}
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+            />
+            <ComboBox
+              id="admin-search-level"
+              label="Level"
+              options={[...THESIS_LEVELS]}
+              value={levelFilter}
+              onChange={(e) => setLevelFilter(e.target.value)}
+            />
+            <ComboBox
+              id="admin-search-type"
+              label="Submission Type"
+              options={[...SUBMISSION_TYPES]}
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+            />
+            <ComboBox
+              id="admin-search-status"
+              label="Status"
+              options={[...THESIS_STATUSES]}
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as ThesisStatus | "")}
+            />
+            <div className="flex flex-col gap-1">
+              <label className="font-mono text-sm text-white/60">
+                Date Range
+              </label>
+              <div className="flex items-center gap-2">
+                <DatePicker
+                  value={dateFrom}
+                  placeholder="From…"
+                  onChange={(v) => setDateFrom(v)}
+                  className="w-40"
+                />
+                <span className="shrink-0 self-end pb-2.5 font-mono text-xs text-white/40">to</span>
+                <DatePicker
+                  value={dateTo}
+                  placeholder="To…"
+                  onChange={(v) => setDateTo(v)}
+                  className="w-40"
+                />
+              </div>
+            </div>
+          </div>
+          {(searchQuery || levelFilter || categoryFilter || typeFilter || statusFilter || dateFrom || dateTo) && (
+            <button
+              type="button"
+              onClick={clearSearch}
+              className="mt-2 font-mono text-xs text-white/40 hover:text-white/70 transition-colors"
+            >
+              Clear filters
+            </button>
+          )}
+        </form>
+
+        {/* Search error */}
+        {searchError && (
+          <div className="mx-6 mb-6 rounded-xs border border-dispute/30 bg-dispute/10 px-4 py-3 font-mono text-sm text-dispute">
+            {searchError}
+          </div>
+        )}
+
+        {/* Results */}
+        {!searchError && (
+          <div className="border-t border-border">
+            {searchLoading ? (
+              <div className="flex items-center justify-center gap-3 px-6 py-10">
+                <svg className="h-5 w-5 animate-spin text-accent" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                <span className="font-mono text-sm text-white/40">Loading theses…</span>
+              </div>
+            ) : theses.length === 0 ? (
+              <p className="px-6 py-10 text-center font-mono text-sm text-white/40">
+                No theses found matching your criteria.
+              </p>
+            ) : (
+              <>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border text-left">
+                      <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">Title</th>
+                      <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">Author</th>
+                      <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">Type</th>
+                      <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">Date</th>
+                      <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">Status</th>
+                      <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginated.map((thesis) => (
+                      <tr
+                        key={thesis.id}
+                        onClick={() => setSelectedThesis(thesis)}
+                        className="cursor-pointer border-b border-border last:border-b-0 transition-colors hover:bg-white/5"
+                      >
+                        <td className="max-w-52 truncate px-6 py-4 font-mono text-sm text-white/90">
+                          {thesis.title}
+                        </td>
+                        <td className="max-w-36 truncate px-6 py-4 font-mono text-sm text-white/60">
+                          {thesis.author_name}
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4 font-mono text-sm text-white/60 capitalize">
+                          {thesis.submission_type}
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4 font-mono text-sm text-white/60">
+                          {new Date(thesis.registered_at).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <StatusChip status={thesis.status} />
+                            {supersededIds.has(thesis.id) && (
+                              <span className="inline-block border-l-2 border-l-white/20 pl-2 py-0.5 font-mono text-xs uppercase text-white/30">
+                                superseded
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                          {statusSelect(thesis)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+              </>
+            )}
+          </div>
         )}
       </Card>
 

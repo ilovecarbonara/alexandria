@@ -25,12 +25,21 @@ export interface SearchFilters {
   submissionType?: SubmissionType | "";
   dateFrom?: string;
   dateTo?: string;
+  status?: ThesisStatus | "";
+  includeAllStatuses?: boolean;
+  includeEmail?: boolean;
 }
 
 export async function searchTheses(filters: SearchFilters) {
   // Validate date range before querying
   const dateError = validateDateRange(filters.dateFrom, filters.dateTo);
   if (dateError) return { error: dateError };
+
+  // Admin-only flags require admin auth
+  if (filters.includeAllStatuses || filters.includeEmail) {
+    const auth = await requireAdmin();
+    if ("error" in auth) return { error: auth.error };
+  }
 
   const supabase = await createClient();
 
@@ -39,8 +48,17 @@ export async function searchTheses(filters: SearchFilters) {
     .select(
       "id, user_id, title, author_name, thesis_level, thesis_category, submission_type, sha256_hash, tx_hash, status, registered_at, previous_thesis_id",
     )
-    .neq("status", "pending")
     .order("registered_at", { ascending: false });
+
+  // Public callers exclude pending theses; admins see all statuses
+  if (!filters.includeAllStatuses) {
+    query = query.neq("status", "pending");
+  }
+
+  // Filter by specific status
+  if (filters.status) {
+    query = query.eq("status", filters.status);
+  }
 
   if (filters.query?.trim()) {
     const term = sanitizeSearchTerm(filters.query);
@@ -89,12 +107,14 @@ export async function searchTheses(filters: SearchFilters) {
     .not("previous_thesis_id", "is", null);
 
   const supersededIds = new Set(
-    (childLinks ?? []).map((t) => t.previous_thesis_id),
+    (childLinks ?? []).map((t) => t.previous_thesis_id).filter((id): id is string => id !== null),
   );
 
-  const filtered = results.filter(
-    (t) => !(t.submission_type === "draft" && supersededIds.has(t.id)),
-  );
+  const filtered = filters.includeAllStatuses
+    ? results
+    : results.filter(
+        (t) => !(t.submission_type === "draft" && supersededIds.has(t.id)),
+      );
 
   // Build chain participant set for History buttons
   const chainParticipantIds: string[] = [];
@@ -109,7 +129,21 @@ export async function searchTheses(filters: SearchFilters) {
     }
   }
 
-  return { data: filtered, chainParticipantIds };
+  // Attach user emails when requested (admin only — auth already checked above)
+  if (filters.includeEmail) {
+    const userIds = [...new Set(filtered.map((t) => t.user_id))];
+    const { data: users } = userIds.length
+      ? await supabase.from("users").select("id, email").in("id", userIds)
+      : { data: [] };
+    const emailMap = new Map((users ?? []).map((u: { id: string; email: string }) => [u.id, u.email]));
+    const withEmails = filtered.map((t) => ({
+      ...t,
+      user_email: emailMap.get(t.user_id),
+    }));
+    return { data: withEmails, chainParticipantIds, supersededIds: [...supersededIds] };
+  }
+
+  return { data: filtered, chainParticipantIds, supersededIds: [...supersededIds] };
 }
 
 export async function updateThesisStatus(
