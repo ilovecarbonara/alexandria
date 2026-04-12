@@ -121,7 +121,7 @@ export function DashboardRegistrations({
         open={!!selectedThesis}
         onClose={() => setSelectedThesis(null)}
         title="Thesis Details"
-        className={selectedThesis && chainParticipants.has(selectedThesis.id) ? "min-w-[60vw]" : "min-w-[40vw]"}
+        className={selectedThesis && chainParticipants.has(selectedThesis.id) ? "min-w-[70vw]" : "min-w-[40vw]"}
       >
         {selectedThesis && (
           <div className="space-y-5">
@@ -177,7 +177,7 @@ export function DashboardRegistrations({
                   </div>
                 </div>
 
-                <div className="w-64 shrink-0 border-l border-border pl-6 max-h-[60vh] overflow-y-auto">
+                <div className="w-80 shrink-0 border-l border-border pl-6 max-h-[60vh] overflow-y-auto">
                   <h3 className="mb-3 font-mono text-xs uppercase text-white/40 sticky top-0 bg-card pb-2">
                     Version History
                   </h3>
