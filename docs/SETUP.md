@@ -30,7 +30,8 @@ cp .env.example .env.local
 | `ALCHEMY_API_KEY` | Alchemy dashboard → Create App (Sepolia) → API Key |
 | `DEPLOYER_PRIVATE_KEY` | Your Sepolia wallet private key (see below) |
 | `CONTRACT_ADDRESS` | Filled after deploying the contract (step 5) |
-| `TITLE_ALERT_THRESHOLD` | Similarity threshold, default `0.75` |
+| `TITLE_ALERT_THRESHOLD` | Similarity alert threshold, default `0.50` |
+| `AUTO_FLAG_THRESHOLD` | Auto-flag threshold, default `0.75`. Theses matching at or above this score are auto-flagged with a dispute |
 | `NEXT_PUBLIC_APP_URL` | Your deployed URL (e.g. `https://your-app.vercel.app`). Defaults to `http://localhost:3000` in dev |
 
 ## 3. Create a Sepolia Wallet

@@ -1,20 +1,45 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button, Modal } from "@/components/ui";
-import { flagDispute } from "@/lib/actions/disputes";
+import { flagDispute, getThesisSimilarityContext } from "@/lib/actions/disputes";
 import { MAX_REASON_LENGTH } from "@/lib/validation";
 
 interface DisputeButtonProps {
   thesisId: string;
+  similarityContext?: {
+    score: number;
+    matchedThesisTitle: string;
+  };
+  fetchSimilarity?: boolean;
 }
 
-export function DisputeButton({ thesisId }: DisputeButtonProps) {
+export function DisputeButton({
+  thesisId,
+  similarityContext,
+  fetchSimilarity = false,
+}: DisputeButtonProps) {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [fetchedContext, setFetchedContext] = useState<{
+    score: number;
+    matchedThesisTitle: string;
+  } | null>(null);
+  const [fetchingContext, setFetchingContext] = useState(false);
+
+  const displayContext = similarityContext ?? fetchedContext;
+
+  useEffect(() => {
+    if (open && fetchSimilarity && !similarityContext && !fetchedContext) {
+      setFetchingContext(true);
+      getThesisSimilarityContext(thesisId)
+        .then((ctx) => setFetchedContext(ctx))
+        .finally(() => setFetchingContext(false));
+    }
+  }, [open, fetchSimilarity, similarityContext, fetchedContext, thesisId]);
 
   async function handleSubmit() {
     setError(null);
@@ -50,6 +75,27 @@ export function DisputeButton({ thesisId }: DisputeButtonProps) {
           </p>
         ) : (
           <div className="space-y-4">
+            {fetchingContext && (
+              <p className="font-mono text-xs text-white/30">
+                Loading similarity data…
+              </p>
+            )}
+            {displayContext && (
+              <div className="rounded-xs border border-border bg-surface/50 px-3 py-2 font-mono text-xs space-y-1">
+                <div className="text-white/40">
+                  Similarity:{" "}
+                  <span className="text-hash">
+                    {(displayContext.score * 100).toFixed(1)}%
+                  </span>
+                </div>
+                <div className="text-white/40">
+                  Matched thesis:{" "}
+                  <span className="text-white/70">
+                    {displayContext.matchedThesisTitle}
+                  </span>
+                </div>
+              </div>
+            )}
             <div className="flex flex-col gap-1">
               <label
                 htmlFor="dispute-reason"

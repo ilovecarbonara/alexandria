@@ -25,6 +25,8 @@ to establish a tamper-proof, publicly verifiable proof of existence and registra
 - On every new registration, a title-similarity check runs against all
   existing entries. If a match exceeds the configured threshold, an
   in-system alert is created for the author of the matching prior registration.
+  If the similarity score meets the auto-flag threshold (default 75%),
+  a dispute is automatically created and the incoming thesis is flagged.
 - The system records REGISTRATION, not authorship. It does not verify
   that the registrant wrote the thesis.
   - The system trusts the client-submitted hash. No server-side 

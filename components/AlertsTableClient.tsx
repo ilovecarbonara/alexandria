@@ -1,10 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import { Card, StatusChip, Pagination } from "@/components/ui";
+import { useState, useMemo } from "react";
+import { Card, StatusChip, Pagination, Select } from "@/components/ui";
 import { DisputeButton } from "@/components/DisputeButton";
 import { PAGE_SIZE } from "@/lib/constants";
 import type { AlertStatus } from "@/lib/supabase/types";
+
+const SORT_OPTIONS = [
+  { value: "date-desc", label: "Date (Newest)" },
+  { value: "date-asc", label: "Date (Oldest)" },
+  { value: "similarity-desc", label: "Similarity (Highest)" },
+  { value: "similarity-asc", label: "Similarity (Lowest)" },
+];
 
 interface AlertRow {
   id: string;
@@ -29,8 +36,26 @@ export function AlertsTableClient({
   showDisputeAction = false,
 }: AlertsTableClientProps) {
   const [page, setPage] = useState(1);
-  const totalPages = Math.ceil(alerts.length / PAGE_SIZE);
-  const paginated = alerts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const [sortKey, setSortKey] = useState("date-desc");
+
+  const sorted = useMemo(() => {
+    const [field, direction] = sortKey.split("-") as [string, string];
+    const copy = [...alerts];
+    copy.sort((a, b) => {
+      let cmp: number;
+      if (field === "similarity") {
+        cmp = a.similarityScore - b.similarityScore;
+      } else {
+        cmp =
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      }
+      return direction === "asc" ? cmp : -cmp;
+    });
+    return copy;
+  }, [alerts, sortKey]);
+
+  const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
+  const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   if (alerts.length === 0) {
     return (
@@ -44,6 +69,19 @@ export function AlertsTableClient({
 
   return (
     <Card className="p-0">
+      <div className="flex justify-end px-6 pt-4">
+        <div className="w-56">
+          <Select
+            label="Sort by"
+            options={SORT_OPTIONS}
+            value={sortKey}
+            onChange={(e) => {
+              setSortKey(e.target.value);
+              setPage(1);
+            }}
+          />
+        </div>
+      </div>
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
@@ -103,7 +141,13 @@ export function AlertsTableClient({
                 </td>
                 {showDisputeAction && (
                   <td className="px-6 py-4">
-                    <DisputeButton thesisId={alert.newThesisId} />
+                    <DisputeButton
+                      thesisId={alert.newThesisId}
+                      similarityContext={{
+                        score: alert.similarityScore,
+                        matchedThesisTitle: alert.matchedThesisTitle,
+                      }}
+                    />
                   </td>
                 )}
               </tr>

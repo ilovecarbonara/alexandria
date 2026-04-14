@@ -33,4 +33,5 @@ export const THESIS_STATUSES = [
   { value: "rejected", label: "Rejected" },
 ] as const;
 
-export const DEFAULT_TITLE_ALERT_THRESHOLD = 0.75;
+export const DEFAULT_TITLE_ALERT_THRESHOLD = 0.5;
+export const DEFAULT_AUTO_FLAG_THRESHOLD = 0.75;

@@ -1,5 +1,8 @@
 import { createServiceClient } from "@/lib/supabase/service";
-import { DEFAULT_TITLE_ALERT_THRESHOLD } from "@/lib/constants";
+import {
+  DEFAULT_TITLE_ALERT_THRESHOLD,
+  DEFAULT_AUTO_FLAG_THRESHOLD,
+} from "@/lib/constants";
 
 export async function checkTitleSimilarity(thesisId: string) {
   const service = createServiceClient();
@@ -18,6 +21,10 @@ export async function checkTitleSimilarity(thesisId: string) {
   const threshold =
     parseFloat(process.env.TITLE_ALERT_THRESHOLD || "") ||
     DEFAULT_TITLE_ALERT_THRESHOLD;
+
+  const autoFlagThreshold =
+    parseFloat(process.env.AUTO_FLAG_THRESHOLD || "") ||
+    DEFAULT_AUTO_FLAG_THRESHOLD;
 
   const { data: matches, error: rpcError } = await service.rpc(
     "find_similar_titles",
@@ -42,6 +49,8 @@ export async function checkTitleSimilarity(thesisId: string) {
 
   if (otherAuthorMatches.length === 0) return;
 
+  let autoFlagged = false;
+
   for (const match of otherAuthorMatches) {
     await service.from("title_alerts").insert({
       new_thesis_id: thesis.id,
@@ -50,5 +59,28 @@ export async function checkTitleSimilarity(thesisId: string) {
       similarity_score: match.similarity_score,
       status: "notified",
     });
+
+    // Auto-flag the incoming thesis when similarity meets the auto-flag threshold
+    if (!autoFlagged && match.similarity_score >= autoFlagThreshold) {
+      const score = (match.similarity_score * 100).toFixed(1);
+
+      await service.from("disputes").insert({
+        thesis_id: thesis.id,
+        flagged_by: match.user_id,
+        reason: `Auto-flagged: ${score}% similarity with "${match.title}"`,
+      });
+
+      await service
+        .from("theses")
+        .update({ status: "flagged" })
+        .eq("id", thesis.id);
+
+      await service.from("activity_logs").insert({
+        user_id: match.user_id,
+        action: `Thesis auto-flagged due to ${score}% title similarity`,
+      });
+
+      autoFlagged = true;
+    }
   }
 }

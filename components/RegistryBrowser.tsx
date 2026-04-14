@@ -463,7 +463,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                               </Button>
                             )}
                             {currentUserId && thesis.user_id !== currentUserId && (
-                              <DisputeButton thesisId={thesis.id} />
+                              <DisputeButton thesisId={thesis.id} fetchSimilarity />
                             )}
                           </div>
                           ) : (
@@ -535,7 +535,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                   {/* Actions */}
                   {currentUserId && selectedThesis.user_id !== currentUserId && (
                     <div className="flex items-center gap-2 border-t border-border pt-4">
-                      <DisputeButton thesisId={selectedThesis.id} />
+                      <DisputeButton thesisId={selectedThesis.id} fetchSimilarity />
                     </div>
                   )}
                 </div>
@@ -588,7 +588,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                 {/* Actions */}
                 {currentUserId && selectedThesis.user_id !== currentUserId && (
                   <div className="flex items-center gap-2 border-t border-border pt-4">
-                    <DisputeButton thesisId={selectedThesis.id} />
+                    <DisputeButton thesisId={selectedThesis.id} fetchSimilarity />
                   </div>
                 )}
               </>

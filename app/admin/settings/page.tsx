@@ -1,11 +1,17 @@
 import { Card } from "@/components/ui";
-import { DEFAULT_TITLE_ALERT_THRESHOLD } from "@/lib/constants";
+import {
+  DEFAULT_TITLE_ALERT_THRESHOLD,
+  DEFAULT_AUTO_FLAG_THRESHOLD,
+} from "@/lib/constants";
 
 export default function AdminSettingsPage() {
   const contractAddress = process.env.CONTRACT_ADDRESS ?? "Not configured";
   const threshold =
     parseFloat(process.env.TITLE_ALERT_THRESHOLD ?? "") ||
     DEFAULT_TITLE_ALERT_THRESHOLD;
+  const autoFlagThreshold =
+    parseFloat(process.env.AUTO_FLAG_THRESHOLD ?? "") ||
+    DEFAULT_AUTO_FLAG_THRESHOLD;
 
   return (
     <div className="space-y-6">
@@ -61,6 +67,24 @@ export default function AdminSettingsPage() {
               <dd className="mt-1 font-mono text-sm text-white/60">
                 {process.env.TITLE_ALERT_THRESHOLD
                   ? "Environment variable (TITLE_ALERT_THRESHOLD)"
+                  : "Default value"}
+              </dd>
+            </div>
+            <div>
+              <dt className="font-mono text-xs text-white/40 uppercase">
+                Auto-Flag Threshold
+              </dt>
+              <dd className="mt-1 font-mono text-sm text-white/90">
+                {(autoFlagThreshold * 100).toFixed(0)}% ({autoFlagThreshold})
+              </dd>
+            </div>
+            <div>
+              <dt className="font-mono text-xs text-white/40 uppercase">
+                Auto-Flag Source
+              </dt>
+              <dd className="mt-1 font-mono text-sm text-white/60">
+                {process.env.AUTO_FLAG_THRESHOLD
+                  ? "Environment variable (AUTO_FLAG_THRESHOLD)"
                   : "Default value"}
               </dd>
             </div>
