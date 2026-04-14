@@ -48,9 +48,9 @@
 | id                 | uuid (PK) |                                                        |
 | new_thesis_id      | uuid (FK) | references theses.id — the incoming registration       |
 | matched_thesis_id  | uuid (FK) | references theses.id — the existing entry that matched |
-| notified_user_id   | uuid (FK) | references users.id — who received the alert email     |
+| notified_user_id   | uuid (FK) | references users.id — who received the alert           |
 | similarity_score   | float     | 0.0–1.0 score from pg_trgm at time of match            |
-| status             | enum      | sent, failed                                           |
+| status             | enum      | notified                                               |
 | created_at         | timestamp |                                                        |
 
 ### activity_logs

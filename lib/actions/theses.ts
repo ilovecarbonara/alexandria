@@ -2,7 +2,6 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { sendStatusChangeEmail } from "@/lib/email";
 import { requireAdmin } from "./auth-guards";
 import { logActivity } from "./activity";
 import { sanitizeSearchTerm, validateUUID, validateDateRange } from "@/lib/validation";
@@ -163,17 +162,6 @@ export async function updateThesisStatus(
 
   const service = createServiceClient();
 
-  // Fetch thesis with author info for email notification
-  const { data: thesis, error: fetchError } = await service
-    .from("theses")
-    .select("title, tx_hash, user_id")
-    .eq("id", thesisId)
-    .single();
-
-  if (fetchError || !thesis) {
-    return { error: "Thesis not found." };
-  }
-
   const { error } = await service
     .from("theses")
     .update({ status })
@@ -182,27 +170,6 @@ export async function updateThesisStatus(
   if (error) return { error: error.message };
 
   await logActivity(`Thesis status changed to ${status}`);
-
-  // Send email notification on accepted or rejected
-  if (status === "accepted" || status === "rejected") {
-    const { data: author } = await service
-      .from("users")
-      .select("email, full_name")
-      .eq("id", thesis.user_id)
-      .single();
-
-    if (author) {
-      await sendStatusChangeEmail({
-        recipientEmail: author.email,
-        recipientName: author.full_name,
-        thesisTitle: thesis.title,
-        newStatus: status,
-        txHash: thesis.tx_hash,
-      }).catch(() => {
-        // Email failure is non-blocking
-      });
-    }
-  }
 
   return {};
 }

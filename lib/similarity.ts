@@ -1,5 +1,4 @@
 import { createServiceClient } from "@/lib/supabase/service";
-import { sendTitleAlertEmail } from "@/lib/email";
 import { DEFAULT_TITLE_ALERT_THRESHOLD } from "@/lib/constants";
 
 export async function checkTitleSimilarity(thesisId: string) {
@@ -44,29 +43,12 @@ export async function checkTitleSimilarity(thesisId: string) {
   if (otherAuthorMatches.length === 0) return;
 
   for (const match of otherAuthorMatches) {
-    const { data: matchedUser } = await service
-      .from("users")
-      .select("email, full_name")
-      .eq("id", match.user_id)
-      .single();
-
-    if (!matchedUser) continue;
-
-    const emailResult = await sendTitleAlertEmail({
-      recipientEmail: matchedUser.email,
-      recipientName: matchedUser.full_name,
-      theirTitle: match.title,
-      incomingTitle: thesis.title,
-      txHash: thesis.tx_hash,
-      registeredAt: thesis.registered_at,
-    });
-
     await service.from("title_alerts").insert({
       new_thesis_id: thesis.id,
       matched_thesis_id: match.thesis_id,
       notified_user_id: match.user_id,
       similarity_score: match.similarity_score,
-      status: emailResult.success ? "sent" : "failed",
+      status: "notified",
     });
   }
 }

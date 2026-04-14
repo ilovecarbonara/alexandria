@@ -58,7 +58,7 @@
   - Count display: title alerts sent (total, last 30 days)
 - Dispute management table: view flags, mark as resolved
 - Thesis registry table: view all theses, change status (pending → accepted/flagged/rejected)
-- Title alert log table: view matched pairs, similarity scores, sent/failed status
+- Title alert log table: view matched pairs, similarity scores, notified status
 - All admin tables are paginated (15 per page) with expand-to-modal for full details
 
 ## F7: User Dashboard
@@ -83,31 +83,22 @@
    title_normalized column — threshold set via TITLE_ALERT_THRESHOLD env variable
   4. Collect all matches above the configured threshold (suggested default: 0.75)
   5. For each match, retrieve the author (user_id) of the matched thesis
-  6. Send alert email via Resend to the matched author's registered email
-  7. Log each alert to the title_alerts table (new_thesis_id, matched_thesis_id,
-     notified_user_id, similarity_score, status: sent/failed)
-- Alert email contains:
-  - Subject: "A new thesis with a similar title has been registered on Alexandria"
-  - Matched author's name
-  - Their registered thesis title
-  - Incoming thesis title
-  - Incoming registration date and tx link
-  - Link to public verification interface
+  6. Insert alert record to the title_alerts table (new_thesis_id, matched_thesis_id,
+     notified_user_id, similarity_score, status: notified)
 - The alert is informational only — it does not alter any record or
   trigger any automated action
+- Alerts are displayed in-system via the user dashboard and admin alert log
 - Threshold is configurable via environment variable (TITLE_ALERT_THRESHOLD)
   to allow tuning without a code deploy
 - A single incoming registration may trigger multiple alerts if it
   matches multiple existing entries
 - Draft registrations also trigger the similarity check
-- Same-author matches are skipped entirely — no alert created, no email sent (e.g., user registering a Final after their own Draft)
+- Same-author matches are skipped entirely — no alert created (e.g., user registering a Final after their own Draft)
 
 ## F9: Thesis Status Workflow
 - New registrations default to status: pending
 - Admin can change status to: accepted, flagged, rejected
 - Status changes are logged in activity_logs
-- Status change to accepted/rejected triggers email notification to the thesis author via Resend
-- Email contains: author name, thesis title, new status, and a link to the thesis
 - Public verification page displays thesis status alongside metadata
 
 ## F10: User Management

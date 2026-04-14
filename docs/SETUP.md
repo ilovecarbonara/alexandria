@@ -2,7 +2,6 @@
 
 ## Prerequisites
 - Node.js 18+
-- Resend
 - A Supabase project (free tier works)
 - An Alchemy account (free tier works)
 - A Sepolia testnet wallet with test ETH
@@ -32,7 +31,6 @@ cp .env.example .env.local
 | `DEPLOYER_PRIVATE_KEY` | Your Sepolia wallet private key (see below) |
 | `CONTRACT_ADDRESS` | Filled after deploying the contract (step 5) |
 | `TITLE_ALERT_THRESHOLD` | Similarity threshold, default `0.75` |
-| `RESEND_API_KEY` | Resend Dashboard → API Keys → Create API Key |
 | `NEXT_PUBLIC_APP_URL` | Your deployed URL (e.g. `https://your-app.vercel.app`). Defaults to `http://localhost:3000` in dev |
 
 ## 3. Create a Sepolia Wallet
@@ -96,15 +94,7 @@ VALUES (
 
 Replace `<supabase-auth-user-uuid>` with the UUID from Supabase Auth → Users.
 
-## 7. Configure Resend (for email notifications)
-
-1. Go to https://resend.com and sign up
-2. Create an API key: Resend Dashboard → API Keys → Create API Key
-3. Paste it into `RESEND_API_KEY` in `.env.local`
-4. Resend is used for title-similarity alert emails and thesis status-change notifications
-5. In production, set `NEXT_PUBLIC_APP_URL` to your deployed URL so email links point to the correct domain
-
-## 8. Run the Dev Server
+## 7. Run the Dev Server
 
 ```bash
 npm run dev

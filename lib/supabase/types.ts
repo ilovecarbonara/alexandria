@@ -2,7 +2,7 @@ export type ThesisLevel = "undergraduate" | "masteral" | "doctoral";
 export type SubmissionType = "draft" | "final";
 export type ThesisStatus = "pending" | "accepted" | "flagged" | "rejected";
 export type DisputeStatus = "open" | "resolved";
-export type AlertStatus = "sent" | "failed"; 
+export type AlertStatus = "notified"; 
 
 export interface Database {
   public: {

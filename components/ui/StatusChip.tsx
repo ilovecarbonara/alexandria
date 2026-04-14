@@ -1,5 +1,5 @@
 type Status =
-  | "verified" | "pending" | "disputed" | "open" | "resolved" | "sent" | "failed"
+  | "verified" | "pending" | "disputed" | "open" | "resolved" | "notified"
   | "accepted" | "flagged" | "rejected" | "active" | "deactivated";
 
 const statusStyles: Record<Status, string> = {
@@ -8,8 +8,7 @@ const statusStyles: Record<Status, string> = {
   disputed: "border-l-dispute text-dispute",
   open: "border-l-pending text-pending",
   resolved: "border-l-success text-success",
-  sent: "border-l-success text-success",
-  failed: "border-l-dispute text-dispute",
+  notified: "border-l-success text-success",
   accepted: "border-l-success text-success",
   flagged: "border-l-dispute text-dispute",
   rejected: "border-l-dispute text-dispute",
