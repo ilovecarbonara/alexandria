@@ -2,8 +2,9 @@ import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { logActivity } from "@/lib/actions/activity";
-import { validateUUID } from "@/lib/validation";
+import { validateUUID, sanitizeTextInput } from "@/lib/validation";
 import { MAX_RESOLUTION_NOTES_LENGTH } from "@/lib/constants";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function PATCH(
   request: NextRequest,
@@ -32,6 +33,15 @@ export async function PATCH(
 
   if (!profile?.is_admin || !profile.is_active) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // Rate limit: 20 dispute resolutions per hour per admin
+  const rl = rateLimit(`resolve:${user.id}`, { limit: 20, windowMs: 60 * 60 * 1000 });
+  if (!rl.success) {
+    return Response.json(
+      { error: "Too many requests. Please try again later." },
+      { status: 429 },
+    );
   }
 
   let body: { status?: string; resolution_notes?: string };
@@ -81,7 +91,7 @@ export async function PATCH(
     .from("disputes")
     .update({
       status,
-      resolution_notes: resolution_notes.trim(),
+      resolution_notes: sanitizeTextInput(resolution_notes.trim()),
       resolved_by: user.id,
       resolved_at: new Date().toISOString(),
     })

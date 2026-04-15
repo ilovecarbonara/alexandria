@@ -8,7 +8,8 @@ import {
   THESIS_CATEGORIES,
   SUBMISSION_TYPES,
 } from "@/lib/constants";
-import { MAX_TITLE_LENGTH, MAX_AUTHOR_NAME_LENGTH, validateTitle, validateAuthorName, validateUUID } from "@/lib/validation";
+import { MAX_TITLE_LENGTH, MAX_AUTHOR_NAME_LENGTH, validateTitle, validateAuthorName, validateUUID, sanitizeTextInput } from "@/lib/validation";
+import { rateLimit } from "@/lib/rate-limit";
 
 const VALID_LEVELS = THESIS_LEVELS.map((l) => l.value as string);
 const VALID_TYPES = SUBMISSION_TYPES.map((t) => t.value as string);
@@ -50,6 +51,15 @@ export async function POST(request: NextRequest) {
 
   if (profile.is_admin) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // Rate limit: 10 registrations per hour per user
+  const rl = rateLimit(`register:${user.id}`, { limit: 10, windowMs: 60 * 60 * 1000 });
+  if (!rl.success) {
+    return Response.json(
+      { error: "Too many registration attempts. Please try again later." },
+      { status: 429 },
+    );
   }
 
   // Parse and validate body
@@ -190,9 +200,9 @@ export async function POST(request: NextRequest) {
     .from("theses")
     .insert({
       user_id: user.id,
-      title: title.trim(),
+      title: sanitizeTextInput(title.trim()),
       title_normalized: titleNormalized,
-      author_name: authorName.trim(),
+      author_name: sanitizeTextInput(authorName.trim()),
       thesis_level: thesisLevel as "undergraduate" | "masteral" | "doctoral",
       thesis_category: thesisCategory,
       submission_type: submissionType as "draft" | "final",

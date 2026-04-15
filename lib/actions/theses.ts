@@ -234,6 +234,7 @@ export async function getCurrentUserFullName(): Promise<{
 
 export async function getVersionChain(
   thesisId: string,
+  options?: { includeAllStatuses?: boolean },
 ): Promise<{ error?: string; data?: VersionChainEntry[] }> {
   if (!validateUUID(thesisId)) {
     return { error: "Invalid thesis ID format." };
@@ -241,7 +242,7 @@ export async function getVersionChain(
 
   const supabase = await createClient();
 
-  // Fetch the target thesis to identify the owning user
+  // Fetch the target thesis once to identify the owning user
   const { data: target, error: targetErr } = await supabase
     .from("theses")
     .select("user_id")
@@ -250,13 +251,44 @@ export async function getVersionChain(
 
   if (targetErr || !target) return { error: "Thesis not found." };
 
+  // Determine whether the caller may see all statuses (including pending).
+  // Default is restricted (public-safe); callers must explicitly opt in and
+  // the server verifies ownership or admin status before granting access.
+  let showAll = false;
+
+  if (options?.includeAllStatuses) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user) {
+      const { data: profile } = await supabase
+        .from("users")
+        .select("is_admin")
+        .eq("id", user.id)
+        .single();
+
+      // Grant full access only to the thesis owner or an admin
+      if (target.user_id === user.id || profile?.is_admin) {
+        showAll = true;
+      }
+    }
+  }
+
   // Fetch all theses by the same user — chain members always share an owner
-  const { data: userTheses, error: fetchErr } = await supabase
+  let thesisQuery = supabase
     .from("theses")
     .select(
-      "id, title, submission_type, sha256_hash, tx_hash, block_timestamp, registered_at, previous_thesis_id",
+      "id, title, submission_type, sha256_hash, tx_hash, block_timestamp, registered_at, previous_thesis_id, status",
     )
     .eq("user_id", target.user_id);
+
+  // Public callers: exclude pending theses from the chain
+  if (!showAll) {
+    thesisQuery = thesisQuery.neq("status", "pending");
+  }
+
+  const { data: userTheses, error: fetchErr } = await thesisQuery;
 
   if (fetchErr) return { error: "Failed to load version history." };
 

@@ -2,7 +2,7 @@
 
 import { requireAuth, requireUser } from "./auth-guards";
 import { logActivity } from "./activity";
-import { MAX_REASON_LENGTH, validateUUID } from "@/lib/validation";
+import { MAX_REASON_LENGTH, validateUUID, sanitizeTextInput } from "@/lib/validation";
 
 export async function flagDispute(
   thesisId: string,
@@ -38,7 +38,7 @@ export async function flagDispute(
   const { error } = await auth.supabase.from("disputes").insert({
     thesis_id: thesisId,
     flagged_by: auth.user.id,
-    reason: reason.trim(),
+    reason: sanitizeTextInput(reason.trim()),
   });
 
   if (error) {

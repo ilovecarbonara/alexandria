@@ -2,8 +2,19 @@ import { NextRequest } from "next/server";
 import { verifyOnChain } from "@/lib/blockchain/actions";
 import { createClient } from "@/lib/supabase/server";
 import { getVersionChain } from "@/lib/actions/theses";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function GET(request: NextRequest) {
+  // Rate limit: 30 verification requests per minute per IP
+  const ip = await getClientIp();
+  const rl = rateLimit(`verify:${ip}`, { limit: 30, windowMs: 60 * 1000 });
+  if (!rl.success) {
+    return Response.json(
+      { error: "Too many requests. Please try again later." },
+      { status: 429 },
+    );
+  }
+
   const hash = request.nextUrl.searchParams.get("hash");
 
   if (!hash || !/^[a-f0-9]{64}$/i.test(hash)) {

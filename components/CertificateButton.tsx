@@ -20,7 +20,7 @@ export function CertificateButton({ thesisId, thesis, className }: CertificateBu
     try {
       // Fetch version chain and attach to certificate data if chain exists
       const certData = { ...thesis };
-      const chainResult = await getVersionChain(thesisId);
+      const chainResult = await getVersionChain(thesisId, { includeAllStatuses: true });
       if (chainResult.data && chainResult.data.length > 1) {
         certData.versionHistory = chainResult.data.map((entry) => ({
           submissionType: entry.submissionType,

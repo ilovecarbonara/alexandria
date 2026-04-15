@@ -238,3 +238,15 @@ export function sanitizeSearchTerm(term: string): string {
     .replace(/\s+/g, " ")
     .trim();
 }
+
+/**
+ * Defense-in-depth: strip HTML tags from user-provided text before storage.
+ * React already auto-escapes JSX output, so this prevents storing markup in
+ * the database as an extra safety layer.
+ */
+export function sanitizeTextInput(input: string): string {
+  return input
+    .replace(/<[^>]*>/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}

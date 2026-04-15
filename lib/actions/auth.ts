@@ -8,7 +8,9 @@ import {
   MAX_PASSWORD_LENGTH,
   validateFullName,
   validatePassword,
+  sanitizeTextInput,
 } from "@/lib/validation";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function signUp(
   _prevState: { error: string } | null,
@@ -24,6 +26,13 @@ export async function signUp(
 
   const nameError = validateFullName(fullName);
   if (nameError) return { error: nameError };
+
+  // Rate limit: 5 sign-up attempts per 15 minutes per IP
+  const ip = await getClientIp();
+  const rl = rateLimit(`signup:${ip}`, { limit: 5, windowMs: 15 * 60 * 1000 });
+  if (!rl.success) {
+    return { error: "Too many registration attempts. Please try again later." };
+  }
 
   if (email.length > MAX_EMAIL_LENGTH) {
     return { error: `Email must be ${MAX_EMAIL_LENGTH} characters or less.` };
@@ -52,7 +61,7 @@ export async function signUp(
   const { error: insertError } = await service.from("users").insert({
     id: data.user.id,
     email,
-    full_name: fullName,
+    full_name: sanitizeTextInput(fullName),
   });
 
   if (insertError) {
@@ -71,6 +80,13 @@ export async function signIn(
 
   if (!email || !password) {
     return { error: "Email and password are required." };
+  }
+
+  // Rate limit: 7 sign-in attempts per 15 minutes per IP
+  const ip = await getClientIp();
+  const rl = rateLimit(`signin:${ip}`, { limit: 7, windowMs: 15 * 60 * 1000 });
+  if (!rl.success) {
+    return { error: "Too many login attempts. Please try again later." };
   }
 
   if (email.length > MAX_EMAIL_LENGTH) {

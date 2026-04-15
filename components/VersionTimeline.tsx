@@ -24,7 +24,7 @@ export function VersionTimeline({
     let cancelled = false;
 
     async function load() {
-      const result = await getVersionChain(thesisId);
+      const result = await getVersionChain(thesisId, { includeAllStatuses: true });
       if (cancelled) return;
 
       if (result.error) {
