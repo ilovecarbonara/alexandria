@@ -1,6 +1,6 @@
 "use server";
 
-import { requireAuth } from "./auth-guards";
+import { requireAuth, requireUser } from "./auth-guards";
 import { logActivity } from "./activity";
 import { MAX_REASON_LENGTH, validateUUID } from "@/lib/validation";
 
@@ -20,7 +20,7 @@ export async function flagDispute(
     return { error: `Reason must be ${MAX_REASON_LENGTH} characters or less.` };
   }
 
-  const auth = await requireAuth();
+  const auth = await requireUser();
   if ("error" in auth) return { error: auth.error };
 
   // Prevent self-flagging

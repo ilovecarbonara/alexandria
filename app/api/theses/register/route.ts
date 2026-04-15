@@ -33,10 +33,10 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Verify account is approved and active
+  // Verify account is approved, active, and not admin
   const { data: profile } = await supabase
     .from("users")
-    .select("is_approved, is_active")
+    .select("is_approved, is_active, is_admin")
     .eq("id", user.id)
     .single();
 
@@ -46,6 +46,10 @@ export async function POST(request: NextRequest) {
 
   if (!profile.is_approved) {
     return Response.json({ error: "Account not yet approved." }, { status: 403 });
+  }
+
+  if (profile.is_admin) {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
   // Parse and validate body

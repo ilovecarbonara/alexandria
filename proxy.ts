@@ -69,6 +69,11 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(new URL("/pending", request.url));
     }
 
+    // Admin users cannot access /dashboard
+    if (pathname.startsWith("/dashboard") && profile?.is_admin) {
+      return NextResponse.redirect(new URL("/admin", request.url));
+    }
+
     // Non-admin users cannot access /admin
     if (pathname.startsWith("/admin") && (!profile || !profile.is_admin)) {
       return NextResponse.redirect(new URL("/dashboard", request.url));

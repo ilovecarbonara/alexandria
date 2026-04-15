@@ -23,6 +23,14 @@ export default async function DashboardLayout({
 
   if (!user) redirect("/login");
 
+  const { data: profile } = await supabase
+    .from("users")
+    .select("is_admin")
+    .eq("id", user.id)
+    .single();
+
+  if (profile?.is_admin) redirect("/admin");
+
   return (
     <div className="flex h-screen">
       <Sidebar title="Alexandria" items={NAV_ITEMS}>

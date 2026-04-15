@@ -41,3 +41,12 @@ export async function requireAdmin(): Promise<AuthResult> {
 
   return result;
 }
+
+export async function requireUser(): Promise<AuthResult> {
+  const result = await requireAuth();
+  if ("error" in result) return result;
+
+  if (result.profile.is_admin) return { error: "Forbidden" };
+
+  return result;
+}
