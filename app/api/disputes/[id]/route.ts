@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { logActivity } from "@/lib/actions/activity";
 import { validateUUID } from "@/lib/validation";
+import { MAX_RESOLUTION_NOTES_LENGTH } from "@/lib/constants";
 
 export async function PATCH(
   request: NextRequest,
@@ -33,23 +34,39 @@ export async function PATCH(
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  let body: { status?: string };
+  let body: { status?: string; resolution_notes?: string };
   try {
     body = await request.json();
   } catch {
     return Response.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const { status } = body;
+  const { status, resolution_notes } = body;
 
   if (status !== "resolved") {
     return Response.json({ error: "Invalid status" }, { status: 400 });
   }
 
+  if (
+    typeof resolution_notes !== "string" ||
+    !resolution_notes.trim() ||
+    resolution_notes.length > MAX_RESOLUTION_NOTES_LENGTH
+  ) {
+    return Response.json(
+      { error: "Resolution notes are required (max 2000 characters)." },
+      { status: 400 },
+    );
+  }
+
   const service = createServiceClient();
   const { error } = await service
     .from("disputes")
-    .update({ status })
+    .update({
+      status,
+      resolution_notes: resolution_notes.trim(),
+      resolved_by: user.id,
+      resolved_at: new Date().toISOString(),
+    })
     .eq("id", id);
 
   if (error) {

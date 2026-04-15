@@ -53,12 +53,15 @@ CREATE TABLE public.theses (
 
 -- disputes
 CREATE TABLE public.disputes (
-  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  thesis_id  uuid NOT NULL REFERENCES public.theses(id) ON DELETE CASCADE,
-  flagged_by uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  reason     text NOT NULL,
-  status     dispute_status NOT NULL DEFAULT 'open',
-  created_at timestamptz NOT NULL DEFAULT now()
+  id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  thesis_id        uuid NOT NULL REFERENCES public.theses(id) ON DELETE CASCADE,
+  flagged_by       uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  reason           text NOT NULL,
+  status           dispute_status NOT NULL DEFAULT 'open',
+  resolution_notes text,
+  resolved_by      uuid REFERENCES public.users(id) ON DELETE SET NULL,
+  resolved_at      timestamptz,
+  created_at       timestamptz NOT NULL DEFAULT now()
 );
 
 -- activity_logs

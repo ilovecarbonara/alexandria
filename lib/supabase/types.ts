@@ -98,6 +98,9 @@ export interface Database {
           flagged_by: string;
           reason: string;
           status: DisputeStatus;
+          resolution_notes: string | null;
+          resolved_by: string | null;
+          resolved_at: string | null;
           created_at: string;
         };
         Insert: {
@@ -106,6 +109,9 @@ export interface Database {
           flagged_by: string;
           reason: string;
           status?: DisputeStatus;
+          resolution_notes?: string | null;
+          resolved_by?: string | null;
+          resolved_at?: string | null;
           created_at?: string;
         };
         Update: {
@@ -114,6 +120,9 @@ export interface Database {
           flagged_by?: string;
           reason?: string;
           status?: DisputeStatus;
+          resolution_notes?: string | null;
+          resolved_by?: string | null;
+          resolved_at?: string | null;
           created_at?: string;
         };
         Relationships: [];

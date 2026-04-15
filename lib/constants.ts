@@ -35,3 +35,5 @@ export const THESIS_STATUSES = [
 
 export const DEFAULT_TITLE_ALERT_THRESHOLD = 0.5;
 export const DEFAULT_AUTO_FLAG_THRESHOLD = 0.75;
+
+export const MAX_RESOLUTION_NOTES_LENGTH = 2000;
