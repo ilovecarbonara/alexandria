@@ -13,15 +13,12 @@ export default async function AdminAlertsPage() {
 
   if (!alerts || alerts.length === 0) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="font-heading text-2xl text-white">Title Alerts</h1>
-          <p className="mt-1 font-mono text-sm text-white/40">
-            Title similarity alerts log
-          </p>
-        </div>
-        <AlertsTableClient alerts={[]} showNotifiedUser />
-      </div>
+      <AlertsTableClient
+        alerts={[]}
+        title="Title Alerts"
+        subtitle="Title similarity alerts log"
+        showNotifiedUser
+      />
     );
   }
 
@@ -58,14 +55,11 @@ export default async function AdminAlertsPage() {
   }));
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="font-heading text-2xl text-white">Title Alerts</h1>
-        <p className="mt-1 font-mono text-sm text-white/40">
-          Title similarity alerts log — {alerts.length} total
-        </p>
-      </div>
-      <AlertsTableClient alerts={enrichedAlerts} showNotifiedUser />
-    </div>
+    <AlertsTableClient
+      alerts={enrichedAlerts}
+      title="Title Alerts"
+      subtitle={`Title similarity alerts log \u2014 ${alerts.length} total`}
+      showNotifiedUser
+    />
   );
 }

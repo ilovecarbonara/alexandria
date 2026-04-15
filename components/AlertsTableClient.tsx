@@ -26,12 +26,16 @@ interface AlertRow {
 
 interface AlertsTableClientProps {
   alerts: AlertRow[];
+  title: string;
+  subtitle: string;
   showNotifiedUser?: boolean;
   showDisputeAction?: boolean;
 }
 
 export function AlertsTableClient({
   alerts,
+  title,
+  subtitle,
   showNotifiedUser = false,
   showDisputeAction = false,
 }: AlertsTableClientProps) {
@@ -57,31 +61,37 @@ export function AlertsTableClient({
   const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
   const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  if (alerts.length === 0) {
-    return (
-      <Card>
-        <p className="py-8 text-center font-mono text-sm text-white/40">
-          No title alerts found.
-        </p>
-      </Card>
-    );
-  }
-
   return (
-    <Card className="p-0">
-      <div className="flex justify-end px-6 pt-4">
-        <div className="w-56">
-          <Select
-            label="Sort by"
-            options={SORT_OPTIONS}
-            value={sortKey}
-            onChange={(e) => {
-              setSortKey(e.target.value);
-              setPage(1);
-            }}
-          />
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-heading text-2xl text-white">{title}</h1>
+          <p className="mt-1 font-mono text-sm text-white/40">{subtitle}</p>
         </div>
+        {alerts.length > 0 && (
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-sm text-white/40">Sort by</span>
+            <div className="w-56">
+              <Select
+                options={SORT_OPTIONS}
+                value={sortKey}
+                onChange={(e) => {
+                  setSortKey(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+          </div>
+        )}
       </div>
+
+      <Card className="p-0">
+        {alerts.length === 0 ? (
+          <p className="py-8 text-center font-mono text-sm text-white/40">
+            No title alerts found.
+          </p>
+        ) : (
+          <>
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
@@ -160,6 +170,9 @@ export function AlertsTableClient({
         totalPages={totalPages}
         onPageChange={setPage}
       />
-    </Card>
+          </>
+        )}
+      </Card>
+    </div>
   );
 }
