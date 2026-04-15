@@ -59,6 +59,24 @@ export async function PATCH(
   }
 
   const service = createServiceClient();
+
+  const { data: existing } = await service
+    .from("disputes")
+    .select("status")
+    .eq("id", id)
+    .single();
+
+  if (!existing) {
+    return Response.json({ error: "Dispute not found." }, { status: 404 });
+  }
+
+  if (existing.status === "resolved") {
+    return Response.json(
+      { error: "Dispute is already resolved." },
+      { status: 409 },
+    );
+  }
+
   const { error } = await service
     .from("disputes")
     .update({
