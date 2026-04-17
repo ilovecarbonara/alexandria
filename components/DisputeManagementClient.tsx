@@ -8,6 +8,7 @@ import {
   Pagination,
   Select,
   Modal,
+  ConfirmDialog,
 } from "@/components/ui";
 import { PAGE_SIZE, MAX_RESOLUTION_NOTES_LENGTH, THESIS_LEVELS } from "@/lib/constants";
 
@@ -56,6 +57,7 @@ export function DisputeManagementClient({
 
   const [selectedDispute, setSelectedDispute] = useState<Dispute | null>(null);
   const [resolutionNotes, setResolutionNotes] = useState("");
+  const [confirmResolve, setConfirmResolve] = useState(false);
 
   const filtered =
     filter === "all" ? disputes : disputes.filter((d) => d.status === filter);
@@ -75,7 +77,7 @@ export function DisputeManagementClient({
   }
 
   async function handleResolve() {
-    if (!selectedDispute) return;
+    if (!selectedDispute || resolving) return;
     setResolving(selectedDispute.id);
     setError(null);
     const res = await fetch(`/api/disputes/${selectedDispute.id}`, {
@@ -337,7 +339,7 @@ export function DisputeManagementClient({
                     Cancel
                   </Button>
                   <Button
-                    onClick={handleResolve}
+                    onClick={() => setConfirmResolve(true)}
                     disabled={
                       !resolutionNotes.trim() ||
                       resolving === selectedDispute.id
@@ -390,6 +392,19 @@ export function DisputeManagementClient({
           </div>
         )}
       </Modal>
+
+      <ConfirmDialog
+        open={confirmResolve}
+        title="Resolve Dispute"
+        message="Are you sure you want to resolve this dispute? This action cannot be undone."
+        confirmLabel="Resolve"
+        variant="primary"
+        onConfirm={() => {
+          setConfirmResolve(false);
+          handleResolve();
+        }}
+        onCancel={() => setConfirmResolve(false)}
+      />
     </div>
   );
 }

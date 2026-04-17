@@ -6,7 +6,7 @@ export default async function AdminDashboardPage() {
   const supabase = await createClient();
 
   const [thesesRes, pendingThesesRes, disputesRes, usersRes, pendingUsersRes, recentThesesRes, recentActivityRes] =
-    await Promise.all([
+    await Promise.allSettled([
       supabase.from("theses").select("id", { count: "exact", head: true }),
       supabase.from("theses").select("id", { count: "exact", head: true }).eq("status", "pending"),
       supabase.from("disputes").select("id", { count: "exact", head: true }).eq("status", "open"),
@@ -24,13 +24,22 @@ export default async function AdminDashboardPage() {
         .limit(5),
     ]);
 
-  const totalTheses = thesesRes.count ?? 0;
-  const pendingConfirmations = pendingThesesRes.count ?? 0;
-  const activeDisputes = disputesRes.count ?? 0;
-  const registeredUsers = usersRes.count ?? 0;
-  const pendingApprovals = pendingUsersRes.count ?? 0;
-  const recentTheses = recentThesesRes.data ?? [];
-  const recentActivity = recentActivityRes.data ?? [];
+  const failedLabels: string[] = [];
+  if (thesesRes.status === "rejected") failedLabels.push("total theses count");
+  if (pendingThesesRes.status === "rejected") failedLabels.push("pending confirmations");
+  if (disputesRes.status === "rejected") failedLabels.push("disputes count");
+  if (usersRes.status === "rejected") failedLabels.push("users count");
+  if (pendingUsersRes.status === "rejected") failedLabels.push("pending approvals");
+  if (recentThesesRes.status === "rejected") failedLabels.push("recent registrations");
+  if (recentActivityRes.status === "rejected") failedLabels.push("recent activity");
+
+  const totalTheses = (thesesRes.status === "fulfilled" ? thesesRes.value.count : 0) ?? 0;
+  const pendingConfirmations = (pendingThesesRes.status === "fulfilled" ? pendingThesesRes.value.count : 0) ?? 0;
+  const activeDisputes = (disputesRes.status === "fulfilled" ? disputesRes.value.count : 0) ?? 0;
+  const registeredUsers = (usersRes.status === "fulfilled" ? usersRes.value.count : 0) ?? 0;
+  const pendingApprovals = (pendingUsersRes.status === "fulfilled" ? pendingUsersRes.value.count : 0) ?? 0;
+  const recentTheses = (recentThesesRes.status === "fulfilled" ? recentThesesRes.value.data : null) ?? [];
+  const recentActivity = (recentActivityRes.status === "fulfilled" ? recentActivityRes.value.data : null) ?? [];
 
   return (
     <div className="space-y-8">
@@ -40,6 +49,12 @@ export default async function AdminDashboardPage() {
           System overview and management
         </p>
       </div>
+
+      {failedLabels.length > 0 && (
+        <div className="rounded-xs border border-dispute/30 bg-dispute/10 px-4 py-3 font-mono text-sm text-dispute">
+          Failed to load: {failedLabels.join(", ")}
+        </div>
+      )}
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">

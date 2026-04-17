@@ -15,7 +15,12 @@ export async function registerOnChain(
     thesisLevel,
     thesisCategory,
   );
-  const receipt = await tx.wait();
+  const receipt = await Promise.race([
+    tx.wait(),
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Transaction timeout")), 60_000),
+    ),
+  ]);
 
   const block = await receipt.getBlock();
 

@@ -68,6 +68,11 @@ export async function signUp(
     return { error: insertError.message };
   }
 
+  await service.from("activity_logs").insert({
+    user_id: data.user.id,
+    action: "Account created",
+  });
+
   redirect("/pending");
 }
 
@@ -133,6 +138,11 @@ export async function signIn(
     .from("users")
     .update({ last_active_at: new Date().toISOString() })
     .eq("id", data.user.id);
+
+  await service.from("activity_logs").insert({
+    user_id: data.user.id,
+    action: "Signed in",
+  });
 
   if (profile.is_admin) {
     redirect("/admin");

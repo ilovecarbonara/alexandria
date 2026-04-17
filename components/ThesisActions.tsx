@@ -3,6 +3,7 @@
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import type { CertificateData } from "@/lib/certificate";
+import type { ThesisStatus } from "@/lib/supabase/types";
 import { Modal, Button } from "@/components/ui";
 import { VersionTimeline } from "@/components/VersionTimeline";
 
@@ -17,19 +18,21 @@ const CertificateButton = dynamic(
 interface ThesisActionsProps {
   thesisId: string;
   thesis: CertificateData;
+  status?: ThesisStatus;
   hasVersionChain?: boolean;
 }
 
 export function ThesisActions({
   thesisId,
   thesis,
+  status,
   hasVersionChain,
 }: ThesisActionsProps) {
   const [historyOpen, setHistoryOpen] = useState(false);
 
   return (
     <div className="flex items-center gap-2 whitespace-nowrap">
-      <CertificateButton thesisId={thesisId} thesis={thesis} className="text-xs px-2 py-1 inline-flex items-center gap-1.5" />
+      <CertificateButton thesisId={thesisId} thesis={thesis} status={status} className="text-xs px-2 py-1 inline-flex items-center gap-1.5" />
       {hasVersionChain && (
         <>
           <Button

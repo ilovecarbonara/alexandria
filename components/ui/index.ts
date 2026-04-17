@@ -7,6 +7,7 @@ export { StatusChip } from "./StatusChip";
 export { HashDisplay } from "./HashDisplay";
 export { Sidebar } from "./Sidebar";
 export { Modal } from "./Modal";
+export { ConfirmDialog } from "./ConfirmDialog";
 export { Pagination } from "./Pagination";
 export { DatePicker } from "./DatePicker";
 export { Field } from "./Field";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Card, StatusChip, Button, Pagination, Select } from "@/components/ui";
+import { Card, StatusChip, Button, Pagination, Select, ConfirmDialog } from "@/components/ui";
 import {
   approveUser,
   rejectUser,
@@ -32,6 +32,7 @@ export function UserManagementClient({
   const [filter, setFilter] = useState<"all" | "pending" | "active" | "deactivated">("all");
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [confirmAction, setConfirmAction] = useState<{ userId: string; action: "deactivate" | "reject" } | null>(null);
 
   const filtered = users.filter((u) => {
     if (filter === "pending") return !u.is_approved;
@@ -53,6 +54,7 @@ export function UserManagementClient({
     userId: string,
     action: "approve" | "reject" | "deactivate" | "activate",
   ) {
+    if (acting) return;
     setActing(userId);
     setError(null);
     const actions = { approve: approveUser, reject: rejectUser, deactivate: deactivateUser, activate: activateUser };
@@ -190,7 +192,7 @@ export function UserManagementClient({
                               variant="secondary"
                               className="text-xs"
                               disabled={isActing}
-                              onClick={() => handleAction(user.id, "reject")}
+                              onClick={() => setConfirmAction({ userId: user.id, action: "reject" })}
                             >
                               Reject
                             </Button>
@@ -200,9 +202,7 @@ export function UserManagementClient({
                               variant="danger"
                               className="text-xs"
                               disabled={isActing}
-                              onClick={() =>
-                                handleAction(user.id, "deactivate")
-                              }
+                              onClick={() => setConfirmAction({ userId: user.id, action: "deactivate" })}
                             >
                               Deactivate
                             </Button>
@@ -231,6 +231,25 @@ export function UserManagementClient({
           </>
         )}
       </Card>
+
+      <ConfirmDialog
+        open={!!confirmAction}
+        title={confirmAction?.action === "deactivate" ? "Deactivate User" : "Reject User"}
+        message={
+          confirmAction?.action === "deactivate"
+            ? "This will revoke the user's access immediately. Are you sure?"
+            : "This will revoke the user's approval. Are you sure?"
+        }
+        confirmLabel={confirmAction?.action === "deactivate" ? "Deactivate" : "Reject"}
+        variant="danger"
+        onConfirm={() => {
+          if (confirmAction) {
+            handleAction(confirmAction.userId, confirmAction.action);
+          }
+          setConfirmAction(null);
+        }}
+        onCancel={() => setConfirmAction(null)}
+      />
     </div>
   );
 }

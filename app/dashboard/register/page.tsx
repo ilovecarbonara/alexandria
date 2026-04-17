@@ -189,6 +189,10 @@ export default function RegisterThesisPage() {
               status is currently pending and will be reviewed by an
               administrator.
             </p>
+            <p className="text-white/40 text-xs border-l-2 border-accent/40 pl-3">
+              Your thesis will undergo an automated similarity review. Check
+              your dashboard for status updates.
+            </p>
             <div className="flex gap-3 mt-6">
               <Button
                 onClick={() => {

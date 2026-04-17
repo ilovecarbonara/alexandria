@@ -12,6 +12,7 @@ import {
   HashDisplay,
   Pagination,
   Select,
+  ConfirmDialog,
 } from "@/components/ui";
 import { VersionTimeline } from "@/components/VersionTimeline";
 import { searchTheses, updateThesisStatus, type SearchFilters } from "@/lib/actions/theses";
@@ -61,6 +62,7 @@ export function ThesisRegistryClient() {
   const [updating, setUpdating] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedThesis, setSelectedThesis] = useState<Thesis | null>(null);
+  const [pendingStatusChange, setPendingStatusChange] = useState<{ thesisId: string; newStatus: ThesisStatus } | null>(null);
 
   const totalPages = Math.ceil(theses.length / SEARCH_PAGE_SIZE);
   const paginated = theses.slice((page - 1) * SEARCH_PAGE_SIZE, page * SEARCH_PAGE_SIZE);
@@ -142,6 +144,15 @@ export function ThesisRegistryClient() {
   }
 
   async function handleStatusChange(thesisId: string, newStatus: ThesisStatus) {
+    if (newStatus === "flagged" || newStatus === "rejected") {
+      setPendingStatusChange({ thesisId, newStatus });
+      return;
+    }
+    await executeStatusChange(thesisId, newStatus);
+  }
+
+  async function executeStatusChange(thesisId: string, newStatus: ThesisStatus) {
+    if (updating) return;
     setUpdating(thesisId);
     setError(null);
     const result = await updateThesisStatus(thesisId, newStatus);
@@ -457,6 +468,25 @@ export function ThesisRegistryClient() {
           </div>
         )}
       </Modal>
+
+      <ConfirmDialog
+        open={!!pendingStatusChange}
+        title={pendingStatusChange?.newStatus === "flagged" ? "Flag Thesis" : "Reject Thesis"}
+        message={
+          pendingStatusChange?.newStatus === "flagged"
+            ? "This will flag the thesis for review. Are you sure?"
+            : "This will reject the thesis. Are you sure?"
+        }
+        confirmLabel={pendingStatusChange?.newStatus === "flagged" ? "Flag" : "Reject"}
+        variant="danger"
+        onConfirm={() => {
+          if (pendingStatusChange) {
+            executeStatusChange(pendingStatusChange.thesisId, pendingStatusChange.newStatus);
+          }
+          setPendingStatusChange(null);
+        }}
+        onCancel={() => setPendingStatusChange(null)}
+      />
     </div>
   );
 }

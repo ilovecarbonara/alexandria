@@ -103,6 +103,7 @@ export function DashboardRegistrations({
                       txHash: thesis.tx_hash,
                       blockTimestamp: thesis.block_timestamp,
                     }}
+                    status={thesis.status}
                     hasVersionChain={chainParticipants.has(thesis.id)}
                   />
                 </td>
@@ -172,6 +173,7 @@ export function DashboardRegistrations({
                         txHash: selectedThesis.tx_hash,
                         blockTimestamp: selectedThesis.block_timestamp,
                       }}
+                      status={selectedThesis.status}
                       hasVersionChain
                     />
                   </div>
@@ -233,6 +235,7 @@ export function DashboardRegistrations({
                       txHash: selectedThesis.tx_hash,
                       blockTimestamp: selectedThesis.block_timestamp,
                     }}
+                    status={selectedThesis.status}
                     hasVersionChain={false}
                   />
                 </div>

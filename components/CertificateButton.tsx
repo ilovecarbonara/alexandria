@@ -1,21 +1,29 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui";
+import { Button, Modal } from "@/components/ui";
 import { generateCertificate, type CertificateData } from "@/lib/certificate";
 import { getVersionChain } from "@/lib/actions/theses";
 import { createClient } from "@/lib/supabase/client";
+import type { ThesisStatus } from "@/lib/supabase/types";
 
 interface CertificateButtonProps {
   thesisId: string;
   thesis: CertificateData;
+  status?: ThesisStatus;
   className?: string;
 }
 
-export function CertificateButton({ thesisId, thesis, className }: CertificateButtonProps) {
+export function CertificateButton({ thesisId, thesis, status, className }: CertificateButtonProps) {
   const [loading, setLoading] = useState(false);
+  const [showWarning, setShowWarning] = useState(false);
 
   async function handleDownload() {
+    if (status === "flagged" && !showWarning) {
+      setShowWarning(true);
+      return;
+    }
+    setShowWarning(false);
     setLoading(true);
     try {
       // Fetch version chain and attach to certificate data if chain exists
@@ -53,14 +61,35 @@ export function CertificateButton({ thesisId, thesis, className }: CertificateBu
   }
 
   return (
-    <Button
-      variant="primary"
-      onClick={handleDownload}
-      disabled={loading}
-      className={className}
-    >
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
-      {loading ? "Generating…" : "Certificate"}
-    </Button>
+    <>
+      <Button
+        variant="primary"
+        onClick={handleDownload}
+        disabled={loading}
+        className={className}
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+        {loading ? "Generating…" : "Certificate"}
+      </Button>
+      <Modal open={showWarning} onClose={() => setShowWarning(false)} title="Flagged Thesis" className="w-120 max-w-[90vw]">
+        <p className="font-mono text-sm text-dispute text-justify whitespace-normal wrap-break-word">
+          This thesis has been flagged and is currently under dispute review.
+          The generated certificate will only confirm its blockchain registration
+          and cannot be used as proof of verified authorship until the dispute
+          is resolved.
+        </p>
+        <div className="mt-4 flex justify-end gap-3">
+          <Button
+            variant="secondary"
+            onClick={() => setShowWarning(false)}
+          >
+            Cancel
+          </Button>
+          <Button onClick={handleDownload}>
+            Continue Download
+          </Button>
+        </div>
+      </Modal>
+    </>
   );
 }
