@@ -7,6 +7,7 @@ import {
   THESIS_CATEGORIES,
   THESIS_LEVELS,
   SUBMISSION_TYPES,
+  MAX_PDF_FILE_SIZE_MB,
 } from "@/lib/constants";
 import { getUserThesesForLinking, getCurrentUserFullName } from "@/lib/actions/theses";
 import {
@@ -85,6 +86,12 @@ export default function RegisterThesisPage() {
     }
     if (file.type !== "application/pdf") {
       setState({ error: "Only PDF files are accepted." });
+      setFileName(null);
+      setHash(null);
+      return;
+    }
+    if (file.size > MAX_PDF_FILE_SIZE_MB * 1024 * 1024) {
+      setState({ error: `File size exceeds the ${MAX_PDF_FILE_SIZE_MB} MB limit.` });
       setFileName(null);
       setHash(null);
       return;

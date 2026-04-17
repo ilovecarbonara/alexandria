@@ -19,6 +19,7 @@ import {
   THESIS_CATEGORIES,
   THESIS_LEVELS,
   SUBMISSION_TYPES,
+  MAX_PDF_FILE_SIZE_MB,
 } from "@/lib/constants";
 import type { ThesisStatus } from "@/lib/supabase/types";
 
@@ -168,6 +169,12 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
   async function processFile(file: File) {
     if (file.type !== "application/pdf") {
       setVerifyError("Only PDF files are accepted.");
+      setFileName(null);
+      setFileHash(null);
+      return;
+    }
+    if (file.size > MAX_PDF_FILE_SIZE_MB * 1024 * 1024) {
+      setVerifyError(`File size exceeds the ${MAX_PDF_FILE_SIZE_MB} MB limit.`);
       setFileName(null);
       setFileHash(null);
       return;
