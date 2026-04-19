@@ -253,3 +253,12 @@ AS $$
     AND similarity(t.title_normalized, target_title) >= similarity_threshold
   ORDER BY similarity_score DESC;
 $$;
+
+-- ============================================================
+-- Migration: Add thesis_id to activity_logs
+-- ============================================================
+
+ALTER TABLE public.activity_logs
+  ADD COLUMN thesis_id uuid REFERENCES public.theses(id) ON DELETE SET NULL;
+
+CREATE INDEX idx_activity_logs_thesis_id ON public.activity_logs(thesis_id);

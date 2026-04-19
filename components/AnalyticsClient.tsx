@@ -13,7 +13,8 @@ import {
   Legend,
 } from "chart.js";
 import { Bar, Line, Pie } from "react-chartjs-2";
-import { Card } from "@/components/ui";
+import { Card, Button } from "@/components/ui";
+import { generateCSV, downloadCSV } from "@/lib/export";
 
 ChartJS.register(
   CategoryScale,
@@ -100,13 +101,45 @@ export function AnalyticsClient({ data }: { data: AnalyticsData }) {
   const monthLabels = Object.keys(data.monthlyRegistrations);
   const monthValues = Object.values(data.monthlyRegistrations);
 
+  function handleExportCSV() {
+    // Combine all analytics data into a single CSV
+    const headers = ["Section", "Label", "Value"];
+    const rows: string[][] = [];
+
+    categoryLabels.forEach((label, i) =>
+      rows.push(["Category Distribution", label, String(categoryValues[i])]),
+    );
+    levelLabels.forEach((label, i) =>
+      rows.push(["Level Distribution", label, String(levelValues[i])]),
+    );
+    monthLabels.forEach((label, i) =>
+      rows.push(["Monthly Registrations", label, String(monthValues[i])]),
+    );
+    rows.push(["Disputes", "Open", String(data.openDisputes)]);
+    rows.push(["Disputes", "Resolved", String(data.resolvedDisputes)]);
+    rows.push(["Alerts", "Total", String(data.totalAlerts)]);
+    rows.push(["Alerts", "Last 30 Days", String(data.recentAlerts)]);
+
+    const csv = generateCSV(headers, rows);
+    downloadCSV("analytics.csv", csv);
+  }
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-heading text-2xl text-white">Analytics</h1>
-        <p className="mt-1 font-mono text-sm text-white/40">
-          Registration statistics and system overview
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-heading text-2xl text-white">Analytics</h1>
+          <p className="mt-1 font-mono text-sm text-white/40">
+            Registration statistics and system overview
+          </p>
+        </div>
+        <Button
+          variant="secondary"
+          className="text-xs"
+          onClick={handleExportCSV}
+        >
+          Export CSV
+        </Button>
       </div>
 
       {/* Summary Cards */}

@@ -188,10 +188,15 @@ export default async function AdminDashboardPage() {
 
         {/* Recent Activity */}
         <Card className="p-0">
-          <div className="border-b border-border px-6 py-4">
+          <div className="flex items-center justify-between border-b border-border px-6 py-4">
             <h2 className="font-heading text-lg text-white">
               Recent Activity
             </h2>
+            <Link href="/admin/activity">
+              <Button variant="secondary" className="text-xs">
+                View All Activity
+              </Button>
+            </Link>
           </div>
           {recentActivity.length === 0 ? (
             <p className="px-6 py-8 text-center font-mono text-sm text-white/40">

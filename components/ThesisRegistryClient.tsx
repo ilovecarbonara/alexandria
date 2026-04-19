@@ -16,15 +16,84 @@ import {
 } from "@/components/ui";
 import { VersionTimeline } from "@/components/VersionTimeline";
 import { searchTheses, updateThesisStatus, type SearchFilters } from "@/lib/actions/theses";
+import { getThesisActivityLogs } from "@/lib/actions/activity";
 import {
   THESIS_STATUSES,
   THESIS_CATEGORIES,
   THESIS_LEVELS,
   SUBMISSION_TYPES,
 } from "@/lib/constants";
+import { generateCSV, downloadCSV } from "@/lib/export";
 import type { ThesisStatus } from "@/lib/supabase/types";
 
 const SEARCH_PAGE_SIZE = 25;
+
+interface ActivityLogEntry {
+  id: string;
+  action: string;
+  created_at: string;
+  user_name: string;
+}
+
+function ThesisActivityHistory({ thesisId }: { thesisId: string }) {
+  const [logs, setLogs] = useState<ActivityLogEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+    getThesisActivityLogs(thesisId).then((result) => {
+      if (cancelled) return;
+      if (result.error) {
+        setError(result.error);
+      } else {
+        setLogs(result.data ?? []);
+      }
+      setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [thesisId]);
+
+  if (loading) {
+    return (
+      <p className="py-4 text-center font-mono text-xs text-white/40">
+        Loading activity…
+      </p>
+    );
+  }
+
+  if (error) {
+    return (
+      <p className="py-4 text-center font-mono text-xs text-dispute">{error}</p>
+    );
+  }
+
+  if (logs.length === 0) {
+    return (
+      <p className="py-4 text-center font-mono text-xs text-white/40">
+        No activity recorded for this thesis.
+      </p>
+    );
+  }
+
+  return (
+    <ul className="space-y-2">
+      {logs.map((log) => (
+        <li
+          key={log.id}
+          className="rounded-xs border border-border bg-surface/50 px-3 py-2"
+        >
+          <p className="font-mono text-sm text-white/90">{log.action}</p>
+          <p className="mt-0.5 font-mono text-xs text-white/40">
+            {log.user_name} · {new Date(log.created_at).toLocaleString()}
+          </p>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 interface Thesis {
   id: string;
@@ -63,6 +132,12 @@ export function ThesisRegistryClient() {
   const [error, setError] = useState<string | null>(null);
   const [selectedThesis, setSelectedThesis] = useState<Thesis | null>(null);
   const [pendingStatusChange, setPendingStatusChange] = useState<{ thesisId: string; newStatus: ThesisStatus } | null>(null);
+
+  // Bulk selection state
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkTargetStatus, setBulkTargetStatus] = useState<ThesisStatus | "">("");
+  const [bulkConfirm, setBulkConfirm] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number } | null>(null);
 
   const totalPages = Math.ceil(theses.length / SEARCH_PAGE_SIZE);
   const paginated = theses.slice((page - 1) * SEARCH_PAGE_SIZE, page * SEARCH_PAGE_SIZE);
@@ -181,18 +256,128 @@ export function ThesisRegistryClient() {
     />
   );
 
+  function handleExportCSV() {
+    const headers = ["Title", "Author", "Hash", "Status", "Date"];
+    const rows = theses.map((t) => [
+      t.title,
+      t.author_name,
+      t.sha256_hash,
+      t.status,
+      new Date(t.registered_at).toLocaleDateString(),
+    ]);
+    const csv = generateCSV(headers, rows);
+    downloadCSV("theses.csv", csv);
+  }
+
+  function toggleSelect(thesisId: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(thesisId)) next.delete(thesisId);
+      else next.add(thesisId);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    const pageIds = paginated.map((t) => t.id);
+    const allSelected = pageIds.every((id) => selected.has(id));
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allSelected) {
+        pageIds.forEach((id) => next.delete(id));
+      } else {
+        pageIds.forEach((id) => next.add(id));
+      }
+      return next;
+    });
+  }
+
+  async function executeBulkStatusChange() {
+    if (!bulkTargetStatus) return;
+    const ids = [...selected];
+    setBulkProgress({ current: 0, total: ids.length });
+    setError(null);
+
+    for (let i = 0; i < ids.length; i++) {
+      setBulkProgress({ current: i + 1, total: ids.length });
+      const result = await updateThesisStatus(ids[i], bulkTargetStatus as ThesisStatus);
+      if (!result.error) {
+        setTheses((prev) =>
+          prev.map((t) => (t.id === ids[i] ? { ...t, status: bulkTargetStatus as ThesisStatus } : t)),
+        );
+      } else {
+        setError(`Failed on thesis ${i + 1}: ${result.error}`);
+        break;
+      }
+    }
+
+    setSelected(new Set());
+    setBulkProgress(null);
+    setBulkConfirm(false);
+    setBulkTargetStatus("");
+  }
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-heading text-2xl text-white">Thesis Registry</h1>
-        <p className="mt-1 font-mono text-sm text-white/40">
-          Manage thesis registrations and statuses
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-heading text-2xl text-white">Thesis Registry</h1>
+          <p className="mt-1 font-mono text-sm text-white/40">
+            Manage thesis registrations and statuses
+          </p>
+        </div>
+        <Button
+          variant="secondary"
+          className="text-xs"
+          onClick={handleExportCSV}
+          disabled={theses.length === 0}
+        >
+          Export CSV
+        </Button>
       </div>
 
       {error && (
         <div className="rounded-xs border border-dispute/30 bg-dispute/20 px-4 py-3 font-mono text-sm text-dispute">
           {error}
+        </div>
+      )}
+
+      {selected.size > 0 && (
+        <div className="flex items-center gap-3 rounded-xs border border-accent/30 bg-accent/10 px-4 py-3">
+          <span className="font-mono text-sm text-white/80">
+            {bulkProgress
+              ? `Processing ${bulkProgress.current} of ${bulkProgress.total}…`
+              : `${selected.size} selected`}
+          </span>
+          <div className="ml-auto flex items-center gap-2">
+            <span className="font-mono text-xs text-white/40">Set status to</span>
+            <div className="w-36">
+              <Select
+                value={bulkTargetStatus}
+                placeholder="Select…"
+                onChange={(e) => setBulkTargetStatus(e.target.value as ThesisStatus | "")}
+                options={THESIS_STATUSES.map((s) => ({
+                  value: s.value,
+                  label: s.label,
+                }))}
+              />
+            </div>
+            <Button
+              className="text-xs"
+              disabled={!bulkTargetStatus || !!bulkProgress}
+              onClick={() => setBulkConfirm(true)}
+            >
+              Apply ({selected.size})
+            </Button>
+            <Button
+              variant="secondary"
+              className="text-xs"
+              disabled={!!bulkProgress}
+              onClick={() => { setSelected(new Set()); setBulkTargetStatus(""); }}
+            >
+              Clear
+            </Button>
+          </div>
         </div>
       )}
 
@@ -321,6 +506,14 @@ export function ThesisRegistryClient() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-border text-left">
+                      <th className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={paginated.length > 0 && paginated.every((t) => selected.has(t.id))}
+                          onChange={toggleSelectAll}
+                          className="accent-accent"
+                        />
+                      </th>
                       <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">Title</th>
                       <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">Author</th>
                       <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">Type</th>
@@ -336,6 +529,14 @@ export function ThesisRegistryClient() {
                         onClick={() => setSelectedThesis(thesis)}
                         className="cursor-pointer border-b border-border last:border-b-0 transition-colors hover:bg-white/5"
                       >
+                        <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={selected.has(thesis.id)}
+                            onChange={() => toggleSelect(thesis.id)}
+                            className="accent-accent"
+                          />
+                        </td>
                         <td className="max-w-52 truncate px-6 py-4 font-mono text-sm text-white/90">
                           {thesis.title}
                         </td>
@@ -418,6 +619,14 @@ export function ThesisRegistryClient() {
                       </a>
                     </div>
                   </div>
+
+                  <hr className="border-border" />
+                  <section>
+                    <h3 className="mb-3 font-mono text-xs uppercase text-white/40">
+                      Activity History
+                    </h3>
+                    <ThesisActivityHistory thesisId={selectedThesis.id} />
+                  </section>
                 </div>
 
                 <div className="w-80 shrink-0 border-l border-border pl-6 max-h-[60vh] overflow-y-auto">
@@ -431,38 +640,48 @@ export function ThesisRegistryClient() {
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Field label="Title" value={selectedThesis.title} />
-                <Field label="Author" value={selectedThesis.author_name} />
-                {selectedThesis.user_email && (
-                  <Field label="Email" value={selectedThesis.user_email} />
-                )}
-                <Field label="Level" value={selectedThesis.thesis_level} capitalize small />
-                <Field label="Category" value={selectedThesis.thesis_category} />
-                <Field label="Submission Type" value={selectedThesis.submission_type} capitalize small />
-                <div className="flex flex-col gap-1">
-                  <span className="font-mono text-xs text-white/40">Status</span>
-                  <StatusChip status={selectedThesis.status} />
+              <div className="space-y-5">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Field label="Title" value={selectedThesis.title} />
+                  <Field label="Author" value={selectedThesis.author_name} />
+                  {selectedThesis.user_email && (
+                    <Field label="Email" value={selectedThesis.user_email} />
+                  )}
+                  <Field label="Level" value={selectedThesis.thesis_level} capitalize small />
+                  <Field label="Category" value={selectedThesis.thesis_category} />
+                  <Field label="Submission Type" value={selectedThesis.submission_type} capitalize small />
+                  <div className="flex flex-col gap-1">
+                    <span className="font-mono text-xs text-white/40">Status</span>
+                    <StatusChip status={selectedThesis.status} />
+                  </div>
+                  <Field
+                    label="Registered"
+                    value={new Date(selectedThesis.registered_at).toLocaleString()}
+                  />
+                  <div className="flex flex-col gap-1">
+                    <span className="font-mono text-xs text-white/40">SHA-256 Hash</span>
+                    <HashDisplay hash={selectedThesis.sha256_hash} />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="font-mono text-xs text-white/40">Transaction</span>
+                    <a
+                      href={`https://sepolia.etherscan.io/tx/${selectedThesis.tx_hash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:underline"
+                    >
+                      <HashDisplay hash={selectedThesis.tx_hash} />
+                    </a>
+                  </div>
                 </div>
-                <Field
-                  label="Registered"
-                  value={new Date(selectedThesis.registered_at).toLocaleString()}
-                />
-                <div className="flex flex-col gap-1">
-                  <span className="font-mono text-xs text-white/40">SHA-256 Hash</span>
-                  <HashDisplay hash={selectedThesis.sha256_hash} />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="font-mono text-xs text-white/40">Transaction</span>
-                  <a
-                    href={`https://sepolia.etherscan.io/tx/${selectedThesis.tx_hash}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:underline"
-                  >
-                    <HashDisplay hash={selectedThesis.tx_hash} />
-                  </a>
-                </div>
+
+                <hr className="border-border" />
+                <section>
+                  <h3 className="mb-3 font-mono text-xs uppercase text-white/40">
+                    Activity History
+                  </h3>
+                  <ThesisActivityHistory thesisId={selectedThesis.id} />
+                </section>
               </div>
             )}
           </div>
@@ -486,6 +705,16 @@ export function ThesisRegistryClient() {
           setPendingStatusChange(null);
         }}
         onCancel={() => setPendingStatusChange(null)}
+      />
+
+      <ConfirmDialog
+        open={bulkConfirm}
+        title="Bulk Status Change"
+        message={`Set ${selected.size} selected thesis(es) to "${bulkTargetStatus}"? This action will be applied sequentially.`}
+        confirmLabel={`Apply to ${selected.size}`}
+        variant={bulkTargetStatus === "flagged" || bulkTargetStatus === "rejected" ? "danger" : "primary"}
+        onConfirm={executeBulkStatusChange}
+        onCancel={() => setBulkConfirm(false)}
       />
     </div>
   );

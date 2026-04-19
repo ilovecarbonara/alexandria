@@ -226,6 +226,7 @@ export async function POST(request: NextRequest) {
   await service.from("activity_logs").insert({
     user_id: user.id,
     action: "Thesis registered on blockchain",
+    thesis_id: thesis.id,
   });
 
   // Auto-accept the previous draft when a final version is linked
@@ -238,6 +239,7 @@ export async function POST(request: NextRequest) {
     await service.from("activity_logs").insert({
       user_id: user.id,
       action: "Draft auto-accepted: final version submitted",
+      thesis_id: previousThesisId,
     });
   }
 

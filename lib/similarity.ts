@@ -78,6 +78,7 @@ export async function checkTitleSimilarity(thesisId: string) {
       await service.from("activity_logs").insert({
         user_id: match.user_id,
         action: `Thesis auto-flagged due to ${score}% title similarity`,
+        thesis_id: thesis.id,
       });
 
       autoFlagged = true;

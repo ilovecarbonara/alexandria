@@ -45,7 +45,7 @@ export async function flagDispute(
     return { error: error.message };
   }
 
-  await logActivity("Dispute filed");
+  await logActivity("Dispute filed", thesisId);
 
   return {};
 }

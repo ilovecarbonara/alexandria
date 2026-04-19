@@ -1,7 +1,6 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { logActivity } from "@/lib/actions/activity";
 import { validateUUID, sanitizeTextInput } from "@/lib/validation";
 import { MAX_RESOLUTION_NOTES_LENGTH } from "@/lib/constants";
 import { rateLimit } from "@/lib/rate-limit";
@@ -101,7 +100,40 @@ export async function PATCH(
     return Response.json({ error: error.message }, { status: 500 });
   }
 
-  await logActivity(`Resolved dispute ${id}`);
+  // Notify the thesis owner about the resolution
+  const { data: dispute } = await service
+    .from("disputes")
+    .select("thesis_id")
+    .eq("id", id)
+    .single();
+
+  // Log admin's resolution activity (with thesis_id when available)
+  await service.from("activity_logs").insert({
+    user_id: user.id,
+    action: `Resolved dispute ${id}`,
+    thesis_id: dispute?.thesis_id ?? null,
+  });
+
+  if (dispute) {
+    const { data: thesis } = await service
+      .from("theses")
+      .select("user_id, title")
+      .eq("id", dispute.thesis_id)
+      .single();
+
+    if (thesis) {
+      const truncatedTitle =
+        thesis.title.length > 80
+          ? thesis.title.slice(0, 80) + "…"
+          : thesis.title;
+
+      await service.from("activity_logs").insert({
+        user_id: thesis.user_id,
+        action: `Dispute on your thesis "${truncatedTitle}" has been resolved`,
+        thesis_id: dispute.thesis_id,
+      });
+    }
+  }
 
   return Response.json({ success: true });
 }

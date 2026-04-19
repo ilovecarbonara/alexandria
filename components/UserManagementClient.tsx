@@ -9,6 +9,7 @@ import {
   activateUser,
 } from "@/lib/actions/users";
 import { PAGE_SIZE } from "@/lib/constants";
+import { generateCSV, downloadCSV } from "@/lib/export";
 
 interface User {
   id: string;
@@ -34,6 +35,11 @@ export function UserManagementClient({
   const [page, setPage] = useState(1);
   const [confirmAction, setConfirmAction] = useState<{ userId: string; action: "deactivate" | "reject" } | null>(null);
 
+  // Bulk selection state
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkAction, setBulkAction] = useState<"approve" | "reject" | null>(null);
+  const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number } | null>(null);
+
   const filtered = users.filter((u) => {
     if (filter === "pending") return !u.is_approved;
     if (filter === "active") return u.is_approved && u.is_active;
@@ -48,6 +54,71 @@ export function UserManagementClient({
     if (!user.is_active) return "deactivated";
     if (!user.is_approved) return "pending";
     return "active";
+  }
+
+  function handleExportCSV() {
+    const headers = ["Email", "Name", "Status", "Joined"];
+    const rows = filtered.map((u) => [
+      u.email,
+      u.full_name,
+      getStatus(u),
+      new Date(u.created_at).toLocaleDateString(),
+    ]);
+    const csv = generateCSV(headers, rows);
+    downloadCSV("users.csv", csv);
+  }
+
+  function toggleSelect(userId: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    const pageIds = paginated.map((u) => u.id);
+    const allSelected = pageIds.every((id) => selected.has(id));
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allSelected) {
+        pageIds.forEach((id) => next.delete(id));
+      } else {
+        pageIds.forEach((id) => next.add(id));
+      }
+      return next;
+    });
+  }
+
+  async function executeBulkAction(action: "approve" | "reject") {
+    const ids = [...selected];
+    setBulkProgress({ current: 0, total: ids.length });
+    setError(null);
+
+    const actionFn = action === "approve" ? approveUser : rejectUser;
+
+    for (let i = 0; i < ids.length; i++) {
+      setBulkProgress({ current: i + 1, total: ids.length });
+      const result = await actionFn(ids[i]);
+      if (!result.error) {
+        setUsers((prev) =>
+          prev.map((u) => {
+            if (u.id !== ids[i]) return u;
+            return action === "approve"
+              ? { ...u, is_approved: true }
+              : { ...u, is_approved: false };
+          }),
+        );
+      } else {
+        setError(`Failed on user ${i + 1}: ${result.error}`);
+        break;
+      }
+    }
+
+    setSelected(new Set());
+    setBulkProgress(null);
+    setBulkAction(null);
   }
 
   async function handleAction(
@@ -93,6 +164,14 @@ export function UserManagementClient({
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <Button
+            variant="secondary"
+            className="text-xs"
+            onClick={handleExportCSV}
+            disabled={filtered.length === 0}
+          >
+            Export CSV
+          </Button>
           <div className="w-44">
             <Select
               placeholder="All users"
@@ -118,6 +197,41 @@ export function UserManagementClient({
         </div>
       )}
 
+      {selected.size > 0 && (
+        <div className="flex items-center gap-3 rounded-xs border border-accent/30 bg-accent/10 px-4 py-3">
+          <span className="font-mono text-sm text-white/80">
+            {bulkProgress
+              ? `Processing ${bulkProgress.current} of ${bulkProgress.total}…`
+              : `${selected.size} selected`}
+          </span>
+          <div className="ml-auto flex gap-2">
+            <Button
+              className="text-xs"
+              disabled={!!bulkProgress}
+              onClick={() => setBulkAction("approve")}
+            >
+              Approve Selected ({selected.size})
+            </Button>
+            <Button
+              variant="danger"
+              className="text-xs"
+              disabled={!!bulkProgress}
+              onClick={() => setBulkAction("reject")}
+            >
+              Reject Selected ({selected.size})
+            </Button>
+            <Button
+              variant="secondary"
+              className="text-xs"
+              disabled={!!bulkProgress}
+              onClick={() => setSelected(new Set())}
+            >
+              Clear
+            </Button>
+          </div>
+        </div>
+      )}
+
       <Card className="p-0">
         {filtered.length === 0 ? (
           <p className="px-6 py-12 text-center font-mono text-sm text-white/40">
@@ -129,6 +243,14 @@ export function UserManagementClient({
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border text-left">
+                  <th className="px-3 py-3">
+                    <input
+                      type="checkbox"
+                      checked={paginated.length > 0 && paginated.every((u) => selected.has(u.id))}
+                      onChange={toggleSelectAll}
+                      className="accent-accent"
+                    />
+                  </th>
                   <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">
                     Name
                   </th>
@@ -159,6 +281,14 @@ export function UserManagementClient({
                       key={user.id}
                       className="border-b border-border last:border-b-0"
                     >
+                      <td className="px-3 py-4">
+                        <input
+                          type="checkbox"
+                          checked={selected.has(user.id)}
+                          onChange={() => toggleSelect(user.id)}
+                          className="accent-accent"
+                        />
+                      </td>
                       <td className="max-w-40 truncate px-6 py-4 font-mono text-sm text-white/90">
                         {user.full_name}
                       </td>
@@ -249,6 +379,22 @@ export function UserManagementClient({
           setConfirmAction(null);
         }}
         onCancel={() => setConfirmAction(null)}
+      />
+
+      <ConfirmDialog
+        open={!!bulkAction}
+        title={bulkAction === "approve" ? "Bulk Approve Users" : "Bulk Reject Users"}
+        message={
+          bulkAction === "approve"
+            ? `Approve ${selected.size} selected user(s)? This will grant them access.`
+            : `Reject ${selected.size} selected user(s)? This will revoke their approval.`
+        }
+        confirmLabel={bulkAction === "approve" ? `Approve (${selected.size})` : `Reject (${selected.size})`}
+        variant={bulkAction === "reject" ? "danger" : "primary"}
+        onConfirm={() => {
+          if (bulkAction) executeBulkAction(bulkAction);
+        }}
+        onCancel={() => setBulkAction(null)}
       />
     </div>
   );

@@ -3,7 +3,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { requireAdmin } from "./auth-guards";
-import { logActivity } from "./activity";
 import { sanitizeSearchTerm, validateUUID, validateDateRange } from "@/lib/validation";
 import type { ThesisLevel, ThesisStatus, SubmissionType } from "@/lib/supabase/types";
 
@@ -169,7 +168,18 @@ export async function updateThesisStatus(
 
   if (error) return { error: error.message };
 
-  await logActivity(`Thesis status changed to ${status}`);
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user) {
+    await service.from("activity_logs").insert({
+      user_id: user.id,
+      action: `Thesis status changed to ${status}`,
+      thesis_id: thesisId,
+    });
+  }
 
   return {};
 }

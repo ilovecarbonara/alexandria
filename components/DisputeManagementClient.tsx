@@ -11,6 +11,7 @@ import {
   ConfirmDialog,
 } from "@/components/ui";
 import { PAGE_SIZE, MAX_RESOLUTION_NOTES_LENGTH, THESIS_LEVELS } from "@/lib/constants";
+import { generateCSV, downloadCSV } from "@/lib/export";
 
 interface Dispute {
   id: string;
@@ -71,6 +72,19 @@ export function DisputeManagementClient({
     setError(null);
   }
 
+  function handleExportCSV() {
+    const headers = ["Thesis", "Flagged By", "Reason", "Status", "Date"];
+    const rows = filtered.map((d) => [
+      d.thesis_title,
+      d.flagged_by_name,
+      d.reason,
+      d.status,
+      new Date(d.created_at).toLocaleDateString(),
+    ]);
+    const csv = generateCSV(headers, rows);
+    downloadCSV("disputes.csv", csv);
+  }
+
   function closeModal() {
     setSelectedDispute(null);
     setResolutionNotes("");
@@ -124,6 +138,14 @@ export function DisputeManagementClient({
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <Button
+            variant="secondary"
+            className="text-xs"
+            onClick={handleExportCSV}
+            disabled={filtered.length === 0}
+          >
+            Export CSV
+          </Button>
           <div className="w-44">
             <Select
               placeholder="All"

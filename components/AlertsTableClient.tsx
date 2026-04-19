@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Card, StatusChip, Pagination, Select } from "@/components/ui";
+import { Card, StatusChip, Pagination, Select, Button } from "@/components/ui";
 import { DisputeButton } from "@/components/DisputeButton";
 import { PAGE_SIZE } from "@/lib/constants";
+import { generateCSV, downloadCSV } from "@/lib/export";
 import type { AlertStatus } from "@/lib/supabase/types";
 
 const SORT_OPTIONS = [
@@ -30,6 +31,7 @@ interface AlertsTableClientProps {
   subtitle: string;
   showNotifiedUser?: boolean;
   showDisputeAction?: boolean;
+  showExport?: boolean;
 }
 
 export function AlertsTableClient({
@@ -38,6 +40,7 @@ export function AlertsTableClient({
   subtitle,
   showNotifiedUser = false,
   showDisputeAction = false,
+  showExport = false,
 }: AlertsTableClientProps) {
   const [page, setPage] = useState(1);
   const [sortKey, setSortKey] = useState("date-desc");
@@ -61,6 +64,23 @@ export function AlertsTableClient({
   const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
   const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
+  function handleExportCSV() {
+    const headers = ["New Thesis", "Matched Thesis", "Similarity", "Date"];
+    if (showNotifiedUser) headers.splice(2, 0, "Notified User");
+    const rows = sorted.map((a) => {
+      const row = [
+        a.newThesisTitle,
+        a.matchedThesisTitle,
+        `${(a.similarityScore * 100).toFixed(1)}%`,
+        new Date(a.createdAt).toLocaleDateString(),
+      ];
+      if (showNotifiedUser) row.splice(2, 0, a.notifiedUserName ?? "Unknown");
+      return row;
+    });
+    const csv = generateCSV(headers, rows);
+    downloadCSV("alerts.csv", csv);
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -70,6 +90,15 @@ export function AlertsTableClient({
         </div>
         {alerts.length > 0 && (
           <div className="flex items-center gap-3">
+            {showExport && (
+              <Button
+                variant="secondary"
+                className="text-xs"
+                onClick={handleExportCSV}
+              >
+                Export CSV
+              </Button>
+            )}
             <span className="font-mono text-sm text-white/40">Sort by</span>
             <div className="w-56">
               <Select

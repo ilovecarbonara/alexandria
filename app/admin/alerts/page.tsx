@@ -18,6 +18,7 @@ export default async function AdminAlertsPage() {
         title="Title Alerts"
         subtitle="Title similarity alerts log"
         showNotifiedUser
+        showExport
       />
     );
   }
@@ -60,6 +61,7 @@ export default async function AdminAlertsPage() {
       title="Title Alerts"
       subtitle={`Title similarity alerts log \u2014 ${alerts.length} total`}
       showNotifiedUser
+      showExport
     />
   );
 }
