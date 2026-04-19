@@ -93,7 +93,6 @@ export function AlertsTableClient({
             {showExport && (
               <Button
                 variant="secondary"
-                className="text-xs"
                 onClick={handleExportCSV}
               >
                 Export CSV

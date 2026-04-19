@@ -140,7 +140,6 @@ export function DisputeManagementClient({
         <div className="flex items-center gap-3">
           <Button
             variant="secondary"
-            className="text-xs"
             onClick={handleExportCSV}
             disabled={filtered.length === 0}
           >

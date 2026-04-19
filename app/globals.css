@@ -32,3 +32,39 @@ body {
   color: #ededed;
   font-family: var(--font-mono);
 }
+
+/* Custom checkbox — matches design system */
+input[type="checkbox"].cb {
+  appearance: none;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 2px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  cursor: pointer;
+  position: relative;
+  transition: background-color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+input[type="checkbox"].cb:checked {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+input[type="checkbox"].cb:checked::after {
+  content: "";
+  position: absolute;
+  left: 4.5px;
+  top: 1.5px;
+  width: 4px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+}
+input[type="checkbox"].cb:focus-visible {
+  outline: none;
+  border-color: var(--color-accent);
+}
+input[type="checkbox"].cb:hover:not(:disabled) {
+  border-color: var(--color-accent);
+}

@@ -166,13 +166,12 @@ export function UserManagementClient({
         <div className="flex items-center gap-3">
           <Button
             variant="secondary"
-            className="text-xs"
             onClick={handleExportCSV}
             disabled={filtered.length === 0}
           >
             Export CSV
           </Button>
-          <div className="w-44">
+          <div className="w-50">
             <Select
               placeholder="All users"
               value={filter}
@@ -248,7 +247,7 @@ export function UserManagementClient({
                       type="checkbox"
                       checked={paginated.length > 0 && paginated.every((u) => selected.has(u.id))}
                       onChange={toggleSelectAll}
-                      className="accent-accent"
+                      className="cb"
                     />
                   </th>
                   <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">
@@ -286,7 +285,7 @@ export function UserManagementClient({
                           type="checkbox"
                           checked={selected.has(user.id)}
                           onChange={() => toggleSelect(user.id)}
-                          className="accent-accent"
+                          className="cb"
                         />
                       </td>
                       <td className="max-w-40 truncate px-6 py-4 font-mono text-sm text-white/90">

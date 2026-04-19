@@ -328,7 +328,6 @@ export function ThesisRegistryClient() {
         </div>
         <Button
           variant="secondary"
-          className="text-xs"
           onClick={handleExportCSV}
           disabled={theses.length === 0}
         >
@@ -511,7 +510,7 @@ export function ThesisRegistryClient() {
                           type="checkbox"
                           checked={paginated.length > 0 && paginated.every((t) => selected.has(t.id))}
                           onChange={toggleSelectAll}
-                          className="accent-accent"
+                          className="cb"
                         />
                       </th>
                       <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">Title</th>
@@ -534,7 +533,7 @@ export function ThesisRegistryClient() {
                             type="checkbox"
                             checked={selected.has(thesis.id)}
                             onChange={() => toggleSelect(thesis.id)}
-                            className="accent-accent"
+                            className="cb"
                           />
                         </td>
                         <td className="max-w-52 truncate px-6 py-4 font-mono text-sm text-white/90">

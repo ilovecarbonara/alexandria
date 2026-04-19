@@ -135,7 +135,6 @@ export function AnalyticsClient({ data }: { data: AnalyticsData }) {
         </div>
         <Button
           variant="secondary"
-          className="text-xs"
           onClick={handleExportCSV}
         >
           Export CSV
