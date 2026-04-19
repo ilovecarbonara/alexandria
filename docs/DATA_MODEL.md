@@ -73,12 +73,13 @@
 | created_at        | timestamptz  | NO       | now()      |                                                         |
 
 ### activity_logs
-| Column     | Type        | Nullable | Default           | Constraints / Notes        |
-|------------|-------------|----------|-------------------|----------------------------|
-| id         | uuid        | NO       | gen_random_uuid() | PK                         |
-| user_id    | uuid        | NO       |                   | FK → users.id ON DELETE CASCADE |
-| action     | text        | NO       |                   | Description of the action  |
-| created_at | timestamptz | NO       | now()             |                            |
+| Column     | Type        | Nullable | Default           | Constraints / Notes                          |
+|------------|-------------|----------|-------------------|----------------------------------------------|
+| id         | uuid        | NO       | gen_random_uuid() | PK                                           |
+| user_id    | uuid        | NO       |                   | FK → users.id ON DELETE CASCADE              |
+| action     | text        | NO       |                   | Description of the action                    |
+| thesis_id  | uuid        | YES      |                   | FK → theses.id ON DELETE SET NULL            |
+| created_at | timestamptz | NO       | now()             |                                              |
 
 ## Indexes
 
@@ -92,6 +93,7 @@
 | idx_disputes_thesis_id         | disputes     | thesis_id          | B-tree | Lookup disputes for a thesis        |
 | idx_disputes_status            | disputes     | status             | B-tree | Filter by dispute status            |
 | idx_activity_logs_user_id      | activity_logs| user_id            | B-tree | User activity lookup                |
+| idx_activity_logs_thesis_id    | activity_logs| thesis_id          | B-tree | Lookup activity for a specific thesis |
 | idx_title_alerts_notified_user | title_alerts | notified_user_id   | B-tree | User alert lookup                   |
 
 ## Row Level Security
