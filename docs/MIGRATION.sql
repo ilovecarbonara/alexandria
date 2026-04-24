@@ -15,7 +15,7 @@ CREATE TYPE thesis_level AS ENUM ('undergraduate', 'masteral', 'doctoral');
 CREATE TYPE submission_type AS ENUM ('draft', 'final');
 CREATE TYPE thesis_status AS ENUM ('pending', 'accepted', 'flagged', 'rejected');
 CREATE TYPE dispute_status AS ENUM ('open', 'resolved');
-CREATE TYPE alert_status AS ENUM ('notified');
+CREATE TYPE alert_status AS ENUM ('sent', 'failed', 'notified');
 
 -- ============================================================
 -- Tables
