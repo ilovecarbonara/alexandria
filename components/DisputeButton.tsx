@@ -24,22 +24,30 @@ export function DisputeButton({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [fetchedContext, setFetchedContext] = useState<{
-    score: number;
-    matchedThesisTitle: string;
-  } | null>(null);
-  const [fetchingContext, setFetchingContext] = useState(false);
+  // Bundle the loaded context with the thesisId it was loaded for, so we
+  // can derive `fetchingContext` from request identity instead of calling
+  // setState synchronously inside an effect (react-hooks/set-state-in-effect).
+  const [fetchedState, setFetchedState] = useState<{
+    thesisId: string | null;
+    context: { score: number; matchedThesisTitle: string } | null;
+  }>({ thesisId: null, context: null });
 
-  const displayContext = similarityContext ?? fetchedContext;
+  const shouldFetch =
+    open && fetchSimilarity && !similarityContext && fetchedState.thesisId !== thesisId;
+  const fetchingContext = shouldFetch;
+  const displayContext =
+    similarityContext ??
+    (fetchedState.thesisId === thesisId ? fetchedState.context : null);
 
   useEffect(() => {
-    if (open && fetchSimilarity && !similarityContext && !fetchedContext) {
-      setFetchingContext(true);
-      getThesisSimilarityContext(thesisId)
-        .then((ctx) => setFetchedContext(ctx))
-        .finally(() => setFetchingContext(false));
-    }
-  }, [open, fetchSimilarity, similarityContext, fetchedContext, thesisId]);
+    if (!shouldFetch) return;
+    let cancelled = false;
+    getThesisSimilarityContext(thesisId).then((ctx) => {
+      if (cancelled) return;
+      setFetchedState({ thesisId, context: ctx });
+    });
+    return () => { cancelled = true; };
+  }, [shouldFetch, thesisId]);
 
   async function handleSubmit() {
     setError(null);
@@ -64,6 +72,7 @@ export function DisputeButton({
       <Button
         variant="danger"
         className="text-xs px-2 py-1"
+        aria-label="Flag thesis for dispute"
         onClick={() => setOpen(true)}
       >
         Flag

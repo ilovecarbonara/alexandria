@@ -10,6 +10,15 @@ interface ModalProps {
   children: ReactNode;
 }
 
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+function getFocusable(root: HTMLElement): HTMLElement[] {
+  return Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
+    (el) => !el.hasAttribute("disabled") && el.tabIndex !== -1,
+  );
+}
+
 export function Modal({ open, onClose, title, className, children }: ModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
@@ -18,23 +27,68 @@ export function Modal({ open, onClose, title, className, children }: ModalProps)
     if (!dialog) return;
     if (open) {
       dialog.showModal();
-    } else {
+      // Focus the first focusable element after the dialog renders.
+      // requestAnimationFrame ensures children are mounted.
+      requestAnimationFrame(() => {
+        const focusable = getFocusable(dialog);
+        if (focusable.length > 0) focusable[0].focus();
+      });
+    } else if (dialog.open) {
       dialog.close();
     }
+  }, [open]);
+
+  // Keyboard focus trap (Tab / Shift+Tab cycling).
+  useEffect(() => {
+    if (!open) return;
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key !== "Tab" || !dialog) return;
+      const focusable = getFocusable(dialog);
+      if (focusable.length === 0) {
+        e.preventDefault();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+
+      if (e.shiftKey) {
+        if (active === first || !dialog.contains(active)) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (active === last || !dialog.contains(active)) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    }
+
+    dialog.addEventListener("keydown", onKeyDown);
+    return () => dialog.removeEventListener("keydown", onKeyDown);
   }, [open]);
 
   return (
     <dialog
       ref={dialogRef}
       onClose={onClose}
+      aria-labelledby={title ? "modal-title" : undefined}
       className="m-auto rounded-xs border border-border bg-surface p-0 text-white/90 backdrop:bg-black/60"
     >
       <div className={className ?? "min-w-80 max-w-lg"}>
         {title && (
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
-            <h3 className="font-heading text-base">{title}</h3>
+            <h3 id="modal-title" className="font-heading text-base">
+              {title}
+            </h3>
             <button
+              type="button"
               onClick={onClose}
+              aria-label="Close dialog"
               className="font-mono text-sm text-white/40 hover:text-white/90"
             >
               ✕

@@ -8,7 +8,7 @@ import {
   THESIS_CATEGORIES,
   SUBMISSION_TYPES,
 } from "@/lib/constants";
-import { MAX_TITLE_LENGTH, MAX_AUTHOR_NAME_LENGTH, validateTitle, validateAuthorName, validateUUID, sanitizeTextInput } from "@/lib/validation";
+import { validateTitle, validateAuthorName, validateUUID, sanitizeTextInput } from "@/lib/validation";
 import { rateLimit } from "@/lib/rate-limit";
 
 const VALID_LEVELS = THESIS_LEVELS.map((l) => l.value as string);

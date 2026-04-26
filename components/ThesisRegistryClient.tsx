@@ -36,22 +36,26 @@ interface ActivityLogEntry {
 }
 
 function ThesisActivityHistory({ thesisId }: { thesisId: string }) {
-  const [logs, setLogs] = useState<ActivityLogEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  // Bundle data + the thesisId it belongs to so we can derive `loading`
+  // from request identity rather than calling setState synchronously
+  // inside an effect (avoids react-hooks/set-state-in-effect).
+  const [state, setState] = useState<{
+    thesisId: string | null;
+    logs: ActivityLogEntry[];
+    error: string;
+  }>({ thesisId: null, logs: [], error: "" });
+
+  const loading = state.thesisId !== thesisId;
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setError("");
     getThesisActivityLogs(thesisId).then((result) => {
       if (cancelled) return;
       if (result.error) {
-        setError(result.error);
+        setState({ thesisId, logs: [], error: result.error });
       } else {
-        setLogs(result.data ?? []);
+        setState({ thesisId, logs: result.data ?? [], error: "" });
       }
-      setLoading(false);
     });
     return () => { cancelled = true; };
   }, [thesisId]);
@@ -64,13 +68,13 @@ function ThesisActivityHistory({ thesisId }: { thesisId: string }) {
     );
   }
 
-  if (error) {
+  if (state.error) {
     return (
-      <p className="py-4 text-center font-mono text-xs text-dispute">{error}</p>
+      <p className="py-4 text-center font-mono text-xs text-dispute">{state.error}</p>
     );
   }
 
-  if (logs.length === 0) {
+  if (state.logs.length === 0) {
     return (
       <p className="py-4 text-center font-mono text-xs text-white/40">
         No activity recorded for this thesis.
@@ -80,7 +84,7 @@ function ThesisActivityHistory({ thesisId }: { thesisId: string }) {
 
   return (
     <ul className="space-y-2">
-      {logs.map((log) => (
+      {state.logs.map((log) => (
         <li
           key={log.id}
           className="rounded-xs border border-border bg-surface/50 px-3 py-2"

@@ -69,16 +69,20 @@ export function DatePicker({
   const [open, setOpen] = useState(false);
   const [viewYear, setViewYear] = useState(initial.year);
   const [viewMonth, setViewMonth] = useState(initial.month);
+  const [prevValue, setPrevValue] = useState(value);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Sync view to value when it changes externally
-  useEffect(() => {
+  // Sync view to value when it changes externally.
+  // Per React docs, adjusting state during render based on a changed prop
+  // is preferred over a useEffect for derived state.
+  if (value !== prevValue) {
+    setPrevValue(value);
     if (value) {
       const { year, month } = parseDate(value);
       setViewYear(year);
       setViewMonth(month);
     }
-  }, [value]);
+  }
 
   // Close on outside click
   useEffect(() => {

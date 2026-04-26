@@ -431,7 +431,17 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                       <tr
                         key={thesis.id}
                         onClick={() => setSelectedThesis(thesis)}
-                        className="cursor-pointer border-b border-border last:border-b-0 transition-colors hover:bg-white/5"
+                        onKeyDown={(e) => {
+                          if (e.target !== e.currentTarget) return;
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setSelectedThesis(thesis);
+                          }
+                        }}
+                        tabIndex={0}
+                        role="button"
+                        aria-label={`View details for ${thesis.title}`}
+                        className="cursor-pointer border-b border-border last:border-b-0 transition-colors hover:bg-white/5 focus:bg-white/5 focus:outline-none focus-visible:ring-1 focus-visible:ring-accent"
                       >
                         <td className="max-w-64 truncate px-6 py-4 font-mono text-sm text-white/90">
                           {thesis.title}
@@ -463,9 +473,10 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                               <Button
                                 variant="secondary"
                                 onClick={() => setHistoryThesisId(thesis.id)}
+                                aria-label="View version history"
                                 className="text-xs px-2 py-1 inline-flex items-center gap-1.5"
                               >
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
                                 History
                               </Button>
                             )}

@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 export default function GlobalError({
   error,
   unstable_retry,
@@ -11,6 +13,8 @@ export default function GlobalError({
     <html lang="en">
       <head>
         <title>Alexandria — Error</title>
+        {/* global-error replaces the root layout, so next/font is unavailable here. */}
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
           href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Playfair+Display:wght@400;700&display=swap"
           rel="stylesheet"
@@ -105,7 +109,7 @@ export default function GlobalError({
               >
                 Try again
               </button>
-              <a
+              <Link
                 href="/"
                 style={{
                   border: "1px solid #222733",
@@ -118,7 +122,7 @@ export default function GlobalError({
                 }}
               >
                 Return Home
-              </a>
+              </Link>
             </div>
           </div>
         </div>

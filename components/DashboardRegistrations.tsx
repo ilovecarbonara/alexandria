@@ -69,7 +69,17 @@ export function DashboardRegistrations({
               <tr
                 key={thesis.id}
                 onClick={() => setSelectedThesis(thesis)}
-                className="cursor-pointer border-b border-border last:border-b-0 transition-colors hover:bg-white/5"
+                onKeyDown={(e) => {
+                  if (e.target !== e.currentTarget) return;
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setSelectedThesis(thesis);
+                  }
+                }}
+                tabIndex={0}
+                role="button"
+                aria-label={`View details for ${thesis.title}`}
+                className="cursor-pointer border-b border-border last:border-b-0 transition-colors hover:bg-white/5 focus:bg-white/5 focus:outline-none focus-visible:ring-1 focus-visible:ring-accent"
               >
                 <td className="max-w-64 truncate px-6 py-4 font-mono text-sm text-white/90">
                   {thesis.title}

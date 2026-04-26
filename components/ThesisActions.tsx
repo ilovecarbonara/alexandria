@@ -38,9 +38,10 @@ export function ThesisActions({
           <Button
             variant="secondary"
             onClick={() => setHistoryOpen(true)}
+            aria-label="View version history"
             className="text-xs px-2 py-1 inline-flex items-center gap-1.5"
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
             History
           </Button>
           <Modal
