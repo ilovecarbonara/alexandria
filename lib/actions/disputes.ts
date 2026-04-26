@@ -3,6 +3,7 @@
 import { requireAuth, requireUser } from "./auth-guards";
 import { logActivity } from "./activity";
 import { createServiceClient } from "@/lib/supabase/service";
+import { rateLimit } from "@/lib/rate-limit";
 import {
   MAX_REASON_LENGTH,
   validateUUID,
@@ -260,6 +261,16 @@ export async function postDisputeMessage(
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
 
+  // Rate limit: 30 dispute messages per minute per user. Prevents thread
+  // spam and keeps activity_logs notifications bounded.
+  const rl = rateLimit(`dispute-msg:${auth.user.id}`, {
+    limit: 30,
+    windowMs: 60_000,
+  });
+  if (!rl.success) {
+    return { error: "Too many messages. Please slow down." };
+  }
+
   const ctx = await loadDisputeContext(
     disputeId,
     auth.user.id,
@@ -315,6 +326,14 @@ export async function markDisputeRead(
 
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
+
+  // Light rate limit: 60 read marks per minute per user. The upsert is
+  // idempotent but a hot client loop could thrash the DB.
+  const rl = rateLimit(`dispute-read:${auth.user.id}`, {
+    limit: 60,
+    windowMs: 60_000,
+  });
+  if (!rl.success) return { error: "Too many requests." };
 
   // Ensure the caller is actually a participant before recording a read.
   const ctx = await loadDisputeContext(

@@ -76,7 +76,13 @@ export function DisputeManagementClient({
   }
 
   function handleExportCSV() {
-    const headers = ["Thesis", "Flagged By", "Reason", "Status", "Date"];
+    const headers = [
+      "Thesis",
+      "Flagged By",
+      "Opening Message",
+      "Status",
+      "Date",
+    ];
     const rows = filtered.map((d) => [
       d.thesis_title,
       d.flagged_by_name,
@@ -183,7 +189,7 @@ export function DisputeManagementClient({
                       Flagged By
                     </th>
                     <th className="px-6 py-3 font-mono text-xs uppercase text-white/40">
-                      Reason
+                      Opening Message
                     </th>
                     <th className="px-6 py-3 font-mono text-xs uppercase text-white/40">
                       Date
@@ -276,7 +282,9 @@ export function DisputeManagementClient({
                 />
               </div>
               <div>
-                <span className="font-mono text-xs text-white/40">Reason</span>
+                <span className="font-mono text-xs text-white/40">
+                  Opening Message
+                </span>
                 <p className="mt-0.5 whitespace-pre-wrap rounded-xs border border-border bg-surface/50 px-3 py-2 font-mono text-sm text-white/90">
                   {selectedDispute.opening_message}
                 </p>
