@@ -2,6 +2,7 @@ export type ThesisLevel = "undergraduate" | "masteral" | "doctoral";
 export type SubmissionType = "draft" | "final";
 export type ThesisStatus = "pending" | "accepted" | "flagged" | "rejected";
 export type DisputeStatus = "open" | "resolved";
+export type DisputeAuthorRole = "flagger" | "admin" | "owner";
 export type AlertStatus = "notified"; 
 
 export interface Database {
@@ -96,9 +97,7 @@ export interface Database {
           id: string;
           thesis_id: string;
           flagged_by: string;
-          reason: string;
           status: DisputeStatus;
-          resolution_notes: string | null;
           resolved_by: string | null;
           resolved_at: string | null;
           created_at: string;
@@ -107,9 +106,7 @@ export interface Database {
           id?: string;
           thesis_id: string;
           flagged_by: string;
-          reason: string;
           status?: DisputeStatus;
-          resolution_notes?: string | null;
           resolved_by?: string | null;
           resolved_at?: string | null;
           created_at?: string;
@@ -118,12 +115,55 @@ export interface Database {
           id?: string;
           thesis_id?: string;
           flagged_by?: string;
-          reason?: string;
           status?: DisputeStatus;
-          resolution_notes?: string | null;
           resolved_by?: string | null;
           resolved_at?: string | null;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      dispute_messages: {
+        Row: {
+          id: string;
+          dispute_id: string;
+          author_id: string;
+          author_role: DisputeAuthorRole;
+          body: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          dispute_id: string;
+          author_id: string;
+          author_role: DisputeAuthorRole;
+          body: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          dispute_id?: string;
+          author_id?: string;
+          author_role?: DisputeAuthorRole;
+          body?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      dispute_reads: {
+        Row: {
+          dispute_id: string;
+          user_id: string;
+          last_read_at: string;
+        };
+        Insert: {
+          dispute_id: string;
+          user_id: string;
+          last_read_at?: string;
+        };
+        Update: {
+          dispute_id?: string;
+          user_id?: string;
+          last_read_at?: string;
         };
         Relationships: [];
       };
@@ -204,6 +244,7 @@ export interface Database {
       submission_type: SubmissionType;
       thesis_status: ThesisStatus;
       dispute_status: DisputeStatus;
+      dispute_author_role: DisputeAuthorRole;
       alert_status: AlertStatus;
     };
   };

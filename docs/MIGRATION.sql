@@ -15,6 +15,7 @@ CREATE TYPE thesis_level AS ENUM ('undergraduate', 'masteral', 'doctoral');
 CREATE TYPE submission_type AS ENUM ('draft', 'final');
 CREATE TYPE thesis_status AS ENUM ('pending', 'accepted', 'flagged', 'rejected');
 CREATE TYPE dispute_status AS ENUM ('open', 'resolved');
+CREATE TYPE dispute_author_role AS ENUM ('flagger', 'admin', 'owner');
 CREATE TYPE alert_status AS ENUM ('sent', 'failed', 'notified');
 
 -- ============================================================
@@ -51,17 +52,36 @@ CREATE TABLE public.theses (
   registered_at    timestamptz NOT NULL DEFAULT now()
 );
 
--- disputes
+-- disputes (threaded)
+-- Each dispute is a 3-party thread between flagger, admin, and thesis owner.
+-- The opening reason and any resolution note are stored as messages in
+-- dispute_messages, not as columns on this table.
 CREATE TABLE public.disputes (
-  id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  thesis_id        uuid NOT NULL REFERENCES public.theses(id) ON DELETE CASCADE,
-  flagged_by       uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  reason           text NOT NULL,
-  status           dispute_status NOT NULL DEFAULT 'open',
-  resolution_notes text,
-  resolved_by      uuid REFERENCES public.users(id) ON DELETE SET NULL,
-  resolved_at      timestamptz,
-  created_at       timestamptz NOT NULL DEFAULT now()
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  thesis_id    uuid NOT NULL REFERENCES public.theses(id) ON DELETE CASCADE,
+  flagged_by   uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  status       dispute_status NOT NULL DEFAULT 'open',
+  resolved_by  uuid REFERENCES public.users(id) ON DELETE SET NULL,
+  resolved_at  timestamptz,
+  created_at   timestamptz NOT NULL DEFAULT now()
+);
+
+-- dispute_messages: thread bodies (opening reason, replies, closing note)
+CREATE TABLE public.dispute_messages (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  dispute_id  uuid NOT NULL REFERENCES public.disputes(id) ON DELETE CASCADE,
+  author_id   uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  author_role dispute_author_role NOT NULL,
+  body        text NOT NULL,
+  created_at  timestamptz NOT NULL DEFAULT now()
+);
+
+-- dispute_reads: per-user last-read timestamp for unread badges
+CREATE TABLE public.dispute_reads (
+  dispute_id   uuid NOT NULL REFERENCES public.disputes(id) ON DELETE CASCADE,
+  user_id      uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  last_read_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (dispute_id, user_id)
 );
 
 -- activity_logs
@@ -92,8 +112,12 @@ CREATE INDEX idx_theses_sha256_hash ON public.theses(sha256_hash);
 CREATE INDEX idx_theses_previous_thesis_id ON public.theses(previous_thesis_id);
 CREATE INDEX idx_theses_title_trgm ON public.theses USING gin (title_normalized gin_trgm_ops);
 CREATE INDEX idx_disputes_thesis_id ON public.disputes(thesis_id);
+CREATE INDEX idx_disputes_flagged_by ON public.disputes(flagged_by);
 CREATE INDEX idx_theses_status ON public.theses(status);
 CREATE INDEX idx_disputes_status ON public.disputes(status);
+CREATE INDEX idx_dispute_messages_dispute_id ON public.dispute_messages(dispute_id, created_at);
+CREATE INDEX idx_dispute_messages_author_id ON public.dispute_messages(author_id);
+CREATE INDEX idx_dispute_reads_user_id ON public.dispute_reads(user_id);
 CREATE INDEX idx_activity_logs_user_id ON public.activity_logs(user_id);
 CREATE INDEX idx_title_alerts_notified_user ON public.title_alerts(notified_user_id);
 
@@ -127,6 +151,8 @@ $$;
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.theses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.disputes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.dispute_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.dispute_reads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.activity_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.title_alerts ENABLE ROW LEVEL SECURITY;
 
@@ -178,17 +204,86 @@ CREATE POLICY "Authenticated users can create disputes"
   TO authenticated
   WITH CHECK ((SELECT auth.uid()) = flagged_by);
 
--- disputes: authenticated users can read all disputes
-CREATE POLICY "Authenticated users can read disputes"
+-- disputes: only participants (flagger, thesis owner) and admins can read
+CREATE POLICY "Participants can read disputes"
   ON public.disputes FOR SELECT
   TO authenticated
-  USING (true);
+  USING (
+    (SELECT private.is_admin())
+    OR flagged_by = (SELECT auth.uid())
+    OR EXISTS (
+      SELECT 1 FROM public.theses t
+      WHERE t.id = disputes.thesis_id
+        AND t.user_id = (SELECT auth.uid())
+    )
+  );
 
 -- disputes: admin can update status
 CREATE POLICY "Admin can update disputes"
   ON public.disputes FOR UPDATE
   TO authenticated
   USING ((SELECT private.is_admin()));
+
+-- ----------------------------------------------------------------
+-- dispute_messages: read/write only by participants of the parent
+-- dispute. Inserts additionally require the dispute to be open and
+-- the author_id to match the caller. The application also enforces
+-- author_role consistency.
+-- ----------------------------------------------------------------
+
+CREATE POLICY "Participants can read dispute messages"
+  ON public.dispute_messages FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.disputes d
+      LEFT JOIN public.theses t ON t.id = d.thesis_id
+      WHERE d.id = dispute_messages.dispute_id
+        AND (
+          (SELECT private.is_admin())
+          OR d.flagged_by = (SELECT auth.uid())
+          OR t.user_id = (SELECT auth.uid())
+        )
+    )
+  );
+
+CREATE POLICY "Participants can post dispute messages"
+  ON public.dispute_messages FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    author_id = (SELECT auth.uid())
+    AND EXISTS (
+      SELECT 1 FROM public.disputes d
+      LEFT JOIN public.theses t ON t.id = d.thesis_id
+      WHERE d.id = dispute_messages.dispute_id
+        AND d.status = 'open'
+        AND (
+          (SELECT private.is_admin())
+          OR d.flagged_by = (SELECT auth.uid())
+          OR t.user_id = (SELECT auth.uid())
+        )
+    )
+  );
+
+-- ----------------------------------------------------------------
+-- dispute_reads: each user manages only their own read marker.
+-- ----------------------------------------------------------------
+
+CREATE POLICY "Users can read own dispute reads"
+  ON public.dispute_reads FOR SELECT
+  TO authenticated
+  USING (user_id = (SELECT auth.uid()));
+
+CREATE POLICY "Users can upsert own dispute reads"
+  ON public.dispute_reads FOR INSERT
+  TO authenticated
+  WITH CHECK (user_id = (SELECT auth.uid()));
+
+CREATE POLICY "Users can update own dispute reads"
+  ON public.dispute_reads FOR UPDATE
+  TO authenticated
+  USING (user_id = (SELECT auth.uid()))
+  WITH CHECK (user_id = (SELECT auth.uid()));
 
 -- activity_logs: admin can read all
 CREATE POLICY "Admin can read all activity logs"
@@ -262,3 +357,124 @@ ALTER TABLE public.activity_logs
   ADD COLUMN thesis_id uuid REFERENCES public.theses(id) ON DELETE SET NULL;
 
 CREATE INDEX idx_activity_logs_thesis_id ON public.activity_logs(thesis_id);
+
+-- ============================================================
+-- Migration: Threaded disputes (idempotent)
+-- ------------------------------------------------------------
+-- Converts disputes from single-reason/single-resolution columns
+-- into an email-style thread (flagger / admin / owner).
+-- DEV-ONLY: existing dispute rows are wiped; no backfill.
+-- Safe to run on databases that already have the new schema —
+-- everything is guarded with IF [NOT] EXISTS.
+-- ============================================================
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'dispute_author_role') THEN
+    CREATE TYPE dispute_author_role AS ENUM ('flagger', 'admin', 'owner');
+  END IF;
+END$$;
+
+-- Wipe existing rows before dropping the columns (cascades to any
+-- new dispute_messages / dispute_reads rows if this is re-run).
+DELETE FROM public.disputes;
+
+ALTER TABLE public.disputes DROP COLUMN IF EXISTS reason;
+ALTER TABLE public.disputes DROP COLUMN IF EXISTS resolution_notes;
+
+CREATE TABLE IF NOT EXISTS public.dispute_messages (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  dispute_id  uuid NOT NULL REFERENCES public.disputes(id) ON DELETE CASCADE,
+  author_id   uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  author_role dispute_author_role NOT NULL,
+  body        text NOT NULL,
+  created_at  timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.dispute_reads (
+  dispute_id   uuid NOT NULL REFERENCES public.disputes(id) ON DELETE CASCADE,
+  user_id      uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  last_read_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (dispute_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_disputes_flagged_by
+  ON public.disputes(flagged_by);
+CREATE INDEX IF NOT EXISTS idx_dispute_messages_dispute_id
+  ON public.dispute_messages(dispute_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_dispute_messages_author_id
+  ON public.dispute_messages(author_id);
+CREATE INDEX IF NOT EXISTS idx_dispute_reads_user_id
+  ON public.dispute_reads(user_id);
+
+ALTER TABLE public.dispute_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.dispute_reads    ENABLE ROW LEVEL SECURITY;
+
+-- Tighten disputes SELECT to participants + admin
+DROP POLICY IF EXISTS "Authenticated users can read disputes" ON public.disputes;
+DROP POLICY IF EXISTS "Participants can read disputes"        ON public.disputes;
+CREATE POLICY "Participants can read disputes"
+  ON public.disputes FOR SELECT
+  TO authenticated
+  USING (
+    (SELECT private.is_admin())
+    OR flagged_by = (SELECT auth.uid())
+    OR EXISTS (
+      SELECT 1 FROM public.theses t
+      WHERE t.id = disputes.thesis_id
+        AND t.user_id = (SELECT auth.uid())
+    )
+  );
+
+DROP POLICY IF EXISTS "Participants can read dispute messages" ON public.dispute_messages;
+CREATE POLICY "Participants can read dispute messages"
+  ON public.dispute_messages FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.disputes d
+      LEFT JOIN public.theses t ON t.id = d.thesis_id
+      WHERE d.id = dispute_messages.dispute_id
+        AND (
+          (SELECT private.is_admin())
+          OR d.flagged_by = (SELECT auth.uid())
+          OR t.user_id = (SELECT auth.uid())
+        )
+    )
+  );
+
+DROP POLICY IF EXISTS "Participants can post dispute messages" ON public.dispute_messages;
+CREATE POLICY "Participants can post dispute messages"
+  ON public.dispute_messages FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    author_id = (SELECT auth.uid())
+    AND EXISTS (
+      SELECT 1 FROM public.disputes d
+      LEFT JOIN public.theses t ON t.id = d.thesis_id
+      WHERE d.id = dispute_messages.dispute_id
+        AND d.status = 'open'
+        AND (
+          (SELECT private.is_admin())
+          OR d.flagged_by = (SELECT auth.uid())
+          OR t.user_id = (SELECT auth.uid())
+        )
+    )
+  );
+
+DROP POLICY IF EXISTS "Users can read own dispute reads"   ON public.dispute_reads;
+DROP POLICY IF EXISTS "Users can upsert own dispute reads" ON public.dispute_reads;
+DROP POLICY IF EXISTS "Users can update own dispute reads" ON public.dispute_reads;
+CREATE POLICY "Users can read own dispute reads"
+  ON public.dispute_reads FOR SELECT
+  TO authenticated
+  USING (user_id = (SELECT auth.uid()));
+CREATE POLICY "Users can upsert own dispute reads"
+  ON public.dispute_reads FOR INSERT
+  TO authenticated
+  WITH CHECK (user_id = (SELECT auth.uid()));
+CREATE POLICY "Users can update own dispute reads"
+  ON public.dispute_reads FOR UPDATE
+  TO authenticated
+  USING (user_id = (SELECT auth.uid()))
+  WITH CHECK (user_id = (SELECT auth.uid()));

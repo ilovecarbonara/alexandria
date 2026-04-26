@@ -7,7 +7,7 @@ export default async function AdminDisputesPage() {
   const { data: disputes } = await service
     .from("disputes")
     .select(
-      "id, reason, status, created_at, thesis_id, flagged_by, resolution_notes, resolved_by, resolved_at",
+      "id, status, created_at, thesis_id, flagged_by, resolved_by, resolved_at",
     )
     .order("created_at", { ascending: false });
 
@@ -15,15 +15,16 @@ export default async function AdminDisputesPage() {
     return <DisputeManagementClient initialDisputes={[]} />;
   }
 
+  const disputeIds = disputes.map((d) => d.id);
   const thesisIds = [...new Set(disputes.map((d) => d.thesis_id))];
   const userIds = [
     ...new Set([
       ...disputes.map((d) => d.flagged_by),
-      ...disputes.map((d) => d.resolved_by).filter(Boolean) as string[],
+      ...(disputes.map((d) => d.resolved_by).filter(Boolean) as string[]),
     ]),
   ];
 
-  const [thesesRes, usersRes] = await Promise.all([
+  const [thesesRes, usersRes, messagesRes] = await Promise.all([
     service
       .from("theses")
       .select(
@@ -31,11 +32,14 @@ export default async function AdminDisputesPage() {
       )
       .in("id", thesisIds),
     service.from("users").select("id, full_name").in("id", userIds),
+    service
+      .from("dispute_messages")
+      .select("dispute_id, author_role, body, created_at")
+      .in("dispute_id", disputeIds)
+      .order("created_at", { ascending: true }),
   ]);
 
-  const thesisMap = new Map(
-    (thesesRes.data ?? []).map((t) => [t.id, t]),
-  );
+  const thesisMap = new Map((thesesRes.data ?? []).map((t) => [t.id, t]));
   const userMap = new Map(
     (usersRes.data ?? []).map((u) => [u.id, u.full_name]),
   );
@@ -58,11 +62,24 @@ export default async function AdminDisputesPage() {
     }
   }
 
+  // Index the opening (first) message and the admin closing note (the last
+  // admin message in a resolved thread) per dispute.
+  const openingByDispute = new Map<string, string>();
+  const closingByDispute = new Map<string, string>();
+  for (const m of messagesRes.data ?? []) {
+    if (!openingByDispute.has(m.dispute_id)) {
+      openingByDispute.set(m.dispute_id, m.body);
+    }
+    if (m.author_role === "admin") {
+      closingByDispute.set(m.dispute_id, m.body);
+    }
+  }
+
   const enriched = disputes.map((d) => {
     const thesis = thesisMap.get(d.thesis_id);
     return {
       id: d.id,
-      reason: d.reason,
+      opening_message: openingByDispute.get(d.id) ?? "",
       status: d.status as "open" | "resolved",
       created_at: d.created_at,
       thesis_title: thesis?.title ?? "Unknown thesis",
@@ -73,7 +90,8 @@ export default async function AdminDisputesPage() {
       thesis_category: thesis?.thesis_category ?? null,
       thesis_registered_at: thesis?.registered_at ?? null,
       flagged_by_name: userMap.get(d.flagged_by) ?? "Unknown user",
-      resolution_notes: d.resolution_notes,
+      closing_note:
+        d.status === "resolved" ? (closingByDispute.get(d.id) ?? null) : null,
       resolved_by_name: d.resolved_by
         ? (userMap.get(d.resolved_by) ?? "Unknown admin")
         : null,

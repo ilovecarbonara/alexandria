@@ -10,12 +10,14 @@ import {
   Modal,
   ConfirmDialog,
 } from "@/components/ui";
-import { PAGE_SIZE, MAX_RESOLUTION_NOTES_LENGTH, THESIS_LEVELS } from "@/lib/constants";
+import { PAGE_SIZE, THESIS_LEVELS } from "@/lib/constants";
+import { MAX_REASON_LENGTH } from "@/lib/validation";
 import { generateCSV, downloadCSV } from "@/lib/export";
 
 interface Dispute {
   id: string;
-  reason: string;
+  /** Body of the opening (flagger) message in the dispute thread. */
+  opening_message: string;
   status: "open" | "resolved";
   created_at: string;
   thesis_title: string;
@@ -24,7 +26,8 @@ interface Dispute {
   thesis_category: string | null;
   thesis_registered_at: string | null;
   flagged_by_name: string;
-  resolution_notes: string | null;
+  /** Body of the admin's closing message (only present once resolved). */
+  closing_note: string | null;
   resolved_by_name: string | null;
   resolved_at: string | null;
 }
@@ -77,7 +80,7 @@ export function DisputeManagementClient({
     const rows = filtered.map((d) => [
       d.thesis_title,
       d.flagged_by_name,
-      d.reason,
+      d.opening_message,
       d.status,
       new Date(d.created_at).toLocaleDateString(),
     ]);
@@ -98,8 +101,7 @@ export function DisputeManagementClient({
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        status: "resolved",
-        resolution_notes: resolutionNotes,
+        closing_note: resolutionNotes,
       }),
     });
 
@@ -111,7 +113,7 @@ export function DisputeManagementClient({
             ? {
                 ...d,
                 status: "resolved" as const,
-                resolution_notes: resolutionNotes.trim(),
+                closing_note: resolutionNotes.trim(),
                 resolved_at: now,
                 resolved_by_name: "You",
               }
@@ -207,7 +209,7 @@ export function DisputeManagementClient({
                         {dispute.flagged_by_name}
                       </td>
                       <td className="max-w-64 truncate px-6 py-4 font-mono text-sm text-white/60">
-                        {dispute.reason}
+                        {dispute.opening_message}
                       </td>
                       <td className="whitespace-nowrap px-6 py-4 font-mono text-sm text-white/60">
                         {new Date(dispute.created_at).toLocaleDateString()}
@@ -252,7 +254,7 @@ export function DisputeManagementClient({
         open={!!selectedDispute}
         onClose={closeModal}
         title="Dispute Details"
-        className="min-w-80 max-w-2xl"
+        className="w-[70vw] max-w-[70vw] min-w-[20rem]"
       >
         {selectedDispute && (
           <div className="space-y-5">
@@ -276,7 +278,7 @@ export function DisputeManagementClient({
               <div>
                 <span className="font-mono text-xs text-white/40">Reason</span>
                 <p className="mt-0.5 whitespace-pre-wrap rounded-xs border border-border bg-surface/50 px-3 py-2 font-mono text-sm text-white/90">
-                  {selectedDispute.reason}
+                  {selectedDispute.opening_message}
                 </p>
               </div>
             </section>
@@ -336,7 +338,7 @@ export function DisputeManagementClient({
                     placeholder="Describe the resolution…"
                     value={resolutionNotes}
                     onChange={(e) => setResolutionNotes(e.target.value)}
-                    maxLength={MAX_RESOLUTION_NOTES_LENGTH}
+                    maxLength={MAX_REASON_LENGTH}
                     rows={3}
                     className="rounded-xs border border-border bg-surface px-3 py-2 font-mono text-sm text-white/90 placeholder:text-white/30 focus:border-accent focus:outline-none resize-y"
                   />
@@ -348,7 +350,7 @@ export function DisputeManagementClient({
                           : "text-white/30"
                       }`}
                     >
-                      {resolutionNotes.length}/{MAX_RESOLUTION_NOTES_LENGTH}
+                      {resolutionNotes.length}/{MAX_REASON_LENGTH}
                     </span>
                   </div>
                 </div>
@@ -393,13 +395,13 @@ export function DisputeManagementClient({
                     }
                   />
                 </div>
-                {selectedDispute.resolution_notes && (
+                {selectedDispute.closing_note && (
                   <div>
                     <span className="font-mono text-xs text-white/40">
                       Resolution Notes
                     </span>
                     <p className="mt-0.5 whitespace-pre-wrap rounded-xs border border-border bg-surface/50 px-3 py-2 font-mono text-sm text-white/90">
-                      {selectedDispute.resolution_notes}
+                      {selectedDispute.closing_note}
                     </p>
                   </div>
                 )}

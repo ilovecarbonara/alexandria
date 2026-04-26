@@ -64,11 +64,31 @@ export async function checkTitleSimilarity(thesisId: string) {
     if (!autoFlagged && match.similarity_score >= autoFlagThreshold) {
       const score = (match.similarity_score * 100).toFixed(1);
 
-      await service.from("disputes").insert({
-        thesis_id: thesis.id,
-        flagged_by: match.user_id,
-        reason: `Auto-flagged: ${score}% similarity with "${match.title}"`,
-      });
+      // Open the dispute thread, then post the auto-flag opening message
+      // authored by the matched thesis owner (the de-facto flagger).
+      const { data: created, error: disputeError } = await service
+        .from("disputes")
+        .insert({
+          thesis_id: thesis.id,
+          flagged_by: match.user_id,
+        })
+        .select("id")
+        .single();
+
+      if (!disputeError && created) {
+        await service.from("dispute_messages").insert({
+          dispute_id: created.id,
+          author_id: match.user_id,
+          author_role: "flagger",
+          body: `Auto-flagged: ${score}% similarity with "${match.title}"`,
+        });
+
+        // Pre-mark the flagger as having read their own opening message.
+        await service.from("dispute_reads").insert({
+          dispute_id: created.id,
+          user_id: match.user_id,
+        });
+      }
 
       await service
         .from("theses")
