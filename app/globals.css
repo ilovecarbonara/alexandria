@@ -33,6 +33,29 @@ body {
   font-family: var(--font-mono);
 }
 
+/* Scrollbar — blends into the background */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+*:hover {
+  scrollbar-color: #222733 transparent;
+}
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+}
+*:hover::-webkit-scrollbar-thumb {
+  background: #222733;
+}
+
 /* Custom checkbox — matches design system */
 input[type="checkbox"].cb {
   appearance: none;
@@ -68,3 +91,4 @@ input[type="checkbox"].cb:focus-visible {
 input[type="checkbox"].cb:hover:not(:disabled) {
   border-color: var(--color-accent);
 }
+
