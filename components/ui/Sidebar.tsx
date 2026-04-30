@@ -7,6 +7,8 @@ import { ReactNode } from "react";
 interface NavItem {
   href: string;
   label: string;
+  /** Optional unread/notification badge shown as a small pill next to the label. */
+  badge?: number;
 }
 
 interface SidebarProps {
@@ -30,13 +32,21 @@ export function Sidebar({ title, items, children }: SidebarProps) {
             <Link
               key={item.href}
               href={item.href}
-              className={`rounded-xs px-3 py-2 font-mono text-sm transition-colors ${
+              className={`flex items-center justify-between gap-2 rounded-xs px-3 py-2 font-mono text-sm transition-colors ${
                 active
                   ? "bg-accent/15 text-accent"
                   : "text-white/60 hover:text-white/90 hover:bg-white/5"
               }`}
             >
-              {item.label}
+              <span className="truncate">{item.label}</span>
+              {item.badge !== undefined && item.badge > 0 && (
+                <span
+                  aria-label={`${item.badge} unread`}
+                  className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-dispute px-1.5 py-0.5 font-mono text-[10px] leading-none text-white"
+                >
+                  {item.badge > 99 ? "99+" : item.badge}
+                </span>
+              )}
             </Link>
           );
         })}

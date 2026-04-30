@@ -1,15 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Sidebar, Button } from "@/components/ui";
-import { signOut } from "@/lib/actions/auth";
-
-const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/dashboard/register", label: "Register Thesis" },
-  { href: "/dashboard/browse", label: "Browse Registry" },
-  { href: "/dashboard/alerts", label: "Title Alerts" },
-  { href: "/dashboard/settings", label: "Settings" },
-];
+import { countMyDisputeUnreads } from "@/lib/actions/disputes";
 
 export default async function DashboardLayout({
   children,
@@ -31,10 +23,21 @@ export default async function DashboardLayout({
 
   if (profile?.is_admin) redirect("/admin");
 
+  const disputeUnread = await countMyDisputeUnreads();
+
+  const navItems = [
+    { href: "/dashboard", label: "Dashboard" },
+    { href: "/dashboard/register", label: "Register Thesis" },
+    { href: "/dashboard/browse", label: "Browse Registry" },
+    { href: "/dashboard/disputes", label: "Disputes", badge: disputeUnread },
+    { href: "/dashboard/alerts", label: "Title Alerts" },
+    { href: "/dashboard/settings", label: "Settings" },
+  ];
+
   return (
     <div className="flex h-screen">
-      <Sidebar title="Alexandria" items={NAV_ITEMS}>
-        <form action={signOut}>
+      <Sidebar title="Alexandria" items={navItems}>
+        <form action="/api/auth/signout" method="post">
           <Button variant="danger-outline" type="submit" className="w-full">
             Sign Out
           </Button>

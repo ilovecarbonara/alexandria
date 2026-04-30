@@ -1,8 +1,27 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { DisputeManagementClient } from "@/components/DisputeManagementClient";
+import {
+  DisputeManagementClient,
+  type AdminDisputeRow,
+} from "@/components/DisputeManagementClient";
+import type { DisputeAuthorRole } from "@/lib/supabase/types";
+
+const PREVIEW_LENGTH = 140;
+
+function truncatePreview(body: string): string {
+  const collapsed = body.replace(/\s+/g, " ").trim();
+  return collapsed.length > PREVIEW_LENGTH
+    ? collapsed.slice(0, PREVIEW_LENGTH) + "…"
+    : collapsed;
+}
 
 export default async function AdminDisputesPage() {
   const service = await createClient();
+
+  const {
+    data: { user },
+  } = await service.auth.getUser();
+  if (!user) redirect("/login");
 
   const { data: disputes } = await service
     .from("disputes")
@@ -24,7 +43,7 @@ export default async function AdminDisputesPage() {
     ]),
   ];
 
-  const [thesesRes, usersRes, messagesRes] = await Promise.all([
+  const [thesesRes, usersRes, messagesRes, readsRes] = await Promise.all([
     service
       .from("theses")
       .select(
@@ -34,9 +53,14 @@ export default async function AdminDisputesPage() {
     service.from("users").select("id, full_name").in("id", userIds),
     service
       .from("dispute_messages")
-      .select("dispute_id, author_role, body, created_at")
+      .select("dispute_id, author_id, author_role, body, created_at")
       .in("dispute_id", disputeIds)
       .order("created_at", { ascending: true }),
+    service
+      .from("dispute_reads")
+      .select("dispute_id, last_read_at")
+      .eq("user_id", user.id)
+      .in("dispute_id", disputeIds),
   ]);
 
   const thesisMap = new Map((thesesRes.data ?? []).map((t) => [t.id, t]));
@@ -44,7 +68,7 @@ export default async function AdminDisputesPage() {
     (usersRes.data ?? []).map((u) => [u.id, u.full_name]),
   );
 
-  // Fetch thesis author names (the user who owns the thesis)
+  // Backfill thesis-author names not already in userMap.
   const thesisAuthorIds = [
     ...new Set(
       (thesesRes.data ?? [])
@@ -57,31 +81,50 @@ export default async function AdminDisputesPage() {
       .from("users")
       .select("id, full_name")
       .in("id", thesisAuthorIds);
-    for (const u of authorUsers ?? []) {
-      userMap.set(u.id, u.full_name);
-    }
+    for (const u of authorUsers ?? []) userMap.set(u.id, u.full_name);
   }
 
-  // Index the opening (first) message and the admin closing note (the last
-  // admin message in a resolved thread) per dispute.
-  const openingByDispute = new Map<string, string>();
-  const closingByDispute = new Map<string, string>();
+  type Msg = {
+    author_id: string;
+    author_role: DisputeAuthorRole;
+    body: string;
+    created_at: string;
+  };
+  const messagesByDispute = new Map<string, Msg[]>();
   for (const m of messagesRes.data ?? []) {
-    if (!openingByDispute.has(m.dispute_id)) {
-      openingByDispute.set(m.dispute_id, m.body);
-    }
-    if (m.author_role === "admin") {
-      closingByDispute.set(m.dispute_id, m.body);
-    }
+    const arr = messagesByDispute.get(m.dispute_id) ?? [];
+    arr.push(m);
+    messagesByDispute.set(m.dispute_id, arr);
   }
 
-  const enriched = disputes.map((d) => {
+  const readMap = new Map(
+    (readsRes.data ?? []).map(
+      (r) => [r.dispute_id, r.last_read_at] as const,
+    ),
+  );
+
+  const enriched: AdminDisputeRow[] = disputes.map((d) => {
     const thesis = thesisMap.get(d.thesis_id);
+    const msgs = messagesByDispute.get(d.id) ?? [];
+    const opening = msgs[0]?.body ?? "";
+    const last = msgs[msgs.length - 1];
+    const closing =
+      d.status === "resolved"
+        ? ([...msgs].reverse().find((m) => m.author_role === "admin")?.body ??
+          null)
+        : null;
+    const lastRead = readMap.get(d.id);
+    const unread = msgs.filter(
+      (m) =>
+        m.author_id !== user.id &&
+        (!lastRead || m.created_at > lastRead),
+    ).length;
+
     return {
       id: d.id,
-      opening_message: openingByDispute.get(d.id) ?? "",
       status: d.status as "open" | "resolved",
       created_at: d.created_at,
+      thesis_id: d.thesis_id,
       thesis_title: thesis?.title ?? "Unknown thesis",
       thesis_author_name: thesis
         ? (userMap.get(thesis.user_id) ?? "Unknown author")
@@ -90,13 +133,24 @@ export default async function AdminDisputesPage() {
       thesis_category: thesis?.thesis_category ?? null,
       thesis_registered_at: thesis?.registered_at ?? null,
       flagged_by_name: userMap.get(d.flagged_by) ?? "Unknown user",
-      closing_note:
-        d.status === "resolved" ? (closingByDispute.get(d.id) ?? null) : null,
       resolved_by_name: d.resolved_by
         ? (userMap.get(d.resolved_by) ?? "Unknown admin")
         : null,
       resolved_at: d.resolved_at,
+      opening_message: opening,
+      closing_note: closing,
+      last_message_at: last?.created_at ?? null,
+      last_message_preview: last ? truncatePreview(last.body) : null,
+      last_message_role: last?.author_role ?? null,
+      unread_count: unread,
     };
+  });
+
+  // Surface most recently active threads first.
+  enriched.sort((a, b) => {
+    const av = a.last_message_at ?? a.created_at;
+    const bv = b.last_message_at ?? b.created_at;
+    return bv.localeCompare(av);
   });
 
   return <DisputeManagementClient initialDisputes={enriched} />;

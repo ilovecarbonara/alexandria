@@ -1,18 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Sidebar, Button } from "@/components/ui";
-import { signOut } from "@/lib/actions/auth";
-
-const NAV_ITEMS = [
-  { href: "/admin", label: "Dashboard" },
-  { href: "/admin/theses", label: "Thesis Registry" },
-  { href: "/admin/users", label: "User Management" },
-  { href: "/admin/disputes", label: "Disputes" },
-  { href: "/admin/alerts", label: "Title Alerts" },
-  { href: "/admin/activity", label: "Activity Logs" },
-  { href: "/admin/analytics", label: "Analytics" },
-  { href: "/admin/settings", label: "Settings" },
-];
+import { countMyDisputeUnreads } from "@/lib/actions/disputes";
 
 export default async function AdminLayout({
   children,
@@ -34,10 +23,23 @@ export default async function AdminLayout({
 
   if (!profile?.is_admin) redirect("/dashboard");
 
+  const disputeUnread = await countMyDisputeUnreads();
+
+  const navItems = [
+    { href: "/admin", label: "Dashboard" },
+    { href: "/admin/theses", label: "Thesis Registry" },
+    { href: "/admin/users", label: "User Management" },
+    { href: "/admin/disputes", label: "Disputes", badge: disputeUnread },
+    { href: "/admin/alerts", label: "Title Alerts" },
+    { href: "/admin/activity", label: "Activity Logs" },
+    { href: "/admin/analytics", label: "Analytics" },
+    { href: "/admin/settings", label: "Settings" },
+  ];
+
   return (
     <div className="flex h-screen">
-      <Sidebar title="Alexandria" items={NAV_ITEMS}>
-        <form action={signOut}>
+      <Sidebar title="Alexandria" items={navItems}>
+        <form action="/api/auth/signout" method="post">
           <Button variant="danger-outline" type="submit" className="w-full">
             Sign Out
           </Button>

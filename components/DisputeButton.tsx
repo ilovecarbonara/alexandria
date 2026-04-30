@@ -80,7 +80,7 @@ export function DisputeButton({
       <Modal open={open} onClose={() => setOpen(false)} title="File a Dispute" className="min-w-[60vw]">
         {success ? (
           <p className="font-mono text-sm text-success">
-            Dispute filed successfully.
+            Dispute filed. Continue the conversation from your Disputes page.
           </p>
         ) : (
           <div className="space-y-4">
@@ -110,11 +110,11 @@ export function DisputeButton({
                 htmlFor="dispute-reason"
                 className="text-sm text-white/60 font-mono"
               >
-                Reason
+                Opening message
               </label>
               <textarea
                 id="dispute-reason"
-                placeholder="Describe the issue…"
+                placeholder="Describe the issue — the admin and thesis owner will reply in a thread…"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 maxLength={MAX_REASON_LENGTH}

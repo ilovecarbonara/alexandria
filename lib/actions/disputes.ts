@@ -606,6 +606,79 @@ function notificationRecipients(
 // Existing helper preserved
 // ---------------------------------------------------------------------------
 
+/**
+ * Returns the total number of unread dispute messages addressed to the
+ * current viewer across every thread they participate in. Used by the
+ * sidebar badge.
+ *
+ * - Students: counts unreads from disputes they filed plus disputes on
+ *   theses they own.
+ * - Admins: counts unreads from every open dispute (admin participates in
+ *   all threads).
+ *
+ * Returns 0 on any failure so the badge stays silent rather than crashing
+ * the layout.
+ */
+export async function countMyDisputeUnreads(): Promise<number> {
+  const auth = await requireAuth();
+  if ("error" in auth) return 0;
+
+  const service = createServiceClient();
+  const viewerId = auth.user.id;
+  const isAdmin = auth.profile.is_admin;
+
+  let disputeIds: string[] = [];
+
+  if (isAdmin) {
+    const { data } = await service
+      .from("disputes")
+      .select("id")
+      .eq("status", "open");
+    disputeIds = (data ?? []).map((d) => d.id);
+  } else {
+    const [filedRes, ownedThesesRes] = await Promise.all([
+      service.from("disputes").select("id").eq("flagged_by", viewerId),
+      service.from("theses").select("id").eq("user_id", viewerId),
+    ]);
+    const ids = new Set<string>((filedRes.data ?? []).map((d) => d.id));
+    const ownedThesisIds = (ownedThesesRes.data ?? []).map((t) => t.id);
+    if (ownedThesisIds.length > 0) {
+      const { data: onMine } = await service
+        .from("disputes")
+        .select("id")
+        .in("thesis_id", ownedThesisIds);
+      for (const d of onMine ?? []) ids.add(d.id);
+    }
+    disputeIds = [...ids];
+  }
+
+  if (disputeIds.length === 0) return 0;
+
+  const [messagesRes, readsRes] = await Promise.all([
+    service
+      .from("dispute_messages")
+      .select("dispute_id, author_id, created_at")
+      .in("dispute_id", disputeIds),
+    service
+      .from("dispute_reads")
+      .select("dispute_id, last_read_at")
+      .eq("user_id", viewerId)
+      .in("dispute_id", disputeIds),
+  ]);
+
+  const readMap = new Map(
+    (readsRes.data ?? []).map((r) => [r.dispute_id, r.last_read_at] as const),
+  );
+
+  let count = 0;
+  for (const m of messagesRes.data ?? []) {
+    if (m.author_id === viewerId) continue;
+    const lastRead = readMap.get(m.dispute_id);
+    if (!lastRead || m.created_at > lastRead) count++;
+  }
+  return count;
+}
+
 export async function getThesisSimilarityContext(
   thesisId: string,
 ): Promise<{ score: number; matchedThesisTitle: string } | null> {

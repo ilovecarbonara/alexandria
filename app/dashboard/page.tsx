@@ -13,7 +13,7 @@ export default async function DashboardPage() {
   if (!user) redirect("/login");
 
   // Parallel queries
-  const [profileRes, thesesRes, disputesRes, activityRes, alertCountRes] = await Promise.all([
+  const [profileRes, thesesRes, filedDisputesRes, activityRes, alertCountRes] = await Promise.all([
     supabase.from("users").select("full_name").eq("id", user.id).single(),
     supabase
       .from("theses")
@@ -39,7 +39,20 @@ export default async function DashboardPage() {
 
   const fullName = profileRes.data?.full_name ?? "User";
   const theses = thesesRes.data ?? [];
-  const activeDisputeCount = disputesRes.data?.length ?? 0;
+  const filedOpenIds = new Set((filedDisputesRes.data ?? []).map((d) => d.id));
+
+  // Add open disputes on this user's theses (deduped by dispute id) so the
+  // stat card reflects every thread the user participates in.
+  const ownedThesisIds = theses.map((t) => t.id);
+  if (ownedThesisIds.length > 0) {
+    const { data: receivedOpen } = await supabase
+      .from("disputes")
+      .select("id")
+      .in("thesis_id", ownedThesisIds)
+      .eq("status", "open");
+    for (const d of receivedOpen ?? []) filedOpenIds.add(d.id);
+  }
+  const activeDisputeCount = filedOpenIds.size;
   const recentActivity = activityRes.data ?? [];
   const alertCount = alertCountRes.count ?? 0;
 
@@ -80,12 +93,17 @@ export default async function DashboardPage() {
           </p>
         </Card>
         <Card>
-          <p className="font-mono text-xs text-white/40 uppercase">
-            Active Disputes
-          </p>
-          <p className="mt-2 font-heading text-3xl text-white">
-            {activeDisputeCount}
-          </p>
+          <Link href="/dashboard/disputes" className="block">
+            <p className="font-mono text-xs text-white/40 uppercase">
+              Open Disputes
+            </p>
+            <p className="mt-2 font-heading text-3xl text-white">
+              {activeDisputeCount}
+            </p>
+            <p className="mt-1 font-mono text-xs text-accent">
+              View threads →
+            </p>
+          </Link>
         </Card>
         <Card>
           <p className="font-mono text-xs text-white/40 uppercase">

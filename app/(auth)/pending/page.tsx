@@ -1,5 +1,4 @@
 import { Card, Button } from "@/components/ui";
-import { signOut } from "@/lib/actions/auth";
 
 export default function PendingPage() {
   return (
@@ -12,7 +11,7 @@ export default function PendingPage() {
         Your account is pending administrator approval. You will be able to
         access the system once an admin has verified your registration.
       </p>
-      <form action={signOut}>
+      <form action="/api/auth/signout" method="post">
         <Button variant="danger-outline" type="submit">
           Sign Out
         </Button>
