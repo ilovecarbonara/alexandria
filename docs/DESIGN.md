@@ -33,4 +33,11 @@
 - Status chips: square, colored bg matching state color, DM Mono text
 - Hash display: text-[#5CC8FF] font-mono, truncated with full value on hover
 - Tables: paginated (15/page for dashboard/admin, 25/page for public search), content truncated to single line with ellipsis
+- Dispute thread messages: card with a 4px left border in the author-role color — `border-l-pending` (flagger), `border-l-accent` (owner), `border-l-dispute` (admin) — DM Mono header line `Role · timestamp`, body in default text color
+- Unread/notification count (sidebar nav badge): the only allowed circular shape — `rounded-full bg-dispute` numeric pill, max-display `99+`. Not a status chip; reserved for unread message counts
+
+## Roles & Anonymization (Dispute Thread)
+- Flagger ↔ Owner threads anonymize the flagger to the owner (label: `Anonymous flagger`) to discourage retaliation
+- Flagger sees the owner's real name; admin sees both real names
+- Author role is always communicated via the colored left-border + DM Mono role label, never via background fill
 - Table expand: icon button opens a full-detail modal overlay (not inline row expansion)
