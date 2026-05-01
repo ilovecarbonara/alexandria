@@ -38,7 +38,7 @@
 | user_id            | uuid            | NO       |           | FK → users.id ON DELETE CASCADE                          |
 | title              | text            | NO       |           |                                                          |
 | title_normalized   | text            | NO       |           | Lowercased, stripped — used for similarity matching       |
-| author_name        | text            | NO       |           |                                                          |
+| authors_search     | text            | NO       | ''        | Denormalized author names for fast `ILIKE` search; maintained by trigger |
 | thesis_level       | thesis_level    | NO       |           | undergraduate, masteral, doctoral                        |
 | thesis_category    | text            | NO       |           | User-selected from predefined list                       |
 | submission_type    | submission_type | NO       |           | draft, final                                             |
@@ -48,6 +48,16 @@
 | previous_thesis_id | uuid            | YES      |           | FK → theses.id ON DELETE SET NULL — links version chain  |
 | status             | thesis_status   | NO       | 'pending' | pending, accepted, flagged, rejected                     |
 | registered_at      | timestamptz     | NO       | now()     | System registration time                                 |
+
+### thesis_authors
+Author rows are an ordered snapshot captured at registration time. The thesis owner (`theses.user_id`) remains the single account owner, and the registration API independently verifies that the owner is included in this list.
+
+| Column    | Type | Nullable | Default | Constraints / Notes |
+|-----------|------|----------|---------|---------------------|
+| id        | uuid | NO       | gen_random_uuid() | PK |
+| thesis_id | uuid | NO       |         | FK → theses.id ON DELETE CASCADE |
+| name      | text | NO       |         | Author display name at registration time |
+| position  | int  | NO       |         | 1-based display order; UNIQUE (thesis_id, position) |
 
 ### disputes
 A dispute is a 3-party thread between flagger, admin, and thesis owner. The opening reason and the admin's closing note are NOT stored as columns — they are messages in `dispute_messages`.
@@ -111,7 +121,9 @@ Per-user last-read pointer used to derive unread counts for the sidebar badge an
 | idx_theses_sha256_hash         | theses       | sha256_hash        | B-tree | Fast duplicate / verification check |
 | idx_theses_previous_thesis_id  | theses       | previous_thesis_id | B-tree | Version chain traversal             |
 | idx_theses_title_trgm          | theses       | title_normalized   | GIN (gin_trgm_ops) | Trigram similarity search |
+| idx_theses_authors_search      | theses       | authors_search     | GIN (gin_trgm_ops) | Fast author name search |
 | idx_theses_status              | theses       | status             | B-tree | Filter by thesis status             |
+| idx_thesis_authors_thesis_id   | thesis_authors | thesis_id        | B-tree | Fetch ordered authors for a thesis  |
 | idx_disputes_thesis_id         | disputes     | thesis_id          | B-tree | Lookup disputes for a thesis        |
 | idx_disputes_flagged_by        | disputes     | flagged_by         | B-tree | "Filed by me" list lookup           |
 | idx_disputes_status            | disputes     | status             | B-tree | Filter by dispute status            |
@@ -124,7 +136,7 @@ Per-user last-read pointer used to derive unread counts for the sidebar badge an
 
 ## Row Level Security
 
-RLS is enabled on all seven tables (`users`, `theses`, `disputes`, `dispute_messages`, `dispute_reads`, `activity_logs`, `title_alerts`). An internal helper function `private.is_admin()` (SECURITY DEFINER, executes as the database owner) is used by admin policies to avoid infinite recursion when checking the `users` table.
+RLS is enabled on all eight application tables (`users`, `theses`, `thesis_authors`, `disputes`, `dispute_messages`, `dispute_reads`, `activity_logs`, `title_alerts`). An internal helper function `private.is_admin()` (SECURITY DEFINER, executes as the database owner) is used by admin policies to avoid infinite recursion when checking the `users` table.
 
 ### users
 | Policy                    | Operation | Role          | Condition                  |
@@ -140,6 +152,13 @@ RLS is enabled on all seven tables (`users`, `theses`, `disputes`, `dispute_mess
 | Theses are publicly readable              | SELECT    | authenticated, anon | true (unrestricted)    |
 | Authenticated users can insert own theses | INSERT    | authenticated       | auth.uid() = user_id   |
 | Admin can update theses                   | UPDATE    | authenticated       | private.is_admin()     |
+
+### thesis_authors
+| Policy                              | Operation | Role                | Condition           |
+|-------------------------------------|-----------|---------------------|---------------------|
+| Thesis authors are publicly readable| SELECT    | authenticated, anon | true (unrestricted) |
+
+> Inserts into `thesis_authors` are performed server-side via the Supabase service role key after a thesis row is created. No INSERT policy is defined for browser clients.
 
 ### disputes
 | Policy                                 | Operation | Role          | Condition                                                                 |

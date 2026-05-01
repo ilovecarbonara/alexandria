@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { requireAdmin } from "./auth-guards";
+import { sortThesisAuthors } from "@/lib/authors";
 import { sanitizeSearchTerm, validateUUID, validateDateRange } from "@/lib/validation";
 import type { ThesisLevel, ThesisStatus, SubmissionType } from "@/lib/supabase/types";
 
@@ -44,7 +45,7 @@ export async function searchTheses(filters: SearchFilters) {
   let query = supabase
     .from("theses")
     .select(
-      "id, user_id, title, author_name, thesis_level, thesis_category, submission_type, sha256_hash, tx_hash, status, registered_at, previous_thesis_id",
+      "id, user_id, title, thesis_level, thesis_category, submission_type, sha256_hash, tx_hash, status, registered_at, previous_thesis_id, thesis_authors(name, position)",
     )
     .order("registered_at", { ascending: false });
 
@@ -62,7 +63,7 @@ export async function searchTheses(filters: SearchFilters) {
     const term = sanitizeSearchTerm(filters.query);
     if (term) {
       query = query.or(
-        `title.ilike.%${term}%,author_name.ilike.%${term}%`,
+        `title.ilike.%${term}%,authors_search.ilike.%${term}%`,
       );
     }
   }
@@ -96,7 +97,10 @@ export async function searchTheses(filters: SearchFilters) {
     return { error: "Failed to search theses." };
   }
 
-  const results = data ?? [];
+  const results = (data ?? []).map((thesis) => ({
+    ...thesis,
+    thesis_authors: sortThesisAuthors(thesis.thesis_authors),
+  }));
 
   // Exclude superseded drafts (drafts that already have a child revision)
   const { data: childLinks } = await supabase

@@ -15,6 +15,7 @@ import {
 } from "@/components/ui";
 import { DisputeButton } from "@/components/DisputeButton";
 import { VersionTimeline } from "@/components/VersionTimeline";
+import { formatAuthorNames, type ThesisAuthor } from "@/lib/authors";
 import {
   THESIS_CATEGORIES,
   THESIS_LEVELS,
@@ -31,7 +32,7 @@ type ThesisResult = {
   id: string;
   user_id: string;
   title: string;
-  author_name: string;
+  thesis_authors: ThesisAuthor[];
   thesis_level: string;
   thesis_category: string;
   submission_type: string;
@@ -447,7 +448,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                           {thesis.title}
                         </td>
                         <td className="max-w-36 truncate px-6 py-4 font-mono text-sm text-white/60">
-                          {thesis.author_name}
+                          {formatAuthorNames(thesis.thesis_authors)}
                         </td>
                         <td className="whitespace-nowrap px-6 py-4 font-mono text-sm text-white/60">
                           {new Date(thesis.registered_at).toLocaleDateString(
@@ -521,7 +522,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                 <div className="min-w-0 flex-1 space-y-5">
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <Field label="Title" value={selectedThesis.title} />
-                    <Field label="Author" value={selectedThesis.author_name} />
+                    <Field label="Authors" value={formatAuthorNames(selectedThesis.thesis_authors)} />
                     <Field label="Level" value={selectedThesis.thesis_level} capitalize small />
                     <Field label="Category" value={selectedThesis.thesis_category} />
                     <Field label="Submission Type" value={selectedThesis.submission_type} capitalize small />
@@ -574,7 +575,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
               <>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Field label="Title" value={selectedThesis.title} />
-                  <Field label="Author" value={selectedThesis.author_name} />
+                  <Field label="Authors" value={formatAuthorNames(selectedThesis.thesis_authors)} />
                   <Field label="Level" value={selectedThesis.thesis_level} capitalize small />
                   <Field label="Category" value={selectedThesis.thesis_category} />
                   <Field label="Submission Type" value={selectedThesis.submission_type} capitalize small />
@@ -815,8 +816,8 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                           value={verifyResult.thesis.title}
                         />
                         <Field
-                          label="Author"
-                          value={verifyResult.thesis.author_name}
+                          label="Authors"
+                          value={formatAuthorNames(verifyResult.thesis.thesis_authors)}
                         />
                         <Field
                           label="Level"

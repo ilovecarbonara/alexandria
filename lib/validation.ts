@@ -6,6 +6,7 @@ export const MAX_TITLE_LENGTH = 150;
 export const MIN_TITLE_LENGTH = 10;
 export const MIN_TITLE_LETTERS = 10;
 export const MAX_AUTHOR_NAME_LENGTH = 50;
+export const MAX_AUTHORS = 6;
 export const MAX_REASON_LENGTH = 2000;
 export const MAX_FULL_NAME_LENGTH = 50;
 export const MIN_FULL_NAME_LETTERS = 4;
@@ -105,6 +106,36 @@ export function validateAuthorName(name: string): string | null {
     minPartLength: MIN_NAME_PART_LENGTH,
     requireMultipleWords: true,
   });
+}
+
+export function normalizeNameForComparison(name: string): string {
+  return name.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+export function validateAuthorList(names: unknown[]): string | null {
+  if (!Array.isArray(names) || names.length === 0) {
+    return "At least one author is required.";
+  }
+
+  if (names.length > MAX_AUTHORS) {
+    return `A thesis can list up to ${MAX_AUTHORS} authors.`;
+  }
+
+  const seen = new Set<string>();
+  for (const name of names) {
+    if (typeof name !== "string") return "Author name is required.";
+
+    const authorError = validateAuthorName(name);
+    if (authorError) return authorError;
+
+    const normalized = normalizeNameForComparison(name);
+    if (seen.has(normalized)) {
+      return "Each author must be listed only once.";
+    }
+    seen.add(normalized);
+  }
+
+  return null;
 }
 
 // ---------------------------------------------------------------------------

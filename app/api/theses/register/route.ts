@@ -8,8 +8,14 @@ import {
   THESIS_CATEGORIES,
   SUBMISSION_TYPES,
 } from "@/lib/constants";
-import { validateTitle, validateAuthorName, validateUUID, sanitizeTextInput } from "@/lib/validation";
-import { rateLimit } from "@/lib/rate-limit";
+import {
+  normalizeNameForComparison,
+  sanitizeTextInput,
+  validateAuthorList,
+  validateTitle,
+  validateUUID,
+} from "@/lib/validation";
+import { getClientIp, rateLimit } from "@/lib/rate-limit";
 
 const VALID_LEVELS = THESIS_LEVELS.map((l) => l.value as string);
 const VALID_TYPES = SUBMISSION_TYPES.map((t) => t.value as string);
@@ -24,6 +30,18 @@ function normalizeTitle(title: string): string {
 }
 
 export async function POST(request: NextRequest) {
+  const ip = await getClientIp();
+  const ipLimit = rateLimit(`register-ip:${ip}`, {
+    limit: 30,
+    windowMs: 60 * 60 * 1000,
+  });
+  if (!ipLimit.success) {
+    return Response.json(
+      { error: "Too many registration attempts. Please try again later." },
+      { status: 429 },
+    );
+  }
+
   // Authenticate
   const supabase = await createClient();
   const {
@@ -37,7 +55,7 @@ export async function POST(request: NextRequest) {
   // Verify account is approved, active, and not admin
   const { data: profile } = await supabase
     .from("users")
-    .select("is_approved, is_active, is_admin")
+    .select("full_name, is_approved, is_active, is_admin")
     .eq("id", user.id)
     .single();
 
@@ -63,15 +81,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Parse and validate body
-  let body: {
-    title: string;
-    authorName: string;
-    thesisLevel: string;
-    thesisCategory: string;
-    submissionType: string;
-    sha256Hash: string;
-    previousThesisId?: string | null;
-  };
+  let body: unknown;
 
   try {
     body = await request.json();
@@ -79,48 +89,92 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const { title, authorName, thesisLevel, thesisCategory, submissionType, sha256Hash, previousThesisId } =
-    body;
+  if (!body || typeof body !== "object") {
+    return Response.json({ error: "Invalid request body" }, { status: 400 });
+  }
+
+  const { title, authorNames, thesisLevel, thesisCategory, submissionType, sha256Hash, previousThesisId } =
+    body as Record<string, unknown>;
 
   if (
-    !title?.trim() ||
-    !authorName?.trim() ||
-    !thesisLevel ||
-    !thesisCategory ||
-    !submissionType ||
-    !sha256Hash
+    typeof title !== "string" ||
+    !title.trim() ||
+    !Array.isArray(authorNames) ||
+    !authorNames.every((name) => typeof name === "string") ||
+    typeof thesisLevel !== "string" ||
+    !thesisLevel.trim() ||
+    typeof thesisCategory !== "string" ||
+    !thesisCategory.trim() ||
+    typeof submissionType !== "string" ||
+    !submissionType.trim() ||
+    typeof sha256Hash !== "string" ||
+    !sha256Hash.trim()
   ) {
     return Response.json({ error: "All fields are required." }, { status: 400 });
   }
 
-  const titleError = validateTitle(title);
+  if (
+    previousThesisId !== undefined &&
+    previousThesisId !== null &&
+    typeof previousThesisId !== "string"
+  ) {
+    return Response.json(
+      { error: "Invalid previous thesis ID format." },
+      { status: 400 },
+    );
+  }
+
+  const cleanTitle = sanitizeTextInput(title);
+  const cleanAuthorNames = authorNames.map((name) => sanitizeTextInput(name));
+  const cleanThesisLevel = thesisLevel.trim();
+  const cleanThesisCategory = sanitizeTextInput(thesisCategory);
+  const cleanSubmissionType = submissionType.trim();
+  const cleanSha256Hash = sha256Hash.trim().toLowerCase();
+  const cleanPreviousThesisId = previousThesisId?.trim() || null;
+
+  if (!cleanTitle || cleanAuthorNames.some((name) => !name) || !cleanThesisCategory) {
+    return Response.json({ error: "All fields are required." }, { status: 400 });
+  }
+
+  const titleError = validateTitle(cleanTitle);
   if (titleError) {
     return Response.json({ error: titleError }, { status: 400 });
   }
 
-  const authorError = validateAuthorName(authorName);
+  const authorError = validateAuthorList(cleanAuthorNames);
   if (authorError) {
     return Response.json({ error: authorError }, { status: 400 });
   }
 
+  const ownerNorm = normalizeNameForComparison(profile.full_name);
+  const includesOwner = cleanAuthorNames.some(
+    (name) => normalizeNameForComparison(name) === ownerNorm,
+  );
+  if (!includesOwner) {
+    return Response.json(
+      { error: "You must be listed as an author of your own thesis." },
+      { status: 400 },
+    );
+  }
+
   // Validate sha256Hash format (64 hex chars)
-  if (!/^[a-f0-9]{64}$/i.test(sha256Hash)) {
+  if (!/^[a-f0-9]{64}$/.test(cleanSha256Hash)) {
     return Response.json({ error: "Invalid SHA-256 hash format." }, { status: 400 });
   }
 
   // Validate enum values before blockchain call (blockchain is immutable)
-  if (!VALID_LEVELS.includes(thesisLevel)) {
+  if (!VALID_LEVELS.includes(cleanThesisLevel)) {
     return Response.json({ error: "Invalid thesis level." }, { status: 400 });
   }
-  if (!VALID_TYPES.includes(submissionType)) {
+  if (!VALID_TYPES.includes(cleanSubmissionType)) {
     return Response.json({ error: "Invalid submission type." }, { status: 400 });
   }
-  if (!VALID_CATEGORIES.includes(thesisCategory)) {
+  if (!VALID_CATEGORIES.includes(cleanThesisCategory)) {
     return Response.json({ error: "Invalid thesis category." }, { status: 400 });
   }
 
-  if (previousThesisId) {
-    if (!validateUUID(previousThesisId)) {
+  if (cleanPreviousThesisId) {
+    if (!validateUUID(cleanPreviousThesisId)) {
       return Response.json(
         { error: "Invalid previous thesis ID format." },
         { status: 400 },
@@ -131,7 +185,7 @@ export async function POST(request: NextRequest) {
     const { data: prevThesis, error: prevError } = await service
       .from("theses")
       .select("id, user_id")
-      .eq("id", previousThesisId)
+      .eq("id", cleanPreviousThesisId)
       .single();
 
     if (prevError || !prevThesis) {
@@ -152,7 +206,7 @@ export async function POST(request: NextRequest) {
     const { count } = await service
       .from("theses")
       .select("id", { count: "exact", head: true })
-      .eq("previous_thesis_id", previousThesisId);
+      .eq("previous_thesis_id", cleanPreviousThesisId);
 
     if (count && count > 0) {
       return Response.json(
@@ -163,7 +217,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Check blockchain for duplicate
-  const alreadyRegistered = await isRegisteredOnChain(sha256Hash);
+  const alreadyRegistered = await isRegisteredOnChain(cleanSha256Hash);
   if (alreadyRegistered) {
     return Response.json(
       { error: "This document hash is already registered on the blockchain." },
@@ -177,10 +231,10 @@ export async function POST(request: NextRequest) {
 
   try {
     const result = await registerOnChain(
-      sha256Hash,
-      submissionType,
-      thesisLevel,
-      thesisCategory,
+      cleanSha256Hash,
+      cleanSubmissionType,
+      cleanThesisLevel,
+      cleanThesisCategory,
     );
     txHash = result.txHash;
     blockTimestamp = result.blockTimestamp;
@@ -194,22 +248,21 @@ export async function POST(request: NextRequest) {
 
   // Save to Supabase
   const service = createServiceClient();
-  const titleNormalized = normalizeTitle(title);
+  const titleNormalized = normalizeTitle(cleanTitle);
 
   const { data: thesis, error: insertError } = await service
     .from("theses")
     .insert({
       user_id: user.id,
-      title: sanitizeTextInput(title.trim()),
+      title: cleanTitle,
       title_normalized: titleNormalized,
-      author_name: sanitizeTextInput(authorName.trim()),
-      thesis_level: thesisLevel as "undergraduate" | "masteral" | "doctoral",
-      thesis_category: thesisCategory,
-      submission_type: submissionType as "draft" | "final",
-      sha256_hash: sha256Hash,
+      thesis_level: cleanThesisLevel as "undergraduate" | "masteral" | "doctoral",
+      thesis_category: cleanThesisCategory,
+      submission_type: cleanSubmissionType as "draft" | "final",
+      sha256_hash: cleanSha256Hash,
       tx_hash: txHash,
       block_timestamp: new Date(blockTimestamp * 1000).toISOString(),
-      previous_thesis_id: previousThesisId || null,
+      previous_thesis_id: cleanPreviousThesisId,
     })
     .select("id")
     .single();
@@ -222,6 +275,32 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const authorRows = cleanAuthorNames.map((name, index) => ({
+    thesis_id: thesis.id,
+    name,
+    position: index + 1,
+  }));
+  const { error: authorsError } = await service
+    .from("thesis_authors")
+    .insert(authorRows);
+
+  if (authorsError) {
+    console.error("Thesis authors insert failed:", authorsError);
+    const { error: deleteError } = await service
+      .from("theses")
+      .delete()
+      .eq("id", thesis.id);
+
+    if (deleteError) {
+      console.error("Compensating thesis delete failed:", deleteError);
+    }
+
+    return Response.json(
+      { error: "Failed to save thesis authors." },
+      { status: 500 },
+    );
+  }
+
   // Log activity
   await service.from("activity_logs").insert({
     user_id: user.id,
@@ -230,16 +309,16 @@ export async function POST(request: NextRequest) {
   });
 
   // Auto-accept the previous draft when a final version is linked
-  if (previousThesisId) {
+  if (cleanPreviousThesisId) {
     await service
       .from("theses")
       .update({ status: "accepted" as const })
-      .eq("id", previousThesisId);
+      .eq("id", cleanPreviousThesisId);
 
     await service.from("activity_logs").insert({
       user_id: user.id,
       action: "Draft auto-accepted: final version submitted",
-      thesis_id: previousThesisId,
+      thesis_id: cleanPreviousThesisId,
     });
   }
 

@@ -4,6 +4,7 @@ import {
   DisputeManagementClient,
   type AdminDisputeRow,
 } from "@/components/DisputeManagementClient";
+import { formatAuthorNames } from "@/lib/authors";
 import type { DisputeAuthorRole } from "@/lib/supabase/types";
 
 const PREVIEW_LENGTH = 140;
@@ -47,7 +48,7 @@ export default async function AdminDisputesPage() {
     service
       .from("theses")
       .select(
-        "id, title, author_name, thesis_level, thesis_category, registered_at, user_id",
+        "id, title, thesis_level, thesis_category, registered_at, user_id, thesis_authors(name, position)",
       )
       .in("id", thesisIds),
     service.from("users").select("id, full_name").in("id", userIds),
@@ -126,8 +127,8 @@ export default async function AdminDisputesPage() {
       created_at: d.created_at,
       thesis_id: d.thesis_id,
       thesis_title: thesis?.title ?? "Unknown thesis",
-      thesis_author_name: thesis
-        ? (userMap.get(thesis.user_id) ?? "Unknown author")
+      thesis_authors: thesis
+        ? formatAuthorNames(thesis.thesis_authors)
         : "Unknown author",
       thesis_level: thesis?.thesis_level ?? null,
       thesis_category: thesis?.thesis_category ?? null,

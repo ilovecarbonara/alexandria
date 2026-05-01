@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { validateUUID, sanitizeTextInput, MAX_REASON_LENGTH } from "@/lib/validation";
-import { rateLimit } from "@/lib/rate-limit";
+import { getClientIp, rateLimit } from "@/lib/rate-limit";
 
 /**
  * Resolve a dispute. Body: { closing_note: string }.
@@ -15,6 +15,18 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const ip = await getClientIp();
+  const ipLimit = rateLimit(`resolve-ip:${ip}`, {
+    limit: 60,
+    windowMs: 60 * 60 * 1000,
+  });
+  if (!ipLimit.success) {
+    return Response.json(
+      { error: "Too many requests. Please try again later." },
+      { status: 429 },
+    );
+  }
+
   const { id } = await params;
 
   if (!validateUUID(id)) {

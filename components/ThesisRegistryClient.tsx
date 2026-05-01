@@ -15,6 +15,7 @@ import {
   ConfirmDialog,
 } from "@/components/ui";
 import { VersionTimeline } from "@/components/VersionTimeline";
+import { formatAuthorNames, type ThesisAuthor } from "@/lib/authors";
 import { searchTheses, updateThesisStatus, type SearchFilters } from "@/lib/actions/theses";
 import { getThesisActivityLogs } from "@/lib/actions/activity";
 import {
@@ -102,7 +103,7 @@ function ThesisActivityHistory({ thesisId }: { thesisId: string }) {
 interface Thesis {
   id: string;
   title: string;
-  author_name: string;
+  thesis_authors: ThesisAuthor[];
   thesis_level: string;
   thesis_category: string;
   submission_type: string;
@@ -234,15 +235,20 @@ export function ThesisRegistryClient() {
     if (updating) return;
     setUpdating(thesisId);
     setError(null);
-    const result = await updateThesisStatus(thesisId, newStatus);
-    if (!result.error) {
-      setTheses((prev) =>
-        prev.map((t) => (t.id === thesisId ? { ...t, status: newStatus } : t)),
-      );
-    } else {
-      setError(result.error);
+    try {
+      const result = await updateThesisStatus(thesisId, newStatus);
+      if (!result.error) {
+        setTheses((prev) =>
+          prev.map((t) => (t.id === thesisId ? { ...t, status: newStatus } : t)),
+        );
+      } else {
+        setError(result.error);
+      }
+    } catch {
+      setError("Status update failed. Please refresh, sign in again, and retry.");
+    } finally {
+      setUpdating(null);
     }
-    setUpdating(null);
   }
 
   const statusSelect = (thesis: Thesis) => (
@@ -264,7 +270,7 @@ export function ThesisRegistryClient() {
     const headers = ["Title", "Author", "Hash", "Status", "Date"];
     const rows = theses.map((t) => [
       t.title,
-      t.author_name,
+      formatAuthorNames(t.thesis_authors),
       t.sha256_hash,
       t.status,
       new Date(t.registered_at).toLocaleDateString(),
@@ -304,13 +310,18 @@ export function ThesisRegistryClient() {
 
     for (let i = 0; i < ids.length; i++) {
       setBulkProgress({ current: i + 1, total: ids.length });
-      const result = await updateThesisStatus(ids[i], bulkTargetStatus as ThesisStatus);
-      if (!result.error) {
-        setTheses((prev) =>
-          prev.map((t) => (t.id === ids[i] ? { ...t, status: bulkTargetStatus as ThesisStatus } : t)),
-        );
-      } else {
-        setError(`Failed on thesis ${i + 1}: ${result.error}`);
+      try {
+        const result = await updateThesisStatus(ids[i], bulkTargetStatus as ThesisStatus);
+        if (!result.error) {
+          setTheses((prev) =>
+            prev.map((t) => (t.id === ids[i] ? { ...t, status: bulkTargetStatus as ThesisStatus } : t)),
+          );
+        } else {
+          setError(`Failed on thesis ${i + 1}: ${result.error}`);
+          break;
+        }
+      } catch {
+        setError(`Failed on thesis ${i + 1}. Please refresh, sign in again, and retry.`);
         break;
       }
     }
@@ -544,7 +555,7 @@ export function ThesisRegistryClient() {
                           {thesis.title}
                         </td>
                         <td className="max-w-36 truncate px-6 py-4 font-mono text-sm text-white/60">
-                          {thesis.author_name}
+                          {formatAuthorNames(thesis.thesis_authors)}
                         </td>
                         <td className="whitespace-nowrap px-6 py-4 font-mono text-sm text-white/60 capitalize">
                           {thesis.submission_type}
@@ -591,7 +602,7 @@ export function ThesisRegistryClient() {
                 <div className="min-w-0 flex-1 space-y-5">
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <Field label="Title" value={selectedThesis.title} />
-                    <Field label="Author" value={selectedThesis.author_name} />
+                    <Field label="Authors" value={formatAuthorNames(selectedThesis.thesis_authors)} />
                     {selectedThesis.user_email && (
                       <Field label="Email" value={selectedThesis.user_email} />
                     )}
@@ -646,7 +657,7 @@ export function ThesisRegistryClient() {
               <div className="space-y-5">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Field label="Title" value={selectedThesis.title} />
-                  <Field label="Author" value={selectedThesis.author_name} />
+                  <Field label="Authors" value={formatAuthorNames(selectedThesis.thesis_authors)} />
                   {selectedThesis.user_email && (
                     <Field label="Email" value={selectedThesis.user_email} />
                   )}

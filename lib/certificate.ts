@@ -9,7 +9,7 @@ export interface VersionHistoryEntry {
 }
 
 export interface CertificateData {
-  authorName: string;
+  authorNames: string[];
   title: string;
   thesisLevel: string;
   thesisCategory: string;
@@ -133,7 +133,7 @@ export async function generateCertificate(data: CertificateData): Promise<jsPDF>
   const valueX = MARGIN + 5;
   const lineHeight = 6;
 
-  function drawField(label: string, value: string, isHash = false) {
+  function drawField(label: string, value: string | string[], isHash = false) {
     doc.setFont("courier", "normal");
     doc.setFontSize(8);
     doc.setTextColor(COLORS.muted);
@@ -143,13 +143,15 @@ export async function generateCertificate(data: CertificateData): Promise<jsPDF>
     doc.setFontSize(10);
     doc.setTextColor(isHash ? COLORS.hash : COLORS.text);
 
-    // Wrap long text
-    const lines = doc.splitTextToSize(value, CONTENT_WIDTH - 10);
+    const values = Array.isArray(value) ? value : [value];
+    const lines = values.flatMap((line) =>
+      doc.splitTextToSize(line, CONTENT_WIDTH - 10),
+    );
     doc.text(lines, valueX, y);
     y += lines.length * 5 + 4;
   }
 
-  drawField("Author", data.authorName);
+  drawField("Authors", data.authorNames);
   drawField("Title", data.title);
   drawField("Level", capitalize(data.thesisLevel));
   drawField("Category", data.thesisCategory);

@@ -47,7 +47,7 @@ export interface Database {
           user_id: string;
           title: string;
           title_normalized: string; 
-          author_name: string;
+          authors_search: string;
           thesis_level: ThesisLevel;
           thesis_category: string;
           submission_type: SubmissionType;
@@ -63,7 +63,7 @@ export interface Database {
           user_id: string;
           title: string;
           title_normalized: string; 
-          author_name: string;
+          authors_search?: string;
           thesis_level: ThesisLevel;
           thesis_category: string;
           submission_type: SubmissionType;
@@ -79,7 +79,7 @@ export interface Database {
           user_id?: string;
           title?: string;
           title_normalized?: string; 
-          author_name?: string;
+          authors_search?: string;
           thesis_level?: ThesisLevel;
           thesis_category?: string;
           submission_type?: SubmissionType;
@@ -91,6 +91,35 @@ export interface Database {
           registered_at?: string;
         };
         Relationships: [];
+      };
+      thesis_authors: {
+        Row: {
+          id: string;
+          thesis_id: string;
+          name: string;
+          position: number;
+        };
+        Insert: {
+          id?: string;
+          thesis_id: string;
+          name: string;
+          position: number;
+        };
+        Update: {
+          id?: string;
+          thesis_id?: string;
+          name?: string;
+          position?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "thesis_authors_thesis_id_fkey";
+            columns: ["thesis_id"];
+            isOneToOne: false;
+            referencedRelation: "theses";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       disputes: {
         Row: {

@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { verifyOnChain } from "@/lib/blockchain/actions";
 import { createClient } from "@/lib/supabase/server";
 import { getVersionChain } from "@/lib/actions/theses";
+import { sortThesisAuthors } from "@/lib/authors";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function GET(request: NextRequest) {
@@ -47,7 +48,7 @@ export async function GET(request: NextRequest) {
   const { data: thesis } = await supabase
     .from("theses")
     .select(
-      "id, title, author_name, thesis_level, thesis_category, submission_type, sha256_hash, tx_hash, status, registered_at",
+      "id, title, thesis_level, thesis_category, submission_type, sha256_hash, tx_hash, status, registered_at, thesis_authors(name, position)",
     )
     .eq("sha256_hash", normalizedHash)
     .single();
@@ -64,7 +65,9 @@ export async function GET(request: NextRequest) {
   return Response.json({
     isRegistered: true,
     blockchain: blockchainResult.record,
-    thesis: thesis ?? null,
+    thesis: thesis
+      ? { ...thesis, thesis_authors: sortThesisAuthors(thesis.thesis_authors) }
+      : null,
     versionChain,
   });
 }

@@ -478,3 +478,60 @@ CREATE POLICY "Users can update own dispute reads"
   TO authenticated
   USING (user_id = (SELECT auth.uid()))
   WITH CHECK (user_id = (SELECT auth.uid()));
+
+-- ============================================================
+-- Migration: Multi-author support (April 2026)
+-- ============================================================
+
+CREATE TABLE public.thesis_authors (
+  id        uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  thesis_id uuid NOT NULL REFERENCES public.theses(id) ON DELETE CASCADE,
+  name      text NOT NULL,
+  position  int  NOT NULL,
+  UNIQUE (thesis_id, position)
+);
+CREATE INDEX idx_thesis_authors_thesis_id ON public.thesis_authors(thesis_id);
+
+-- Denormalized search column on theses
+ALTER TABLE public.theses ADD COLUMN authors_search text NOT NULL DEFAULT '';
+
+-- Backfill existing rows: each becomes a single-author thesis
+INSERT INTO public.thesis_authors (thesis_id, name, position)
+SELECT id, author_name, 1 FROM public.theses;
+
+UPDATE public.theses SET authors_search = author_name;
+
+-- Trigger keeps authors_search in sync
+CREATE OR REPLACE FUNCTION public.refresh_authors_search()
+RETURNS trigger AS $$
+BEGIN
+  UPDATE public.theses
+  SET authors_search = COALESCE(
+    (SELECT string_agg(name, ', ' ORDER BY position)
+       FROM public.thesis_authors
+      WHERE thesis_id = COALESCE(NEW.thesis_id, OLD.thesis_id)),
+    ''
+  )
+  WHERE id = COALESCE(NEW.thesis_id, OLD.thesis_id);
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_thesis_authors_sync
+AFTER INSERT OR UPDATE OR DELETE ON public.thesis_authors
+FOR EACH ROW EXECUTE FUNCTION public.refresh_authors_search();
+
+CREATE INDEX idx_theses_authors_search
+  ON public.theses USING gin (authors_search gin_trgm_ops);
+
+ALTER TABLE public.thesis_authors ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Thesis authors are publicly readable"
+  ON public.thesis_authors FOR SELECT
+  TO authenticated, anon
+  USING (true);
+
+-- Inserts happen through server-side service role calls, which bypass RLS.
+
+-- Drop the old column
+ALTER TABLE public.theses DROP COLUMN author_name;

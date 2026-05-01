@@ -17,7 +17,7 @@ export default async function DashboardPage() {
     supabase.from("users").select("full_name").eq("id", user.id).single(),
     supabase
       .from("theses")
-      .select("*")
+      .select("*, thesis_authors(name, position)")
       .eq("user_id", user.id)
       .order("registered_at", { ascending: false }),
     supabase

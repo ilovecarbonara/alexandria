@@ -5,13 +5,14 @@ import Link from "next/link";
 import { Modal, Field, StatusChip, HashDisplay, Pagination, Card, Button } from "@/components/ui";
 import { ThesisActions } from "@/components/ThesisActions";
 import { VersionTimeline } from "@/components/VersionTimeline";
+import { formatAuthorNames, getAuthorNames, type ThesisAuthor } from "@/lib/authors";
 import { PAGE_SIZE } from "@/lib/constants";
 import type { ThesisStatus } from "@/lib/supabase/types";
 
 interface Thesis {
   id: string;
   title: string;
-  author_name: string;
+  thesis_authors: ThesisAuthor[];
   thesis_level: string;
   thesis_category: string;
   submission_type: string;
@@ -104,7 +105,7 @@ export function DashboardRegistrations({
                   <ThesisActions
                     thesisId={thesis.id}
                     thesis={{
-                      authorName: thesis.author_name,
+                      authorNames: getAuthorNames(thesis.thesis_authors),
                       title: thesis.title,
                       thesisLevel: thesis.thesis_level,
                       thesisCategory: thesis.thesis_category,
@@ -141,7 +142,7 @@ export function DashboardRegistrations({
                 <div className="min-w-0 flex-1 space-y-5">
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <Field label="Title" value={selectedThesis.title} />
-                    <Field label="Author" value={selectedThesis.author_name} />
+                    <Field label="Authors" value={formatAuthorNames(selectedThesis.thesis_authors)} />
                     <Field label="Level" value={selectedThesis.thesis_level} capitalize small />
                     <Field label="Category" value={selectedThesis.thesis_category} />
                     <Field label="Submission Type" value={selectedThesis.submission_type} capitalize small />
@@ -174,7 +175,7 @@ export function DashboardRegistrations({
                     <ThesisActions
                       thesisId={selectedThesis.id}
                       thesis={{
-                        authorName: selectedThesis.author_name,
+                        authorNames: getAuthorNames(selectedThesis.thesis_authors),
                         title: selectedThesis.title,
                         thesisLevel: selectedThesis.thesis_level,
                         thesisCategory: selectedThesis.thesis_category,
@@ -203,7 +204,7 @@ export function DashboardRegistrations({
               <>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Field label="Title" value={selectedThesis.title} />
-                  <Field label="Author" value={selectedThesis.author_name} />
+                  <Field label="Authors" value={formatAuthorNames(selectedThesis.thesis_authors)} />
                   <Field label="Level" value={selectedThesis.thesis_level} capitalize small />
                   <Field label="Category" value={selectedThesis.thesis_category} />
                   <Field label="Submission Type" value={selectedThesis.submission_type} capitalize small />
@@ -236,7 +237,7 @@ export function DashboardRegistrations({
                   <ThesisActions
                     thesisId={selectedThesis.id}
                     thesis={{
-                      authorName: selectedThesis.author_name,
+                      authorNames: getAuthorNames(selectedThesis.thesis_authors),
                       title: selectedThesis.title,
                       thesisLevel: selectedThesis.thesis_level,
                       thesisCategory: selectedThesis.thesis_category,

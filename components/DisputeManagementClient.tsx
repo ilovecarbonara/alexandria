@@ -27,7 +27,7 @@ export interface AdminDisputeRow {
   created_at: string;
   thesis_id: string;
   thesis_title: string;
-  thesis_author_name: string;
+  thesis_authors: string;
   thesis_level: string | null;
   thesis_category: string | null;
   thesis_registered_at: string | null;
@@ -352,8 +352,8 @@ export function DisputeManagementClient({
               <DetailRow label="Title" value={selected.thesis_title} />
               <div className="grid grid-cols-2 gap-x-6 gap-y-3">
                 <DetailRow
-                  label="Author"
-                  value={selected.thesis_author_name}
+                  label="Authors"
+                  value={selected.thesis_authors}
                 />
                 <DetailRow
                   label="Level"

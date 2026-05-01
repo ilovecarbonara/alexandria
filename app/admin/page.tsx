@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Card, Button, StatusChip } from "@/components/ui";
+import { formatAuthorNames } from "@/lib/authors";
 
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
@@ -14,7 +15,7 @@ export default async function AdminDashboardPage() {
       supabase.from("users").select("id", { count: "exact", head: true }).eq("is_approved", false).eq("is_admin", false),
       supabase
         .from("theses")
-        .select("id, title, author_name, status, registered_at")
+        .select("id, title, status, registered_at, thesis_authors(name, position)")
         .order("registered_at", { ascending: false })
         .limit(5),
       supabase
@@ -129,7 +130,7 @@ export default async function AdminDashboardPage() {
                       {thesis.title}
                     </p>
                     <p className="font-mono text-xs text-white/40">
-                      {thesis.author_name} ·{" "}
+                      {formatAuthorNames(thesis.thesis_authors)} ·{" "}
                       {new Date(thesis.registered_at).toLocaleDateString()}
                     </p>
                   </div>

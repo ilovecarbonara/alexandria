@@ -11,8 +11,11 @@ import {
 } from "@/lib/constants";
 import { getUserThesesForLinking, getCurrentUserFullName } from "@/lib/actions/theses";
 import {
+  MAX_AUTHORS,
   MAX_TITLE_LENGTH,
   MAX_AUTHOR_NAME_LENGTH,
+  normalizeNameForComparison,
+  validateAuthorList,
   validateTitle,
   validateAuthorName,
 } from "@/lib/validation";
@@ -41,7 +44,8 @@ export default function RegisterThesisPage() {
   const [linkableTheses, setLinkableTheses] = useState<
     { id: string; title: string; submission_type: string; registered_at: string }[]
   >([]);
-  const [authorName, setAuthorName] = useState("");
+  const [ownerName, setOwnerName] = useState("");
+  const [authorNames, setAuthorNames] = useState<string[]>([""]);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string | null>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 
@@ -50,7 +54,10 @@ export default function RegisterThesisPage() {
       if (result.data) setLinkableTheses(result.data);
     });
     getCurrentUserFullName().then((result) => {
-      if (result.fullName) setAuthorName(result.fullName);
+      if (result.fullName) {
+        setOwnerName(result.fullName);
+        setAuthorNames([result.fullName]);
+      }
     });
   }, []);
 
@@ -58,8 +65,6 @@ export default function RegisterThesisPage() {
     switch (name) {
       case "title":
         return validateTitle(value);
-      case "authorName":
-        return validateAuthorName(value);
       default:
         return null;
     }
@@ -75,6 +80,60 @@ export default function RegisterThesisPage() {
     if (touched[name]) {
       setFieldErrors((prev) => ({ ...prev, [name]: validateField(name, value) }));
     }
+  }
+
+  function handleAuthorChange(index: number, value: string) {
+    setAuthorNames((prev) => prev.map((name, i) => (i === index ? value : name)));
+    const key = `author-${index}`;
+    if (touched[key]) {
+      setFieldErrors((prev) => ({ ...prev, [key]: validateAuthorName(value) }));
+    }
+  }
+
+  function handleAuthorBlur(index: number, value: string) {
+    const key = `author-${index}`;
+    setTouched((prev) => ({ ...prev, [key]: true }));
+    setFieldErrors((prev) => ({ ...prev, [key]: validateAuthorName(value) }));
+  }
+
+  function addAuthor() {
+    if (authorNames.length >= MAX_AUTHORS) return;
+    setAuthorNames((prev) => [...prev, ""]);
+  }
+
+  function removeAuthor(index: number) {
+    if (index === 0) return;
+    setAuthorNames((prev) => prev.filter((_, i) => i !== index));
+    setFieldErrors((prev) => {
+      const next: Record<string, string | null> = {};
+      for (const [key, value] of Object.entries(prev)) {
+        const match = /^author-(\d+)$/.exec(key);
+        if (!match) {
+          next[key] = value;
+          continue;
+        }
+
+        const authorIndex = Number(match[1]);
+        if (authorIndex < index) next[key] = value;
+        if (authorIndex > index) next[`author-${authorIndex - 1}`] = value;
+      }
+      return next;
+    });
+    setTouched((prev) => {
+      const next: Record<string, boolean> = {};
+      for (const [key, value] of Object.entries(prev)) {
+        const match = /^author-(\d+)$/.exec(key);
+        if (!match) {
+          next[key] = value;
+          continue;
+        }
+
+        const authorIndex = Number(match[1]);
+        if (authorIndex < index) next[key] = value;
+        if (authorIndex > index) next[`author-${authorIndex - 1}`] = value;
+      }
+      return next;
+    });
   }
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -111,13 +170,31 @@ export default function RegisterThesisPage() {
 
     const formData = new FormData(e.currentTarget);
     const title = (formData.get("title") as string)?.trim();
-    const trimmedAuthor = authorName.trim();
+    const trimmedAuthors = authorNames.map((name) => name.trim());
     const thesisLevel = formData.get("thesisLevel") as string;
     const thesisCategory = formData.get("thesisCategory") as string;
     const submissionType = formData.get("submissionType") as string;
 
-    if (!title || !trimmedAuthor || !thesisLevel || !thesisCategory || !submissionType) {
+    if (!title || trimmedAuthors.some((name) => !name) || !thesisLevel || !thesisCategory || !submissionType) {
       setState({ error: "All fields are required." });
+      setLoading(false);
+      return;
+    }
+
+    const authorError = validateAuthorList(trimmedAuthors);
+    if (authorError) {
+      setState({ error: authorError });
+      setLoading(false);
+      return;
+    }
+
+    if (
+      ownerName &&
+      !trimmedAuthors.some(
+        (name) => normalizeNameForComparison(name) === normalizeNameForComparison(ownerName),
+      )
+    ) {
+      setState({ error: "You must be listed as an author of your own thesis." });
       setLoading(false);
       return;
     }
@@ -134,7 +211,7 @@ export default function RegisterThesisPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title,
-          authorName: trimmedAuthor,
+          authorNames: trimmedAuthors,
           thesisLevel,
           thesisCategory,
           submissionType,
@@ -200,6 +277,7 @@ export default function RegisterThesisPage() {
                   setHash(null);
                   setFileName(null);
                   setPreviousThesisId("");
+                  setAuthorNames(ownerName ? [ownerName] : [""]);
                 }}
               >
                 Register Another
@@ -272,21 +350,48 @@ export default function RegisterThesisPage() {
             required
           />
 
-          <Input
-            id="authorName"
-            name="authorName"
-            label="Author Name"
-            placeholder="Enter author name"
-            maxLength={MAX_AUTHOR_NAME_LENGTH}
-            value={authorName}
-            onChange={(e) => {
-              setAuthorName(e.target.value);
-              handleFieldChange("authorName", e.target.value);
-            }}
-            onBlur={handleFieldBlur}
-            error={fieldErrors.authorName ?? undefined}
-            required
-          />
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm text-white/60 font-mono">Authors</span>
+              <Button
+                type="button"
+                variant="secondary"
+                className="px-2 py-1 text-xs"
+                onClick={addAuthor}
+                disabled={authorNames.length >= MAX_AUTHORS}
+              >
+                Add Author
+              </Button>
+            </div>
+            {authorNames.map((name, index) => (
+              <div key={index} className="flex items-start gap-2">
+                <Input
+                  id={`author-${index}`}
+                  name={`author-${index}`}
+                  label={index === 0 ? "First Author" : `Author ${index + 1}`}
+                  placeholder="Enter author name"
+                  maxLength={MAX_AUTHOR_NAME_LENGTH}
+                  value={name}
+                  disabled={index === 0}
+                  onChange={(e) => handleAuthorChange(index, e.target.value)}
+                  onBlur={(e) => handleAuthorBlur(index, e.target.value)}
+                  error={fieldErrors[`author-${index}`] ?? undefined}
+                  required
+                  className={index === 0 ? "opacity-70" : ""}
+                />
+                {index > 0 && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="mt-6 px-2 py-2 text-xs"
+                    onClick={() => removeAuthor(index)}
+                  >
+                    Remove
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
 
           <Select
             id="thesisLevel"
