@@ -15,7 +15,8 @@ import {
   ConfirmDialog,
 } from "@/components/ui";
 import { VersionTimeline } from "@/components/VersionTimeline";
-import { formatAuthorNames, type ThesisAuthor } from "@/lib/authors";
+import { AuthorNamesStack } from "@/components/AuthorNames";
+import { formatAuthorNames, formatAuthorNamesForExport, type ThesisAuthor } from "@/lib/authors";
 import { searchTheses, updateThesisStatus, type SearchFilters } from "@/lib/actions/theses";
 import { getThesisActivityLogs } from "@/lib/actions/activity";
 import {
@@ -267,10 +268,10 @@ export function ThesisRegistryClient() {
   );
 
   function handleExportCSV() {
-    const headers = ["Title", "Author", "Hash", "Status", "Date"];
+    const headers = ["Title", "Authors", "Hash", "Status", "Date"];
     const rows = theses.map((t) => [
       t.title,
-      formatAuthorNames(t.thesis_authors),
+      formatAuthorNamesForExport(t.thesis_authors),
       t.sha256_hash,
       t.status,
       new Date(t.registered_at).toLocaleDateString(),
@@ -529,7 +530,7 @@ export function ThesisRegistryClient() {
                         />
                       </th>
                       <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">Title</th>
-                      <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">Author</th>
+                      <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">Authors</th>
                       <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">Type</th>
                       <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">Date</th>
                       <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">Status</th>
@@ -602,7 +603,7 @@ export function ThesisRegistryClient() {
                 <div className="min-w-0 flex-1 space-y-5">
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <Field label="Title" value={selectedThesis.title} />
-                    <Field label="Authors" value={formatAuthorNames(selectedThesis.thesis_authors)} />
+                    <AuthorNamesStack authors={selectedThesis.thesis_authors} />
                     {selectedThesis.user_email && (
                       <Field label="Email" value={selectedThesis.user_email} />
                     )}
@@ -657,7 +658,7 @@ export function ThesisRegistryClient() {
               <div className="space-y-5">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Field label="Title" value={selectedThesis.title} />
-                  <Field label="Authors" value={formatAuthorNames(selectedThesis.thesis_authors)} />
+                  <AuthorNamesStack authors={selectedThesis.thesis_authors} />
                   {selectedThesis.user_email && (
                     <Field label="Email" value={selectedThesis.user_email} />
                   )}

@@ -40,7 +40,7 @@ CREATE TABLE public.theses (
   user_id          uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
   title            text NOT NULL,
   title_normalized text NOT NULL,
-  author_name      text NOT NULL,
+  authors_search   text NOT NULL DEFAULT '',
   thesis_level     thesis_level NOT NULL,
   thesis_category  text NOT NULL,
   submission_type  submission_type NOT NULL,
@@ -103,6 +103,15 @@ CREATE TABLE public.title_alerts (
   created_at        timestamptz NOT NULL DEFAULT now()
 );
 
+-- thesis_authors: ordered author list per thesis (1–6 authors)
+CREATE TABLE public.thesis_authors (
+  id        uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  thesis_id uuid NOT NULL REFERENCES public.theses(id) ON DELETE CASCADE,
+  name      text NOT NULL CHECK (length(btrim(name)) > 0),
+  position  int  NOT NULL CHECK (position BETWEEN 1 AND 6),
+  UNIQUE (thesis_id, position)
+);
+
 -- ============================================================
 -- Indexes
 -- ============================================================
@@ -120,6 +129,8 @@ CREATE INDEX idx_dispute_messages_author_id ON public.dispute_messages(author_id
 CREATE INDEX idx_dispute_reads_user_id ON public.dispute_reads(user_id);
 CREATE INDEX idx_activity_logs_user_id ON public.activity_logs(user_id);
 CREATE INDEX idx_title_alerts_notified_user ON public.title_alerts(notified_user_id);
+CREATE INDEX idx_thesis_authors_thesis_id ON public.thesis_authors(thesis_id);
+CREATE INDEX idx_theses_authors_search ON public.theses USING gin (authors_search gin_trgm_ops);
 
 -- ============================================================
 -- Private Schema + Admin Helper
@@ -155,6 +166,7 @@ ALTER TABLE public.dispute_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.dispute_reads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.activity_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.title_alerts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.thesis_authors ENABLE ROW LEVEL SECURITY;
 
 -- users: read own row
 CREATE POLICY "Users can read own row"
@@ -319,6 +331,13 @@ CREATE POLICY "Admin can read all alerts"
 -- No INSERT policy needed for anon/authenticated — inserts happen server-side
 -- via the service_role key which bypasses RLS.
 
+-- thesis_authors: publicly readable (mirrors theses public read access)
+CREATE POLICY "Thesis authors are publicly readable"
+  ON public.thesis_authors FOR SELECT
+  TO authenticated, anon
+  USING (true);
+-- thesis_authors: inserts happen via the service-role RPC; no INSERT/UPDATE policy.
+
 -- ============================================================
 -- Functions
 -- ============================================================
@@ -348,6 +367,104 @@ AS $$
     AND similarity(t.title_normalized, target_title) >= similarity_threshold
   ORDER BY similarity_score DESC;
 $$;
+
+-- Keeps theses.authors_search in sync with thesis_authors. Skipped when the
+-- transaction-local GUC alexandria.skip_authors_sync is 'on' so bulk inserts
+-- in register_thesis_with_authors can recompute exactly once at the end.
+CREATE OR REPLACE FUNCTION public.refresh_authors_search()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = ''
+AS $$
+BEGIN
+  IF current_setting('alexandria.skip_authors_sync', true) = 'on' THEN
+    RETURN NULL;
+  END IF;
+
+  UPDATE public.theses
+  SET authors_search = COALESCE(
+    (SELECT string_agg(name, ', ' ORDER BY position)
+       FROM public.thesis_authors
+      WHERE thesis_id = COALESCE(NEW.thesis_id, OLD.thesis_id)),
+    ''
+  )
+  WHERE id = COALESCE(NEW.thesis_id, OLD.thesis_id);
+  RETURN NULL;
+END;
+$$;
+
+CREATE TRIGGER trg_thesis_authors_sync
+AFTER INSERT OR UPDATE OR DELETE ON public.thesis_authors
+FOR EACH ROW EXECUTE FUNCTION public.refresh_authors_search();
+
+-- Atomic registration: thesis row + 1–6 author rows in one transaction.
+-- Sets a transaction-local GUC so the per-row trigger short-circuits during
+-- the bulk insert, then recomputes authors_search exactly once.
+CREATE OR REPLACE FUNCTION public.register_thesis_with_authors(
+  p_user_id uuid,
+  p_title text,
+  p_title_normalized text,
+  p_thesis_level thesis_level,
+  p_thesis_category text,
+  p_submission_type submission_type,
+  p_sha256_hash text,
+  p_tx_hash text,
+  p_block_timestamp timestamptz,
+  p_previous_thesis_id uuid,
+  p_author_names text[]
+)
+RETURNS uuid
+LANGUAGE plpgsql SECURITY INVOKER SET search_path = public
+AS $$
+DECLARE
+  v_thesis_id uuid;
+  v_author_count int;
+  v_trimmed text[];
+BEGIN
+  v_author_count := COALESCE(array_length(p_author_names, 1), 0);
+  IF v_author_count < 1 OR v_author_count > 6 THEN
+    RAISE EXCEPTION 'A thesis must list between 1 and 6 authors.';
+  END IF;
+
+  SELECT array_agg(btrim(n) ORDER BY i)
+    INTO v_trimmed
+    FROM unnest(p_author_names) WITH ORDINALITY AS t(n, i);
+
+  IF EXISTS (SELECT 1 FROM unnest(v_trimmed) AS n WHERE length(n) = 0) THEN
+    RAISE EXCEPTION 'Author names cannot be blank.';
+  END IF;
+
+  INSERT INTO public.theses (
+    user_id, title, title_normalized, thesis_level, thesis_category,
+    submission_type, sha256_hash, tx_hash, block_timestamp, previous_thesis_id
+  ) VALUES (
+    p_user_id, p_title, p_title_normalized, p_thesis_level, p_thesis_category,
+    p_submission_type, p_sha256_hash, p_tx_hash, p_block_timestamp, p_previous_thesis_id
+  ) RETURNING id INTO v_thesis_id;
+
+  -- Skip the per-row trigger; we'll do one final recompute below.
+  PERFORM set_config('alexandria.skip_authors_sync', 'on', true);
+
+  INSERT INTO public.thesis_authors (thesis_id, name, position)
+  SELECT v_thesis_id, n, i
+    FROM unnest(v_trimmed) WITH ORDINALITY AS t(n, i);
+
+  PERFORM set_config('alexandria.skip_authors_sync', 'off', true);
+
+  UPDATE public.theses
+  SET authors_search = array_to_string(v_trimmed, ', ')
+  WHERE id = v_thesis_id;
+
+  RETURN v_thesis_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.register_thesis_with_authors(
+  uuid, text, text, thesis_level, text, submission_type, text, text, timestamptz, uuid, text[]
+) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.register_thesis_with_authors(
+  uuid, text, text, thesis_level, text, submission_type, text, text, timestamptz, uuid, text[]
+) TO service_role;
 
 -- ============================================================
 -- Migration: Add thesis_id to activity_logs
@@ -480,31 +597,49 @@ CREATE POLICY "Users can update own dispute reads"
   WITH CHECK (user_id = (SELECT auth.uid()));
 
 -- ============================================================
--- Migration: Multi-author support (April 2026)
+-- Migration: Multi-author support (April 2026, idempotent)
+-- ------------------------------------------------------------
+-- On a fresh DB the schema above already declares thesis_authors,
+-- authors_search, the trigger, and the RPC, so every statement
+-- below is a no-op. On an older DB still using theses.author_name,
+-- this block performs the upgrade and backfills authors_search.
 -- ============================================================
 
-CREATE TABLE public.thesis_authors (
+CREATE TABLE IF NOT EXISTS public.thesis_authors (
   id        uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   thesis_id uuid NOT NULL REFERENCES public.theses(id) ON DELETE CASCADE,
-  name      text NOT NULL,
-  position  int  NOT NULL,
+  name      text NOT NULL CHECK (length(btrim(name)) > 0),
+  position  int  NOT NULL CHECK (position BETWEEN 1 AND 6),
   UNIQUE (thesis_id, position)
 );
-CREATE INDEX idx_thesis_authors_thesis_id ON public.thesis_authors(thesis_id);
 
--- Denormalized search column on theses
-ALTER TABLE public.theses ADD COLUMN authors_search text NOT NULL DEFAULT '';
+CREATE INDEX IF NOT EXISTS idx_thesis_authors_thesis_id
+  ON public.thesis_authors(thesis_id);
 
--- Backfill existing rows: each becomes a single-author thesis
-INSERT INTO public.thesis_authors (thesis_id, name, position)
-SELECT id, author_name, 1 FROM public.theses;
+ALTER TABLE public.theses
+  ADD COLUMN IF NOT EXISTS authors_search text NOT NULL DEFAULT '';
 
-UPDATE public.theses SET authors_search = author_name;
+CREATE INDEX IF NOT EXISTS idx_theses_authors_search
+  ON public.theses USING gin (authors_search gin_trgm_ops);
 
--- Trigger keeps authors_search in sync
+ALTER TABLE public.thesis_authors ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Thesis authors are publicly readable" ON public.thesis_authors;
+CREATE POLICY "Thesis authors are publicly readable"
+  ON public.thesis_authors FOR SELECT
+  TO authenticated, anon
+  USING (true);
+
 CREATE OR REPLACE FUNCTION public.refresh_authors_search()
-RETURNS trigger AS $$
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = ''
+AS $$
 BEGIN
+  IF current_setting('alexandria.skip_authors_sync', true) = 'on' THEN
+    RETURN NULL;
+  END IF;
+
   UPDATE public.theses
   SET authors_search = COALESCE(
     (SELECT string_agg(name, ', ' ORDER BY position)
@@ -515,23 +650,167 @@ BEGIN
   WHERE id = COALESCE(NEW.thesis_id, OLD.thesis_id);
   RETURN NULL;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
+DROP TRIGGER IF EXISTS trg_thesis_authors_sync ON public.thesis_authors;
 CREATE TRIGGER trg_thesis_authors_sync
 AFTER INSERT OR UPDATE OR DELETE ON public.thesis_authors
 FOR EACH ROW EXECUTE FUNCTION public.refresh_authors_search();
 
-CREATE INDEX idx_theses_authors_search
-  ON public.theses USING gin (authors_search gin_trgm_ops);
+CREATE OR REPLACE FUNCTION public.register_thesis_with_authors(
+  p_user_id uuid,
+  p_title text,
+  p_title_normalized text,
+  p_thesis_level thesis_level,
+  p_thesis_category text,
+  p_submission_type submission_type,
+  p_sha256_hash text,
+  p_tx_hash text,
+  p_block_timestamp timestamptz,
+  p_previous_thesis_id uuid,
+  p_author_names text[]
+)
+RETURNS uuid
+LANGUAGE plpgsql SECURITY INVOKER SET search_path = public
+AS $$
+DECLARE
+  v_thesis_id uuid;
+  v_author_count int;
+  v_trimmed text[];
+BEGIN
+  v_author_count := COALESCE(array_length(p_author_names, 1), 0);
+  IF v_author_count < 1 OR v_author_count > 6 THEN
+    RAISE EXCEPTION 'A thesis must list between 1 and 6 authors.';
+  END IF;
 
-ALTER TABLE public.thesis_authors ENABLE ROW LEVEL SECURITY;
+  SELECT array_agg(btrim(n) ORDER BY i)
+    INTO v_trimmed
+    FROM unnest(p_author_names) WITH ORDINALITY AS t(n, i);
 
-CREATE POLICY "Thesis authors are publicly readable"
-  ON public.thesis_authors FOR SELECT
-  TO authenticated, anon
-  USING (true);
+  IF EXISTS (SELECT 1 FROM unnest(v_trimmed) AS n WHERE length(n) = 0) THEN
+    RAISE EXCEPTION 'Author names cannot be blank.';
+  END IF;
 
--- Inserts happen through server-side service role calls, which bypass RLS.
+  INSERT INTO public.theses (
+    user_id, title, title_normalized, thesis_level, thesis_category,
+    submission_type, sha256_hash, tx_hash, block_timestamp, previous_thesis_id
+  ) VALUES (
+    p_user_id, p_title, p_title_normalized, p_thesis_level, p_thesis_category,
+    p_submission_type, p_sha256_hash, p_tx_hash, p_block_timestamp, p_previous_thesis_id
+  ) RETURNING id INTO v_thesis_id;
 
--- Drop the old column
-ALTER TABLE public.theses DROP COLUMN author_name;
+  PERFORM set_config('alexandria.skip_authors_sync', 'on', true);
+
+  INSERT INTO public.thesis_authors (thesis_id, name, position)
+  SELECT v_thesis_id, n, i
+    FROM unnest(v_trimmed) WITH ORDINALITY AS t(n, i);
+
+  PERFORM set_config('alexandria.skip_authors_sync', 'off', true);
+
+  UPDATE public.theses
+  SET authors_search = array_to_string(v_trimmed, ', ')
+  WHERE id = v_thesis_id;
+
+  RETURN v_thesis_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.register_thesis_with_authors(
+  uuid, text, text, thesis_level, text, submission_type, text, text, timestamptz, uuid, text[]
+) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.register_thesis_with_authors(
+  uuid, text, text, thesis_level, text, submission_type, text, text, timestamptz, uuid, text[]
+) TO service_role;
+
+-- Backfill + drop the legacy single-author column only if it still exists.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'theses'
+      AND column_name = 'author_name'
+  ) THEN
+    IF EXISTS (
+      SELECT 1 FROM public.theses
+      WHERE length(btrim(author_name)) = 0
+    ) THEN
+      RAISE EXCEPTION 'Cannot migrate blank thesis author_name values. Clean these rows before applying multi-author support.';
+    END IF;
+
+    -- Backfill only theses that don't already have author rows (re-run safe).
+    INSERT INTO public.thesis_authors (thesis_id, name, position)
+    SELECT t.id, btrim(t.author_name), 1
+      FROM public.theses t
+     WHERE NOT EXISTS (
+       SELECT 1 FROM public.thesis_authors a WHERE a.thesis_id = t.id
+     );
+
+    -- The trigger populated authors_search during the INSERT above.
+    ALTER TABLE public.theses DROP COLUMN author_name;
+  END IF;
+END;
+$$;
+
+-- Migration: Rate limiting (idempotent)
+CREATE TABLE IF NOT EXISTS public.rate_limits (
+  key      text PRIMARY KEY,
+  count    int NOT NULL CHECK (count >= 0),
+  reset_at timestamptz NOT NULL
+);
+
+ALTER TABLE public.rate_limits ENABLE ROW LEVEL SECURITY;
+
+CREATE OR REPLACE FUNCTION public.consume_rate_limit(
+  p_key text,
+  p_limit int,
+  p_window_ms int
+)
+RETURNS TABLE(success boolean, remaining int) AS $$
+DECLARE
+  v_now timestamptz := now();
+  v_reset_at timestamptz;
+  v_count int;
+  v_window interval := (p_window_ms::text || ' milliseconds')::interval;
+BEGIN
+  LOOP
+    SELECT count, reset_at
+      INTO v_count, v_reset_at
+      FROM public.rate_limits
+     WHERE key = p_key
+     FOR UPDATE;
+
+    IF FOUND THEN
+      IF v_now >= v_reset_at THEN
+        UPDATE public.rate_limits
+           SET count = 1, reset_at = v_now + v_window
+         WHERE key = p_key;
+        RETURN QUERY SELECT true, greatest(p_limit - 1, 0);
+        RETURN;
+      END IF;
+
+      IF v_count >= p_limit THEN
+        RETURN QUERY SELECT false, 0;
+        RETURN;
+      END IF;
+
+      UPDATE public.rate_limits
+         SET count = count + 1
+       WHERE key = p_key;
+      RETURN QUERY SELECT true, greatest(p_limit - v_count - 1, 0);
+      RETURN;
+    END IF;
+
+    BEGIN
+      INSERT INTO public.rate_limits (key, count, reset_at)
+      VALUES (p_key, 1, v_now + v_window);
+      RETURN QUERY SELECT true, greatest(p_limit - 1, 0);
+      RETURN;
+    EXCEPTION WHEN unique_violation THEN
+    END;
+  END LOOP;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+REVOKE ALL ON FUNCTION public.consume_rate_limit(text, int, int) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.consume_rate_limit(text, int, int) TO service_role;

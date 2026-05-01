@@ -29,7 +29,7 @@ export async function signUp(
 
   // Rate limit: 5 sign-up attempts per 15 minutes per IP
   const ip = await getClientIp();
-  const rl = rateLimit(`signup:${ip}`, { limit: 5, windowMs: 15 * 60 * 1000 });
+  const rl = await rateLimit(`signup:${ip}`, { limit: 5, windowMs: 15 * 60 * 1000 });
   if (!rl.success) {
     return { error: "Too many registration attempts. Please try again later." };
   }
@@ -89,7 +89,7 @@ export async function signIn(
 
   // Rate limit: 7 sign-in attempts per 15 minutes per IP
   const ip = await getClientIp();
-  const rl = rateLimit(`signin:${ip}`, { limit: 7, windowMs: 15 * 60 * 1000 });
+  const rl = await rateLimit(`signin:${ip}`, { limit: 7, windowMs: 15 * 60 * 1000 });
   if (!rl.success) {
     return { error: "Too many login attempts. Please try again later." };
   }

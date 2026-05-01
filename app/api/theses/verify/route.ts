@@ -8,7 +8,7 @@ import { rateLimit, getClientIp } from "@/lib/rate-limit";
 export async function GET(request: NextRequest) {
   // Rate limit: 30 verification requests per minute per IP
   const ip = await getClientIp();
-  const rl = rateLimit(`verify:${ip}`, { limit: 30, windowMs: 60 * 1000 });
+  const rl = await rateLimit(`verify:${ip}`, { limit: 30, windowMs: 60 * 1000 });
   if (!rl.success) {
     return Response.json(
       { error: "Too many requests. Please try again later." },

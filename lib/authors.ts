@@ -21,3 +21,10 @@ export function formatAuthorNames(
   const names = getAuthorNames(authors);
   return names.length > 0 ? names.join(", ") : "Unknown author";
 }
+
+export function formatAuthorNamesForExport(
+  authors: readonly ThesisAuthor[] | null | undefined,
+): string {
+  const names = getAuthorNames(authors);
+  return names.length > 0 ? names.join("; ") : "Unknown author";
+}

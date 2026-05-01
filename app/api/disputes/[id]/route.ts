@@ -16,7 +16,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const ip = await getClientIp();
-  const ipLimit = rateLimit(`resolve-ip:${ip}`, {
+  const ipLimit = await rateLimit(`resolve-ip:${ip}`, {
     limit: 60,
     windowMs: 60 * 60 * 1000,
   });
@@ -56,7 +56,7 @@ export async function PATCH(
   }
 
   // Rate limit: 20 dispute resolutions per hour per admin
-  const rl = rateLimit(`resolve:${user.id}`, {
+  const rl = await rateLimit(`resolve:${user.id}`, {
     limit: 20,
     windowMs: 60 * 60 * 1000,
   });

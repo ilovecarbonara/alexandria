@@ -253,6 +253,17 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      consume_rate_limit: {
+        Args: {
+          p_key: string;
+          p_limit: number;
+          p_window_ms: number;
+        };
+        Returns: {
+          success: boolean;
+          remaining: number;
+        }[];
+      };
       find_similar_titles: {
         Args: {
           target_title: string;
@@ -266,6 +277,22 @@ export interface Database {
           user_id: string;
           similarity_score: number;
         }[];
+      };
+      register_thesis_with_authors: {
+        Args: {
+          p_user_id: string;
+          p_title: string;
+          p_title_normalized: string;
+          p_thesis_level: ThesisLevel;
+          p_thesis_category: string;
+          p_submission_type: SubmissionType;
+          p_sha256_hash: string;
+          p_tx_hash: string;
+          p_block_timestamp: string;
+          p_previous_thesis_id: string | null;
+          p_author_names: string[];
+        };
+        Returns: string;
       };
     };
     Enums: {

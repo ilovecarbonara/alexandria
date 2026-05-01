@@ -20,7 +20,7 @@ export async function changePassword(
   if ("error" in auth) return { error: auth.error };
 
   // Rate limit: 5 password change attempts per 15 minutes per user
-  const rl = rateLimit(`changepw:${auth.user.id}`, { limit: 5, windowMs: 15 * 60 * 1000 });
+  const rl = await rateLimit(`changepw:${auth.user.id}`, { limit: 5, windowMs: 15 * 60 * 1000 });
   if (!rl.success) {
     return { error: "Too many password change attempts. Please try again later." };
   }

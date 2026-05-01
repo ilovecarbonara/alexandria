@@ -263,7 +263,7 @@ export async function postDisputeMessage(
 
   // Rate limit: 30 dispute messages per minute per user. Prevents thread
   // spam and keeps activity_logs notifications bounded.
-  const rl = rateLimit(`dispute-msg:${auth.user.id}`, {
+  const rl = await rateLimit(`dispute-msg:${auth.user.id}`, {
     limit: 30,
     windowMs: 60_000,
   });
@@ -329,7 +329,7 @@ export async function markDisputeRead(
 
   // Light rate limit: 60 read marks per minute per user. The upsert is
   // idempotent but a hot client loop could thrash the DB.
-  const rl = rateLimit(`dispute-read:${auth.user.id}`, {
+  const rl = await rateLimit(`dispute-read:${auth.user.id}`, {
     limit: 60,
     windowMs: 60_000,
   });

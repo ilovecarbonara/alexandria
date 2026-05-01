@@ -50,14 +50,14 @@
 | registered_at      | timestamptz     | NO       | now()     | System registration time                                 |
 
 ### thesis_authors
-Author rows are an ordered snapshot captured at registration time. The thesis owner (`theses.user_id`) remains the single account owner, and the registration API independently verifies that the owner is included in this list.
+Author rows are an ordered snapshot captured at registration time. The thesis owner (`theses.user_id`) remains the single account owner, and the registration API independently verifies that the owner is included in this list. A thesis may list up to six authors.
 
 | Column    | Type | Nullable | Default | Constraints / Notes |
 |-----------|------|----------|---------|---------------------|
 | id        | uuid | NO       | gen_random_uuid() | PK |
 | thesis_id | uuid | NO       |         | FK → theses.id ON DELETE CASCADE |
-| name      | text | NO       |         | Author display name at registration time |
-| position  | int  | NO       |         | 1-based display order; UNIQUE (thesis_id, position) |
+| name      | text | NO       |         | Author display name at registration time; non-blank |
+| position  | int  | NO       |         | 1-based display order; CHECK 1-6; UNIQUE (thesis_id, position) |
 
 ### disputes
 A dispute is a 3-party thread between flagger, admin, and thesis owner. The opening reason and the admin's closing note are NOT stored as columns — they are messages in `dispute_messages`.

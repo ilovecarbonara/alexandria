@@ -3,9 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Modal, Field, StatusChip, HashDisplay, Pagination, Card, Button } from "@/components/ui";
+import { AuthorNamesStack } from "@/components/AuthorNames";
 import { ThesisActions } from "@/components/ThesisActions";
 import { VersionTimeline } from "@/components/VersionTimeline";
-import { formatAuthorNames, getAuthorNames, type ThesisAuthor } from "@/lib/authors";
+import { getAuthorNames, type ThesisAuthor } from "@/lib/authors";
 import { PAGE_SIZE } from "@/lib/constants";
 import type { ThesisStatus } from "@/lib/supabase/types";
 
@@ -142,7 +143,7 @@ export function DashboardRegistrations({
                 <div className="min-w-0 flex-1 space-y-5">
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <Field label="Title" value={selectedThesis.title} />
-                    <Field label="Authors" value={formatAuthorNames(selectedThesis.thesis_authors)} />
+                    <AuthorNamesStack authors={selectedThesis.thesis_authors} />
                     <Field label="Level" value={selectedThesis.thesis_level} capitalize small />
                     <Field label="Category" value={selectedThesis.thesis_category} />
                     <Field label="Submission Type" value={selectedThesis.submission_type} capitalize small />
@@ -204,7 +205,7 @@ export function DashboardRegistrations({
               <>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Field label="Title" value={selectedThesis.title} />
-                  <Field label="Authors" value={formatAuthorNames(selectedThesis.thesis_authors)} />
+                  <AuthorNamesStack authors={selectedThesis.thesis_authors} />
                   <Field label="Level" value={selectedThesis.thesis_level} capitalize small />
                   <Field label="Category" value={selectedThesis.thesis_category} />
                   <Field label="Submission Type" value={selectedThesis.submission_type} capitalize small />

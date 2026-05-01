@@ -31,7 +31,7 @@ function normalizeTitle(title: string): string {
 
 export async function POST(request: NextRequest) {
   const ip = await getClientIp();
-  const ipLimit = rateLimit(`register-ip:${ip}`, {
+  const ipLimit = await rateLimit(`register-ip:${ip}`, {
     limit: 30,
     windowMs: 60 * 60 * 1000,
   });
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Rate limit: 10 registrations per hour per user
-  const rl = rateLimit(`register:${user.id}`, { limit: 10, windowMs: 60 * 60 * 1000 });
+  const rl = await rateLimit(`register:${user.id}`, { limit: 10, windowMs: 60 * 60 * 1000 });
   if (!rl.success) {
     return Response.json(
       { error: "Too many registration attempts. Please try again later." },
@@ -250,53 +250,35 @@ export async function POST(request: NextRequest) {
   const service = createServiceClient();
   const titleNormalized = normalizeTitle(cleanTitle);
 
-  const { data: thesis, error: insertError } = await service
-    .from("theses")
-    .insert({
-      user_id: user.id,
-      title: cleanTitle,
-      title_normalized: titleNormalized,
-      thesis_level: cleanThesisLevel as "undergraduate" | "masteral" | "doctoral",
-      thesis_category: cleanThesisCategory,
-      submission_type: cleanSubmissionType as "draft" | "final",
-      sha256_hash: cleanSha256Hash,
-      tx_hash: txHash,
-      block_timestamp: new Date(blockTimestamp * 1000).toISOString(),
-      previous_thesis_id: cleanPreviousThesisId,
-    })
-    .select("id")
-    .single();
+  const { data: thesisId, error: saveError } = await service.rpc(
+    "register_thesis_with_authors",
+    {
+      p_user_id: user.id,
+      p_title: cleanTitle,
+      p_title_normalized: titleNormalized,
+      p_thesis_level: cleanThesisLevel as "undergraduate" | "masteral" | "doctoral",
+      p_thesis_category: cleanThesisCategory,
+      p_submission_type: cleanSubmissionType as "draft" | "final",
+      p_sha256_hash: cleanSha256Hash,
+      p_tx_hash: txHash,
+      p_block_timestamp: new Date(blockTimestamp * 1000).toISOString(),
+      p_previous_thesis_id: cleanPreviousThesisId,
+      p_author_names: cleanAuthorNames,
+    },
+  );
 
-  if (insertError) {
-    console.error("Supabase insert failed:", insertError);
+  if (saveError || !thesisId) {
+    console.error("Supabase registration save failed after blockchain registration:", {
+      error: saveError,
+      txHash,
+      sha256Hash: cleanSha256Hash,
+    });
     return Response.json(
-      { error: "Failed to save thesis record." },
-      { status: 500 },
-    );
-  }
-
-  const authorRows = cleanAuthorNames.map((name, index) => ({
-    thesis_id: thesis.id,
-    name,
-    position: index + 1,
-  }));
-  const { error: authorsError } = await service
-    .from("thesis_authors")
-    .insert(authorRows);
-
-  if (authorsError) {
-    console.error("Thesis authors insert failed:", authorsError);
-    const { error: deleteError } = await service
-      .from("theses")
-      .delete()
-      .eq("id", thesis.id);
-
-    if (deleteError) {
-      console.error("Compensating thesis delete failed:", deleteError);
-    }
-
-    return Response.json(
-      { error: "Failed to save thesis authors." },
+      {
+        error:
+          "Blockchain registration succeeded, but saving the thesis metadata failed. Please contact an administrator with the transaction hash.",
+        txHash,
+      },
       { status: 500 },
     );
   }
@@ -305,7 +287,7 @@ export async function POST(request: NextRequest) {
   await service.from("activity_logs").insert({
     user_id: user.id,
     action: "Thesis registered on blockchain",
-    thesis_id: thesis.id,
+    thesis_id: thesisId,
   });
 
   // Auto-accept the previous draft when a final version is linked
@@ -325,11 +307,11 @@ export async function POST(request: NextRequest) {
   // Run similarity check after the response is sent
   after(async () => {
     try {
-      await checkTitleSimilarity(thesis.id);
+      await checkTitleSimilarity(thesisId);
     } catch (err) {
       console.error("Similarity check failed:", err);
     }
   });
 
-  return Response.json({ txHash, thesisId: thesis.id });
+  return Response.json({ txHash, thesisId });
 }

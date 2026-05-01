@@ -78,19 +78,20 @@ export async function generateCertificate(data: CertificateData): Promise<jsPDF>
     creator: "Project Alexandria",
   });
 
-  // --- Background ---
-  doc.setFillColor(COLORS.dark);
-  doc.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT, "F");
+  function drawPageFrame() {
+    doc.setFillColor(COLORS.dark);
+    doc.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT, "F");
 
-  // --- Outer border ---
-  doc.setDrawColor(COLORS.border);
-  doc.setLineWidth(0.5);
-  doc.rect(MARGIN - 5, MARGIN - 5, CONTENT_WIDTH + 10, PAGE_HEIGHT - MARGIN * 2 + 10);
+    doc.setDrawColor(COLORS.border);
+    doc.setLineWidth(0.5);
+    doc.rect(MARGIN - 5, MARGIN - 5, CONTENT_WIDTH + 10, PAGE_HEIGHT - MARGIN * 2 + 10);
 
-  // --- Inner border ---
-  doc.setDrawColor(COLORS.accent);
-  doc.setLineWidth(0.3);
-  doc.rect(MARGIN - 2, MARGIN - 2, CONTENT_WIDTH + 4, PAGE_HEIGHT - MARGIN * 2 + 4);
+    doc.setDrawColor(COLORS.accent);
+    doc.setLineWidth(0.3);
+    doc.rect(MARGIN - 2, MARGIN - 2, CONTENT_WIDTH + 4, PAGE_HEIGHT - MARGIN * 2 + 4);
+  }
+
+  drawPageFrame();
 
   let y = MARGIN + 10;
 
@@ -132,8 +133,26 @@ export async function generateCertificate(data: CertificateData): Promise<jsPDF>
   const labelX = MARGIN + 5;
   const valueX = MARGIN + 5;
   const lineHeight = 6;
+  const contentBottom = PAGE_HEIGHT - MARGIN - 12;
+
+  function addContinuationPage() {
+    doc.addPage();
+    drawPageFrame();
+    y = MARGIN + 10;
+  }
+
+  function ensureSpace(requiredHeight: number) {
+    if (y + requiredHeight <= contentBottom) return;
+    addContinuationPage();
+  }
 
   function drawField(label: string, value: string | string[], isHash = false) {
+    const values = Array.isArray(value) ? value : [value];
+    const lines = values.flatMap((line) =>
+      doc.splitTextToSize(line, CONTENT_WIDTH - 10),
+    );
+    ensureSpace(lineHeight + lines.length * 5 + 4);
+
     doc.setFont("courier", "normal");
     doc.setFontSize(8);
     doc.setTextColor(COLORS.muted);
@@ -143,21 +162,39 @@ export async function generateCertificate(data: CertificateData): Promise<jsPDF>
     doc.setFontSize(10);
     doc.setTextColor(isHash ? COLORS.hash : COLORS.text);
 
-    const values = Array.isArray(value) ? value : [value];
-    const lines = values.flatMap((line) =>
-      doc.splitTextToSize(line, CONTENT_WIDTH - 10),
-    );
     doc.text(lines, valueX, y);
     y += lines.length * 5 + 4;
   }
 
-  drawField("Authors", data.authorNames);
+  function drawAuthorsBlock(authorNames: string[]) {
+    const names = authorNames.length > 0 ? authorNames : ["Unknown author"];
+    const authorX = valueX + 4;
+    const lines = names.flatMap((name) =>
+      doc.splitTextToSize(name, CONTENT_WIDTH - 14),
+    );
+    ensureSpace(lineHeight + lines.length * 5 + 4);
+
+    doc.setFont("courier", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(COLORS.muted);
+    doc.text("AUTHORS", labelX, y);
+
+    y += lineHeight;
+    doc.setFontSize(10);
+    doc.setTextColor(COLORS.text);
+
+    doc.text(lines, authorX, y);
+    y += lines.length * 5 + 4;
+  }
+
+  drawAuthorsBlock(data.authorNames);
   drawField("Title", data.title);
   drawField("Level", capitalize(data.thesisLevel));
   drawField("Category", data.thesisCategory);
   drawField("Submission Type", capitalize(data.submissionType));
 
   // --- Divider before hashes ---
+  ensureSpace(8);
   doc.setDrawColor(COLORS.border);
   doc.setLineWidth(0.2);
   doc.line(MARGIN + 5, y, PAGE_WIDTH - MARGIN - 5, y);
@@ -170,6 +207,7 @@ export async function generateCertificate(data: CertificateData): Promise<jsPDF>
   const qrSize = 35;
   const qrX = PAGE_WIDTH / 2 - qrSize / 2;
   y += 2;
+  ensureSpace(qrSize + 10);
   doc.addImage(qrDataUrl, "PNG", qrX, y, qrSize, qrSize);
 
   y += qrSize + 4;
@@ -182,6 +220,7 @@ export async function generateCertificate(data: CertificateData): Promise<jsPDF>
 
   // --- Version History Table (only for chains with multiple entries) ---
   if (data.versionHistory && data.versionHistory.length > 1) {
+    ensureSpace(23 + data.versionHistory.length * 6);
     y += 10;
     doc.setDrawColor(COLORS.border);
     doc.setLineWidth(0.2);
@@ -274,6 +313,7 @@ export async function generateCertificate(data: CertificateData): Promise<jsPDF>
 
   // --- Disclaimer ---
   y += 10;
+  ensureSpace(28);
   doc.setDrawColor(COLORS.border);
   doc.setLineWidth(0.2);
   doc.line(MARGIN + 10, y, PAGE_WIDTH - MARGIN - 10, y);

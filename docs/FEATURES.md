@@ -8,7 +8,9 @@
 
 ## F2: Thesis Registration
 - User uploads PDF + fills metadata form
-- Fields: author name (pre-filled from user profile, editable), title, level (dropdown), category (dropdown), submission type (radio)
+- Fields: ordered author list, title, level (dropdown), category (dropdown), submission type (radio)
+- The first author is the registering user's profile name, pre-filled and read-only. Users may add up to five more authors, for six total authors per thesis.
+- Client and server validation reject blank, invalid, duplicate, or over-limit author lists. The server independently verifies that the thesis owner is listed as an author.
 - If the user has existing draft registrations without a child revision, a "This is a revision of" dropdown appears — linking the new thesis as the next entry in a version chain (see F12)
 - On submit:
   1. SHA-256 hash generated client-side via Web Crypto API — PDF never leaves the browser. Node crypto module is NOT used for registration.
@@ -17,15 +19,16 @@
   4. If duplicate → show error, stop
   5. If draft → proceed to blockchain registration regardless of other drafts
   6. Submit hash + metadata to smart contract → get tx_hash
-  7. Save record to Supabase theses table (including title_normalized, previous_thesis_id if revision)
+  7. Save record to Supabase theses table (including title_normalized, previous_thesis_id if revision) and ordered rows in thesis_authors
   8. Trigger title similarity check (F8) — non-blocking, runs after save
   9. Show success state with tx link
 
 ## F3: Certificate Generation
 - Generated on demand (not stored)
 - Uses jsPDF + qrcode
-- Contains: author name, title, level, category, submission type,
+- Contains: authors, title, level, category, submission type,
   sha256 hash, tx hash, timestamp, QR code linking to Sepolia Etherscan tx
+- Authors are rendered under a single "Authors" label, one name per line.
 - Certificate text frames the document as a REGISTRATION RECORD,
   not a proof of authorship
 - If the thesis belongs to a version chain (>1 entry), the certificate includes a "Version History" table showing version number, type, SHA-256 hash, tx hash, and date for each chain entry
@@ -92,7 +95,7 @@
   3. Query Supabase using pg_trgm similarity() function against 
    title_normalized column — threshold set via TITLE_ALERT_THRESHOLD env variable
   4. Collect all matches above the configured threshold (suggested default: 0.50)
-  5. For each match, retrieve the author (user_id) of the matched thesis
+  5. For each match, retrieve the owner (user_id) of the matched thesis
   6. Insert alert record to the title_alerts table (new_thesis_id, matched_thesis_id,
      notified_user_id, similarity_score, status: notified)
   7. If the similarity score meets the auto-flag threshold (default: 0.75,
@@ -109,7 +112,7 @@
 - A single incoming registration may trigger multiple alerts if it
   matches multiple existing entries
 - Draft registrations also trigger the similarity check
-- Same-author matches are skipped entirely — no alert created (e.g., user registering a Final after their own Draft)
+- Same-owner matches are skipped entirely — no alert created (e.g., user registering a Final after their own Draft)
 
 ## F9: Thesis Status Workflow
 - New registrations default to status: pending

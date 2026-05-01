@@ -8,7 +8,7 @@ import { getClientIp, rateLimit } from "@/lib/rate-limit";
 // have when the destination redirect re-renders the source layout/tree.
 export async function POST(request: Request) {
   const ip = await getClientIp();
-  const rl = rateLimit(`signout:${ip}`, { limit: 30, windowMs: 60 * 1000 });
+  const rl = await rateLimit(`signout:${ip}`, { limit: 30, windowMs: 60 * 1000 });
   if (!rl.success) {
     return Response.json(
       { error: "Too many requests. Please try again later." },

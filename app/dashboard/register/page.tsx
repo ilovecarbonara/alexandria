@@ -82,18 +82,74 @@ export default function RegisterThesisPage() {
     }
   }
 
-  function handleAuthorChange(index: number, value: string) {
-    setAuthorNames((prev) => prev.map((name, i) => (i === index ? value : name)));
-    const key = `author-${index}`;
-    if (touched[key]) {
-      setFieldErrors((prev) => ({ ...prev, [key]: validateAuthorName(value) }));
+  function getDuplicateAuthorIndexes(names: string[]): Set<number> {
+    const indexesByName = new Map<string, number[]>();
+    names.forEach((name, index) => {
+      const normalized = normalizeNameForComparison(name);
+      if (!normalized) return;
+      indexesByName.set(normalized, [...(indexesByName.get(normalized) ?? []), index]);
+    });
+
+    const duplicates = new Set<number>();
+    for (const indexes of indexesByName.values()) {
+      if (indexes.length > 1) indexes.forEach((index) => duplicates.add(index));
     }
+    return duplicates;
+  }
+
+  function validateAuthorField(index: number, value: string, names = authorNames): string | null {
+    const authorError = validateAuthorName(value);
+    if (authorError) return authorError;
+
+    return getDuplicateAuthorIndexes(names).has(index)
+      ? "Each author must be listed only once."
+      : null;
+  }
+
+  function authorErrorPatch(names: string[], touchedState: Record<string, boolean>) {
+    return Object.fromEntries(
+      names
+        .map((value, index) => {
+          const key = `author-${index}`;
+          return touchedState[key]
+            ? [key, validateAuthorField(index, value, names)]
+            : null;
+        })
+        .filter((entry): entry is [string, string | null] => entry !== null),
+    );
+  }
+
+  function reindexAuthorState<T>(state: Record<string, T>, removedIndex: number) {
+    const next: Record<string, T> = {};
+    for (const [key, value] of Object.entries(state)) {
+      const match = /^author-(\d+)$/.exec(key);
+      if (!match) {
+        next[key] = value;
+        continue;
+      }
+
+      const authorIndex = Number(match[1]);
+      if (authorIndex < removedIndex) next[key] = value;
+      if (authorIndex > removedIndex) next[`author-${authorIndex - 1}`] = value;
+    }
+    return next;
+  }
+
+  function handleAuthorChange(index: number, value: string) {
+    const next = authorNames.map((name, i) => (i === index ? value : name));
+    setAuthorNames(next);
+    setFieldErrors((prev) => ({ ...prev, ...authorErrorPatch(next, touched) }));
   }
 
   function handleAuthorBlur(index: number, value: string) {
     const key = `author-${index}`;
-    setTouched((prev) => ({ ...prev, [key]: true }));
-    setFieldErrors((prev) => ({ ...prev, [key]: validateAuthorName(value) }));
+    const nextTouched = { ...touched, [key]: true };
+    const nextAuthors = authorNames.map((name, i) => (i === index ? value : name));
+    setTouched(nextTouched);
+    setFieldErrors((prev) => ({
+      ...prev,
+      ...authorErrorPatch(nextAuthors, nextTouched),
+    }));
   }
 
   function addAuthor() {
@@ -103,36 +159,16 @@ export default function RegisterThesisPage() {
 
   function removeAuthor(index: number) {
     if (index === 0) return;
-    setAuthorNames((prev) => prev.filter((_, i) => i !== index));
+    const nextAuthors = authorNames.filter((_, i) => i !== index);
+    const nextTouched = reindexAuthorState(touched, index);
+    setAuthorNames(nextAuthors);
+    setTouched(nextTouched);
     setFieldErrors((prev) => {
-      const next: Record<string, string | null> = {};
-      for (const [key, value] of Object.entries(prev)) {
-        const match = /^author-(\d+)$/.exec(key);
-        if (!match) {
-          next[key] = value;
-          continue;
-        }
-
-        const authorIndex = Number(match[1]);
-        if (authorIndex < index) next[key] = value;
-        if (authorIndex > index) next[`author-${authorIndex - 1}`] = value;
+      const next = reindexAuthorState(prev, index);
+      for (const key of Object.keys(next)) {
+        if (/^author-\d+$/.test(key)) delete next[key];
       }
-      return next;
-    });
-    setTouched((prev) => {
-      const next: Record<string, boolean> = {};
-      for (const [key, value] of Object.entries(prev)) {
-        const match = /^author-(\d+)$/.exec(key);
-        if (!match) {
-          next[key] = value;
-          continue;
-        }
-
-        const authorIndex = Number(match[1]);
-        if (authorIndex < index) next[key] = value;
-        if (authorIndex > index) next[`author-${authorIndex - 1}`] = value;
-      }
-      return next;
+      return { ...next, ...authorErrorPatch(nextAuthors, nextTouched) };
     });
   }
 
@@ -183,6 +219,19 @@ export default function RegisterThesisPage() {
 
     const authorError = validateAuthorList(trimmedAuthors);
     if (authorError) {
+      setTouched((prev) => ({
+        ...prev,
+        ...Object.fromEntries(trimmedAuthors.map((_, index) => [`author-${index}`, true])),
+      }));
+      setFieldErrors((prev) => ({
+        ...prev,
+        ...Object.fromEntries(
+          trimmedAuthors.map((name, index) => [
+            `author-${index}`,
+            validateAuthorField(index, name, trimmedAuthors),
+          ]),
+        ),
+      }));
       setState({ error: authorError });
       setLoading(false);
       return;
@@ -278,6 +327,8 @@ export default function RegisterThesisPage() {
                   setFileName(null);
                   setPreviousThesisId("");
                   setAuthorNames(ownerName ? [ownerName] : [""]);
+                  setFieldErrors({});
+                  setTouched({});
                 }}
               >
                 Register Another
@@ -288,6 +339,7 @@ export default function RegisterThesisPage() {
                   window.open(
                     `https://sepolia.etherscan.io/tx/${state.txHash}`,
                     "_blank",
+                    "noopener,noreferrer",
                   );
                 }}
               >
@@ -353,44 +405,90 @@ export default function RegisterThesisPage() {
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between gap-3">
               <span className="text-sm text-white/60 font-mono">Authors</span>
-              <Button
-                type="button"
-                variant="secondary"
-                className="px-2 py-1 text-xs"
-                onClick={addAuthor}
-                disabled={authorNames.length >= MAX_AUTHORS}
-              >
-                Add Author
-              </Button>
+              <span className="font-mono text-xs text-white/40">
+                {authorNames.length}/{MAX_AUTHORS}
+              </span>
             </div>
             {authorNames.map((name, index) => (
               <div key={index} className="flex items-start gap-2">
-                <Input
-                  id={`author-${index}`}
-                  name={`author-${index}`}
-                  label={index === 0 ? "First Author" : `Author ${index + 1}`}
-                  placeholder="Enter author name"
-                  maxLength={MAX_AUTHOR_NAME_LENGTH}
-                  value={name}
-                  disabled={index === 0}
-                  onChange={(e) => handleAuthorChange(index, e.target.value)}
-                  onBlur={(e) => handleAuthorBlur(index, e.target.value)}
-                  error={fieldErrors[`author-${index}`] ?? undefined}
-                  required
-                  className={index === 0 ? "opacity-70" : ""}
-                />
+                <div className="flex-1">
+                  {index === 0 ? (
+                    <div className="flex flex-col gap-1">
+                      <label htmlFor="author-0" className="text-sm text-white/60 font-mono">
+                        First Author
+                      </label>
+                      <div className="relative">
+                        <input
+                          id="author-0"
+                          name="author-0"
+                          placeholder="Enter author name"
+                          maxLength={MAX_AUTHOR_NAME_LENGTH}
+                          value={name}
+                          readOnly
+                          onBlur={(e) => handleAuthorBlur(index, e.target.value)}
+                          required
+                          className={`w-full rounded-xs border border-border bg-surface px-3 py-2 pr-9 font-mono text-sm text-white/70 placeholder:text-white/30 focus:border-accent focus:outline-none ${fieldErrors["author-0"] ? "border-dispute" : ""}`}
+                        />
+                        <svg
+                          aria-hidden="true"
+                          className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                      </div>
+                      <span className="font-mono text-xs text-white/40">
+                        You&apos;re automatically listed as an author.
+                      </span>
+                      {fieldErrors["author-0"] && (
+                        <span className="font-mono text-xs text-dispute">
+                          {fieldErrors["author-0"]}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <Input
+                      id={`author-${index}`}
+                      name={`author-${index}`}
+                      label={`Author ${index + 1}`}
+                      placeholder="Enter author name"
+                      maxLength={MAX_AUTHOR_NAME_LENGTH}
+                      value={name}
+                      onChange={(e) => handleAuthorChange(index, e.target.value)}
+                      onBlur={(e) => handleAuthorBlur(index, e.target.value)}
+                      error={fieldErrors[`author-${index}`] ?? undefined}
+                      required
+                    />
+                  )}
+                </div>
                 {index > 0 && (
                   <Button
                     type="button"
                     variant="secondary"
                     className="mt-6 px-2 py-2 text-xs"
                     onClick={() => removeAuthor(index)}
+                    aria-label={`Remove author ${index + 1}`}
                   >
-                    Remove
+                    -
                   </Button>
                 )}
               </div>
             ))}
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-fit px-2 py-1 text-xs"
+              onClick={addAuthor}
+              disabled={authorNames.length >= MAX_AUTHORS}
+            >
+              + Add author
+            </Button>
           </div>
 
           <Select

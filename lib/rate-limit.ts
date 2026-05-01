@@ -1,7 +1,8 @@
 import { headers } from "next/headers";
+import { createServiceClient } from "@/lib/supabase/service";
 
 // ---------------------------------------------------------------------------
-// In-memory sliding window rate limiter
+// Database-backed sliding window rate limiter
 // ---------------------------------------------------------------------------
 
 interface RateLimitEntry {
@@ -47,7 +48,7 @@ interface RateLimitResult {
  * @param opts  `{ limit, windowMs }` configuration for this bucket.
  * @returns     `{ success, remaining }` — `success` is false when the limit is exceeded.
  */
-export function rateLimit(key: string, opts: RateLimitOptions): RateLimitResult {
+function memoryRateLimit(key: string, opts: RateLimitOptions): RateLimitResult {
   cleanup();
 
   const now = Date.now();
@@ -67,6 +68,35 @@ export function rateLimit(key: string, opts: RateLimitOptions): RateLimitResult 
 
   // Limit exceeded
   return { success: false, remaining: 0 };
+}
+
+export async function rateLimit(
+  key: string,
+  opts: RateLimitOptions,
+): Promise<RateLimitResult> {
+  try {
+    const service = createServiceClient();
+    const { data, error } = await service
+      .rpc("consume_rate_limit", {
+        p_key: key,
+        p_limit: opts.limit,
+        p_window_ms: opts.windowMs,
+      })
+      .single();
+
+    if (error || !data) {
+      console.error("Database rate limit check failed:", error);
+      return memoryRateLimit(key, opts);
+    }
+
+    return {
+      success: data.success,
+      remaining: data.remaining,
+    };
+  } catch (err) {
+    console.error("Database rate limit check failed:", err);
+    return memoryRateLimit(key, opts);
+  }
 }
 
 /**
