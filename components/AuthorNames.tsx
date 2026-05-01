@@ -15,13 +15,9 @@ export function AuthorNamesStack({
     <div className="flex flex-col gap-1">
       <span className="font-mono text-xs text-white/40">{label}</span>
       {names.length > 0 ? (
-        <ul className="space-y-1">
-          {names.map((name, index) => (
-            <li key={`${name}-${index}`} className="font-mono text-sm text-white/90">
-              {name}
-            </li>
-          ))}
-        </ul>
+        <p className="font-mono text-sm text-white/90 wrap-break-word">
+          {names.join(", ")}
+        </p>
       ) : (
         <span className="font-mono text-sm text-white/90">Unknown author</span>
       )}

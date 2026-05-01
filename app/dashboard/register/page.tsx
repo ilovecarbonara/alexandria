@@ -46,6 +46,10 @@ export default function RegisterThesisPage() {
   >([]);
   const [ownerName, setOwnerName] = useState("");
   const [authorNames, setAuthorNames] = useState<string[]>([""]);
+  const [title, setTitle] = useState("");
+  const [thesisLevel, setThesisLevel] = useState("");
+  const [thesisCategory, setThesisCategory] = useState("");
+  const [submissionType, setSubmissionType] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string | null>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 
@@ -199,6 +203,14 @@ export default function RegisterThesisPage() {
     if (fileRef.current) fileRef.current.value = "";
   }
 
+  const canSubmit =
+    title.trim().length > 0 &&
+    thesisLevel.length > 0 &&
+    thesisCategory.length > 0 &&
+    submissionType.length > 0 &&
+    authorNames.every((name) => name.trim().length > 0) &&
+    !Object.values(fieldErrors).some(Boolean);
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setState({});
@@ -327,6 +339,10 @@ export default function RegisterThesisPage() {
                   setFileName(null);
                   setPreviousThesisId("");
                   setAuthorNames(ownerName ? [ownerName] : [""]);
+                  setTitle("");
+                  setThesisLevel("");
+                  setThesisCategory("");
+                  setSubmissionType("");
                   setFieldErrors({});
                   setTouched({});
                 }}
@@ -353,7 +369,7 @@ export default function RegisterThesisPage() {
   }
 
   return (
-    <div className="mx-auto max-w-xl py-12 px-4">
+    <div className="mx-auto max-w-3xl py-12 px-4">
       <Card>
         <h1 className="font-heading text-2xl text-white mb-6">
           Register Thesis
@@ -396,8 +412,12 @@ export default function RegisterThesisPage() {
             label="Thesis Title"
             placeholder="Enter thesis title"
             maxLength={MAX_TITLE_LENGTH}
+            value={title}
             onBlur={handleFieldBlur}
-            onChange={(e) => handleFieldChange("title", e.target.value)}
+            onChange={(e) => {
+              setTitle(e.target.value);
+              handleFieldChange("title", e.target.value);
+            }}
             error={fieldErrors.title ?? undefined}
             required
           />
@@ -410,80 +430,90 @@ export default function RegisterThesisPage() {
               </span>
             </div>
             {authorNames.map((name, index) => (
-              <div key={index} className="flex items-start gap-2">
-                <div className="flex-1">
-                  {index === 0 ? (
-                    <div className="flex flex-col gap-1">
-                      <label htmlFor="author-0" className="text-sm text-white/60 font-mono">
-                        First Author
-                      </label>
-                      <div className="relative">
-                        <input
-                          id="author-0"
-                          name="author-0"
-                          placeholder="Enter author name"
-                          maxLength={MAX_AUTHOR_NAME_LENGTH}
-                          value={name}
-                          readOnly
-                          onBlur={(e) => handleAuthorBlur(index, e.target.value)}
-                          required
-                          className={`w-full rounded-xs border border-border bg-surface px-3 py-2 pr-9 font-mono text-sm text-white/70 placeholder:text-white/30 focus:border-accent focus:outline-none ${fieldErrors["author-0"] ? "border-dispute" : ""}`}
-                        />
-                        <svg
-                          aria-hidden="true"
-                          className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                        </svg>
-                      </div>
-                      <span className="font-mono text-xs text-white/40">
-                        You&apos;re automatically listed as an author.
-                      </span>
-                      {fieldErrors["author-0"] && (
-                        <span className="font-mono text-xs text-dispute">
-                          {fieldErrors["author-0"]}
-                        </span>
-                      )}
+              <div key={index} className="flex flex-col gap-1">
+                {index === 0 ? (
+                  <>
+                    <label htmlFor="author-0" className="text-sm text-white/60 font-mono">
+                      First Author
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="author-0"
+                        name="author-0"
+                        placeholder="Enter author name"
+                        maxLength={MAX_AUTHOR_NAME_LENGTH}
+                        value={name}
+                        readOnly
+                        onBlur={(e) => handleAuthorBlur(index, e.target.value)}
+                        required
+                        className={`w-full rounded-xs border border-border bg-surface px-3 py-2 pr-9 font-mono text-sm text-white/70 placeholder:text-white/30 focus:border-accent focus:outline-none ${fieldErrors["author-0"] ? "border-dispute" : ""}`}
+                      />
+                      <svg
+                        aria-hidden="true"
+                        className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                      </svg>
                     </div>
-                  ) : (
-                    <Input
-                      id={`author-${index}`}
-                      name={`author-${index}`}
-                      label={`Author ${index + 1}`}
-                      placeholder="Enter author name"
-                      maxLength={MAX_AUTHOR_NAME_LENGTH}
-                      value={name}
-                      onChange={(e) => handleAuthorChange(index, e.target.value)}
-                      onBlur={(e) => handleAuthorBlur(index, e.target.value)}
-                      error={fieldErrors[`author-${index}`] ?? undefined}
-                      required
-                    />
-                  )}
-                </div>
-                {index > 0 && (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="mt-6 px-2 py-2 text-xs"
-                    onClick={() => removeAuthor(index)}
-                    aria-label={`Remove author ${index + 1}`}
-                  >
-                    -
-                  </Button>
+                    <span className="font-mono text-xs text-white/40">
+                      You&apos;re automatically listed as an author.
+                    </span>
+                    {fieldErrors["author-0"] && (
+                      <span className="font-mono text-xs text-dispute">
+                        {fieldErrors["author-0"]}
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <label
+                      htmlFor={`author-${index}`}
+                      className="text-sm text-white/60 font-mono"
+                    >
+                      {`Author ${index + 1}`}
+                    </label>
+                    <div className="flex items-stretch gap-2">
+                      <input
+                        id={`author-${index}`}
+                        name={`author-${index}`}
+                        placeholder="Enter author name"
+                        maxLength={MAX_AUTHOR_NAME_LENGTH}
+                        value={name}
+                        onChange={(e) => handleAuthorChange(index, e.target.value)}
+                        onBlur={(e) => handleAuthorBlur(index, e.target.value)}
+                        required
+                        className={`flex-1 rounded-xs border border-border bg-surface px-3 py-2 font-mono text-sm text-white/90 placeholder:text-white/30 focus:border-accent focus:outline-none ${fieldErrors[`author-${index}`] ? "border-dispute" : ""}`}
+                      />
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="shrink-0 px-3 py-2 text-sm leading-none"
+                        onClick={() => removeAuthor(index)}
+                        aria-label={`Remove author ${index + 1}`}
+                      >
+                        −
+                      </Button>
+                    </div>
+                    {fieldErrors[`author-${index}`] && (
+                      <span className="font-mono text-xs text-dispute">
+                        {fieldErrors[`author-${index}`]}
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
             ))}
             <Button
               type="button"
               variant="secondary"
-              className="w-fit px-2 py-1 text-xs"
+              className="w-full justify-center px-3 py-2 text-sm"
               onClick={addAuthor}
               disabled={authorNames.length >= MAX_AUTHORS}
             >
@@ -495,6 +525,8 @@ export default function RegisterThesisPage() {
             id="thesisLevel"
             name="thesisLevel"
             label="Thesis Level"
+            value={thesisLevel}
+            onChange={(e) => setThesisLevel(e.target.value)}
             options={THESIS_LEVELS.map((l) => ({
               value: l.value,
               label: l.label,
@@ -506,6 +538,8 @@ export default function RegisterThesisPage() {
             id="thesisCategory"
             name="thesisCategory"
             label="Category"
+            value={thesisCategory}
+            onChange={(e) => setThesisCategory(e.target.value)}
             options={THESIS_CATEGORIES.map((c) => ({ value: c, label: c }))}
             required
           />
@@ -524,6 +558,8 @@ export default function RegisterThesisPage() {
                     type="radio"
                     name="submissionType"
                     value={t.value}
+                    checked={submissionType === t.value}
+                    onChange={(e) => setSubmissionType(e.target.value)}
                     required
                     className="accent-accent"
                   />
@@ -551,7 +587,11 @@ export default function RegisterThesisPage() {
             <p className="text-sm text-dispute font-mono">{state.error}</p>
           )}
 
-          <Button type="submit" disabled={loading || !hash} className="w-full">
+          <Button
+            type="submit"
+            disabled={loading || !hash || !canSubmit}
+            className="w-full"
+          >
             {loading ? "Registering on blockchain…" : "Register Thesis"}
           </Button>
         </form>

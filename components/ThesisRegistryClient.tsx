@@ -594,22 +594,26 @@ export function ThesisRegistryClient() {
         open={!!selectedThesis}
         onClose={() => setSelectedThesis(null)}
         title="Thesis Details"
-        className={selectedThesis && chainParticipants.has(selectedThesis.id) ? "min-w-[70vw]" : "min-w-[40vw]"}
+        className={
+          selectedThesis && chainParticipants.has(selectedThesis.id)
+            ? "w-5xl max-w-[95vw] min-h-128"
+            : "w-160 max-w-[92vw] min-h-128"
+        }
       >
         {selectedThesis && (
           <div className="space-y-5">
             {chainParticipants.has(selectedThesis.id) ? (
               <div className="flex gap-6">
                 <div className="min-w-0 flex-1 space-y-5">
+                  <AuthorNamesStack authors={selectedThesis.thesis_authors} />
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <Field label="Title" value={selectedThesis.title} />
-                    <AuthorNamesStack authors={selectedThesis.thesis_authors} />
                     {selectedThesis.user_email && (
                       <Field label="Email" value={selectedThesis.user_email} />
                     )}
-                    <Field label="Level" value={selectedThesis.thesis_level} capitalize small />
+                    <Field label="Level" value={selectedThesis.thesis_level} capitalize />
                     <Field label="Category" value={selectedThesis.thesis_category} />
-                    <Field label="Submission Type" value={selectedThesis.submission_type} capitalize small />
+                    <Field label="Submission Type" value={selectedThesis.submission_type} capitalize />
                     <div className="flex flex-col gap-1">
                       <span className="font-mono text-xs text-white/40">Status</span>
                       <StatusChip status={selectedThesis.status} />
@@ -656,15 +660,15 @@ export function ThesisRegistryClient() {
               </div>
             ) : (
               <div className="space-y-5">
+                <AuthorNamesStack authors={selectedThesis.thesis_authors} />
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Field label="Title" value={selectedThesis.title} />
-                  <AuthorNamesStack authors={selectedThesis.thesis_authors} />
                   {selectedThesis.user_email && (
                     <Field label="Email" value={selectedThesis.user_email} />
                   )}
-                  <Field label="Level" value={selectedThesis.thesis_level} capitalize small />
+                  <Field label="Level" value={selectedThesis.thesis_level} capitalize />
                   <Field label="Category" value={selectedThesis.thesis_category} />
-                  <Field label="Submission Type" value={selectedThesis.submission_type} capitalize small />
+                  <Field label="Submission Type" value={selectedThesis.submission_type} capitalize />
                   <div className="flex flex-col gap-1">
                     <span className="font-mono text-xs text-white/40">Status</span>
                     <StatusChip status={selectedThesis.status} />

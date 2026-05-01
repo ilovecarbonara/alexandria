@@ -81,7 +81,6 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
   const [searchError, setSearchError] = useState("");
   const [searchPage, setSearchPage] = useState(1);
   const [chainParticipants, setChainParticipants] = useState<Set<string>>(new Set());
-  const [historyThesisId, setHistoryThesisId] = useState<string | null>(null);
   const [selectedThesis, setSelectedThesis] = useState<ThesisResult | null>(null);
 
   // Verify state
@@ -469,23 +468,10 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                           </a>
                         </td>
                         <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                          {chainParticipants.has(thesis.id) || (currentUserId && thesis.user_id !== currentUserId) ? (
-                          <div className="flex items-center gap-2 whitespace-nowrap">
-                            {chainParticipants.has(thesis.id) && (
-                              <Button
-                                variant="secondary"
-                                onClick={() => setHistoryThesisId(thesis.id)}
-                                aria-label="View version history"
-                                className="text-xs px-2 py-1 inline-flex items-center gap-1.5"
-                              >
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-                                History
-                              </Button>
-                            )}
-                            {currentUserId && thesis.user_id !== currentUserId && (
+                          {currentUserId && thesis.user_id !== currentUserId ? (
+                            <div className="flex items-center gap-2 whitespace-nowrap">
                               <DisputeButton thesisId={thesis.id} fetchSimilarity />
-                            )}
-                          </div>
+                            </div>
                           ) : (
                             <span className="font-mono text-sm text-white/30">&mdash;</span>
                           )}
@@ -513,7 +499,11 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
         open={!!selectedThesis}
         onClose={() => setSelectedThesis(null)}
         title="Thesis Details"
-        className={selectedThesis && chainParticipants.has(selectedThesis.id) ? "min-w-[70vw]" : "min-w-[40vw]"}
+        className={
+          selectedThesis && chainParticipants.has(selectedThesis.id)
+            ? "w-5xl max-w-[95vw] min-h-128"
+            : "w-160 max-w-[92vw] min-h-128"
+        }
       >
         {selectedThesis && (
           <div className="space-y-5">
@@ -521,12 +511,12 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
               /* Side-by-side layout: metadata left, version history right */
               <div className="flex gap-6">
                 <div className="min-w-0 flex-1 space-y-5">
+                  <AuthorNamesStack authors={selectedThesis.thesis_authors} />
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <Field label="Title" value={selectedThesis.title} />
-                    <AuthorNamesStack authors={selectedThesis.thesis_authors} />
-                    <Field label="Level" value={selectedThesis.thesis_level} capitalize small />
+                    <Field label="Level" value={selectedThesis.thesis_level} capitalize />
                     <Field label="Category" value={selectedThesis.thesis_category} />
-                    <Field label="Submission Type" value={selectedThesis.submission_type} capitalize small />
+                    <Field label="Submission Type" value={selectedThesis.submission_type} capitalize />
                     <div className="flex flex-col gap-1">
                       <span className="font-mono text-xs text-white/40">Status</span>
                       <StatusChip status={selectedThesis.status} />
@@ -574,12 +564,12 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
             ) : (
               /* Standard layout: no version chain */
               <>
+                <AuthorNamesStack authors={selectedThesis.thesis_authors} />
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Field label="Title" value={selectedThesis.title} />
-                  <AuthorNamesStack authors={selectedThesis.thesis_authors} />
-                  <Field label="Level" value={selectedThesis.thesis_level} capitalize small />
+                  <Field label="Level" value={selectedThesis.thesis_level} capitalize />
                   <Field label="Category" value={selectedThesis.thesis_category} />
-                  <Field label="Submission Type" value={selectedThesis.submission_type} capitalize small />
+                  <Field label="Submission Type" value={selectedThesis.submission_type} capitalize />
                   <div className="flex flex-col gap-1">
                     <span className="font-mono text-xs text-white/40">Status</span>
                     <StatusChip status={selectedThesis.status} />
@@ -614,23 +604,6 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
               </>
             )}
           </div>
-        )}
-      </Modal>
-
-      {/* ================================ */}
-      {/* Version History Modal            */}
-      {/* ================================ */}
-      <Modal
-        open={!!historyThesisId}
-        onClose={() => setHistoryThesisId(null)}
-        title="Version History"
-        className="min-w-[40vw]"
-      >
-        {historyThesisId && (
-          <VersionTimeline
-            thesisId={historyThesisId}
-            currentThesisId={historyThesisId}
-          />
         )}
       </Modal>
 
@@ -808,6 +781,12 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                     </span>
                   </div>
 
+                  {verifyResult.thesis && (
+                    <div className="mb-4">
+                      <AuthorNamesStack authors={verifyResult.thesis.thesis_authors} />
+                    </div>
+                  )}
+
                   {/* Metadata grid */}
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     {verifyResult.thesis && (
@@ -816,12 +795,10 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                           label="Title"
                           value={verifyResult.thesis.title}
                         />
-                        <AuthorNamesStack authors={verifyResult.thesis.thesis_authors} />
                         <Field
                           label="Level"
                           value={verifyResult.thesis.thesis_level}
                           capitalize
-                          small
                         />
                         <Field
                           label="Category"
@@ -831,7 +808,6 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                           label="Submission Type"
                           value={verifyResult.thesis.submission_type}
                           capitalize
-                          small
                         />
                         <div className="flex flex-col gap-1">
                           <span className="font-mono text-xs text-white/40">
