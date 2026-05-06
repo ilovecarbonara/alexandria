@@ -25,7 +25,7 @@ import type {
 
 export declare namespace ThesisRegistry {
   export type ThesisRecordStruct = {
-    sha256Hash: string;
+    sha256Hash: BytesLike;
     submissionType: string;
     thesisLevel: string;
     thesisCategory: string;
@@ -52,19 +52,34 @@ export declare namespace ThesisRegistry {
 
 export interface ThesisRegistryInterface extends Interface {
   getFunction(
-    nameOrSignature: "getThesis" | "isRegistered" | "registerThesis"
+    nameOrSignature:
+      | "getThesis"
+      | "isRegistered"
+      | "owner"
+      | "registerThesis"
+      | "transferOwnership"
   ): FunctionFragment;
 
-  getEvent(nameOrSignatureOrTopic: "ThesisRegistered"): EventFragment;
+  getEvent(
+    nameOrSignatureOrTopic: "OwnershipTransferred" | "ThesisRegistered"
+  ): EventFragment;
 
-  encodeFunctionData(functionFragment: "getThesis", values: [string]): string;
   encodeFunctionData(
-    functionFragment: "isRegistered",
-    values: [string]
+    functionFragment: "getThesis",
+    values: [BytesLike]
   ): string;
   encodeFunctionData(
+    functionFragment: "isRegistered",
+    values: [BytesLike]
+  ): string;
+  encodeFunctionData(functionFragment: "owner", values?: undefined): string;
+  encodeFunctionData(
     functionFragment: "registerThesis",
-    values: [string, string, string, string]
+    values: [BytesLike, string, string, string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "transferOwnership",
+    values: [AddressLike]
   ): string;
 
   decodeFunctionResult(functionFragment: "getThesis", data: BytesLike): Result;
@@ -72,15 +87,33 @@ export interface ThesisRegistryInterface extends Interface {
     functionFragment: "isRegistered",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "registerThesis",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "transferOwnership",
+    data: BytesLike
+  ): Result;
+}
+
+export namespace OwnershipTransferredEvent {
+  export type InputTuple = [previousOwner: AddressLike, newOwner: AddressLike];
+  export type OutputTuple = [previousOwner: string, newOwner: string];
+  export interface OutputObject {
+    previousOwner: string;
+    newOwner: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
 }
 
 export namespace ThesisRegisteredEvent {
   export type InputTuple = [
-    sha256Hash: string,
+    sha256Hash: BytesLike,
     registeredBy: AddressLike,
     timestamp: BigNumberish
   ];
@@ -144,20 +177,32 @@ export interface ThesisRegistry extends BaseContract {
   ): Promise<this>;
 
   getThesis: TypedContractMethod<
-    [_sha256Hash: string],
+    [_sha256Hash: BytesLike],
     [ThesisRegistry.ThesisRecordStructOutput],
     "view"
   >;
 
-  isRegistered: TypedContractMethod<[_sha256Hash: string], [boolean], "view">;
+  isRegistered: TypedContractMethod<
+    [_sha256Hash: BytesLike],
+    [boolean],
+    "view"
+  >;
+
+  owner: TypedContractMethod<[], [string], "view">;
 
   registerThesis: TypedContractMethod<
     [
-      _sha256Hash: string,
+      _sha256Hash: BytesLike,
       _submissionType: string,
       _thesisLevel: string,
       _thesisCategory: string
     ],
+    [void],
+    "nonpayable"
+  >;
+
+  transferOwnership: TypedContractMethod<
+    [newOwner: AddressLike],
     [void],
     "nonpayable"
   >;
@@ -169,18 +214,21 @@ export interface ThesisRegistry extends BaseContract {
   getFunction(
     nameOrSignature: "getThesis"
   ): TypedContractMethod<
-    [_sha256Hash: string],
+    [_sha256Hash: BytesLike],
     [ThesisRegistry.ThesisRecordStructOutput],
     "view"
   >;
   getFunction(
     nameOrSignature: "isRegistered"
-  ): TypedContractMethod<[_sha256Hash: string], [boolean], "view">;
+  ): TypedContractMethod<[_sha256Hash: BytesLike], [boolean], "view">;
+  getFunction(
+    nameOrSignature: "owner"
+  ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "registerThesis"
   ): TypedContractMethod<
     [
-      _sha256Hash: string,
+      _sha256Hash: BytesLike,
       _submissionType: string,
       _thesisLevel: string,
       _thesisCategory: string
@@ -188,7 +236,17 @@ export interface ThesisRegistry extends BaseContract {
     [void],
     "nonpayable"
   >;
+  getFunction(
+    nameOrSignature: "transferOwnership"
+  ): TypedContractMethod<[newOwner: AddressLike], [void], "nonpayable">;
 
+  getEvent(
+    key: "OwnershipTransferred"
+  ): TypedContractEvent<
+    OwnershipTransferredEvent.InputTuple,
+    OwnershipTransferredEvent.OutputTuple,
+    OwnershipTransferredEvent.OutputObject
+  >;
   getEvent(
     key: "ThesisRegistered"
   ): TypedContractEvent<
@@ -198,7 +256,18 @@ export interface ThesisRegistry extends BaseContract {
   >;
 
   filters: {
-    "ThesisRegistered(string,address,uint256)": TypedContractEvent<
+    "OwnershipTransferred(address,address)": TypedContractEvent<
+      OwnershipTransferredEvent.InputTuple,
+      OwnershipTransferredEvent.OutputTuple,
+      OwnershipTransferredEvent.OutputObject
+    >;
+    OwnershipTransferred: TypedContractEvent<
+      OwnershipTransferredEvent.InputTuple,
+      OwnershipTransferredEvent.OutputTuple,
+      OwnershipTransferredEvent.OutputObject
+    >;
+
+    "ThesisRegistered(bytes32,address,uint256)": TypedContractEvent<
       ThesisRegisteredEvent.InputTuple,
       ThesisRegisteredEvent.OutputTuple,
       ThesisRegisteredEvent.OutputObject

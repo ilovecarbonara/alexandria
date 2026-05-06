@@ -102,3 +102,11 @@ npm run dev
 ```
 
 Open http://localhost:3000.
+
+## Current Sepolia Contract
+
+Live contract: `0x84D9A1f30439c715D268ec1eF5b8B09DCb9A38Fc`
+
+Deprecated contract: `0x6a7dEaea1605a3333FdFEf2B8b1a5e3CFa92fdBC`
+
+The app uses the address in `CONTRACT_ADDRESS`. The deployer wallet must be the contract `owner()` because `registerThesis` is owner-only.

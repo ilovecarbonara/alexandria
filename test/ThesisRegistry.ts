@@ -1,18 +1,28 @@
 import { expect } from "chai";
+import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs.js";
 import hre from "hardhat";
 import type { ThesisRegistry } from "../typechain-types";
 
+type HardhatSigner = Awaited<ReturnType<typeof hre.ethers.getSigners>>[number];
+
 describe("ThesisRegistry", function () {
   let registry: ThesisRegistry;
+  let owner: HardhatSigner;
+  let nonOwner: HardhatSigner;
+  let newOwner: HardhatSigner;
+
+  const hashFor = (value: string) => hre.ethers.sha256(hre.ethers.toUtf8Bytes(value));
 
   beforeEach(async function () {
+    [owner, nonOwner, newOwner] = await hre.ethers.getSigners();
+
     const Factory = await hre.ethers.getContractFactory("ThesisRegistry");
     registry = await Factory.deploy();
   });
 
   describe("registerThesis", function () {
     it("should register a thesis and emit ThesisRegistered", async function () {
-      const hash = "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2";
+      const hash = hashFor("register thesis");
 
       const tx = await registry.registerThesis(
         hash,
@@ -21,7 +31,9 @@ describe("ThesisRegistry", function () {
         "Technology",
       );
 
-      await expect(tx).to.emit(registry, "ThesisRegistered");
+      await expect(tx)
+        .to.emit(registry, "ThesisRegistered")
+        .withArgs(hash, owner.address, anyValue);
 
       const record = await registry.getThesis(hash);
       expect(record.sha256Hash).to.equal(hash);
@@ -32,7 +44,7 @@ describe("ThesisRegistry", function () {
     });
 
     it("should reject duplicate hash registration", async function () {
-      const hash = "dup1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1";
+      const hash = hashFor("duplicate thesis");
 
       await registry.registerThesis(hash, "final", "undergraduate", "Technology");
 
@@ -43,32 +55,42 @@ describe("ThesisRegistry", function () {
 
     it("should reject empty hash", async function () {
       await expect(
-        registry.registerThesis("", "final", "undergraduate", "Technology"),
+        registry.registerThesis(hre.ethers.ZeroHash, "final", "undergraduate", "Technology"),
       ).to.be.revertedWith("Hash cannot be empty");
     });
 
-    it("should allow different hashes from the same sender", async function () {
-      await registry.registerThesis("hash-one", "final", "undergraduate", "Medical");
-      await registry.registerThesis("hash-two", "draft", "masteral", "Law");
+    it("should reject registration from a non-owner", async function () {
+      await expect(
+        registry
+          .connect(nonOwner)
+          .registerThesis(hashFor("non owner thesis"), "final", "undergraduate", "Technology"),
+      ).to.be.revertedWith("Not authorized");
+    });
 
-      expect(await registry.isRegistered("hash-one")).to.equal(true);
-      expect(await registry.isRegistered("hash-two")).to.equal(true);
+    it("should allow different hashes from the same sender", async function () {
+      const firstHash = hashFor("hash one");
+      const secondHash = hashFor("hash two");
+
+      await registry.registerThesis(firstHash, "final", "undergraduate", "Medical");
+      await registry.registerThesis(secondHash, "draft", "masteral", "Law");
+
+      expect(await registry.isRegistered(firstHash)).to.equal(true);
+      expect(await registry.isRegistered(secondHash)).to.equal(true);
     });
 
     it("should store the correct registeredBy address", async function () {
-      const [signer] = await hre.ethers.getSigners();
-      const hash = "addr-test-hash";
+      const hash = hashFor("registered by thesis");
 
       await registry.registerThesis(hash, "draft", "doctoral", "Medical");
 
       const record = await registry.getThesis(hash);
-      expect(record.registeredBy).to.equal(signer.address);
+      expect(record.registeredBy).to.equal(owner.address);
     });
   });
 
   describe("getThesis", function () {
     it("should return the full thesis record", async function () {
-      const hash = "get-test-hash";
+      const hash = hashFor("get thesis");
       await registry.registerThesis(hash, "draft", "doctoral", "Engineering");
 
       const record = await registry.getThesis(hash);
@@ -81,19 +103,66 @@ describe("ThesisRegistry", function () {
 
     it("should revert for unregistered hash", async function () {
       await expect(
-        registry.getThesis("nonexistent"),
+        registry.getThesis(hashFor("nonexistent")),
       ).to.be.revertedWith("Thesis not found");
     });
   });
 
   describe("isRegistered", function () {
     it("should return false for unregistered hash", async function () {
-      expect(await registry.isRegistered("unknown")).to.equal(false);
+      expect(await registry.isRegistered(hashFor("unknown"))).to.equal(false);
     });
 
     it("should return true after registration", async function () {
-      await registry.registerThesis("check-hash", "final", "masteral", "Law");
-      expect(await registry.isRegistered("check-hash")).to.equal(true);
+      const hash = hashFor("check hash");
+
+      await registry.registerThesis(hash, "final", "masteral", "Law");
+      expect(await registry.isRegistered(hash)).to.equal(true);
+    });
+  });
+
+  describe("ownership", function () {
+    it("should set the deployer as owner", async function () {
+      expect(await registry.owner()).to.equal(owner.address);
+    });
+
+    it("should transfer ownership", async function () {
+      const tx = await registry.transferOwnership(newOwner.address);
+
+      await expect(tx)
+        .to.emit(registry, "OwnershipTransferred")
+        .withArgs(owner.address, newOwner.address);
+
+      expect(await registry.owner()).to.equal(newOwner.address);
+    });
+
+    it("should reject ownership transfer to the zero address", async function () {
+      await expect(
+        registry.transferOwnership(hre.ethers.ZeroAddress),
+      ).to.be.revertedWith("New owner cannot be zero address");
+    });
+
+    it("should reject ownership transfer from a non-owner", async function () {
+      await expect(
+        registry.connect(nonOwner).transferOwnership(newOwner.address),
+      ).to.be.revertedWith("Not authorized");
+    });
+
+    it("should update registration privileges after ownership transfer", async function () {
+      const hash = hashFor("new owner thesis");
+
+      await registry.transferOwnership(newOwner.address);
+
+      await expect(
+        registry.registerThesis(hash, "final", "undergraduate", "Technology"),
+      ).to.be.revertedWith("Not authorized");
+
+      await registry
+        .connect(newOwner)
+        .registerThesis(hash, "final", "undergraduate", "Technology");
+
+      const record = await registry.getThesis(hash);
+      expect(record.registeredBy).to.equal(newOwner.address);
     });
   });
 });
