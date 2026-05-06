@@ -6,6 +6,9 @@ import {
 
 export default function AdminSettingsPage() {
   const contractAddress = process.env.CONTRACT_ADDRESS ?? "Not configured";
+  const contractUrl = /^0x[a-f0-9]{40}$/i.test(contractAddress)
+    ? `https://sepolia.etherscan.io/address/${contractAddress}`
+    : null;
   const threshold =
     parseFloat(process.env.TITLE_ALERT_THRESHOLD ?? "") ||
     DEFAULT_TITLE_ALERT_THRESHOLD;
@@ -41,7 +44,18 @@ export default function AdminSettingsPage() {
                 Contract Address
               </dt>
               <dd className="mt-1 break-all font-mono text-sm text-hash">
-                {contractAddress}
+                {contractUrl ? (
+                  <a
+                    href={contractUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="transition-colors hover:text-hash/80"
+                  >
+                    {contractAddress}
+                  </a>
+                ) : (
+                  contractAddress
+                )}
               </dd>
             </div>
           </dl>

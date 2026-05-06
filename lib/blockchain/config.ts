@@ -4,10 +4,13 @@ const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY!;
 const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS!;
 
 export const THESIS_REGISTRY_ABI = [
-  "event ThesisRegistered(string sha256Hash, address registeredBy, uint256 timestamp)",
-  "function registerThesis(string _sha256Hash, string _submissionType, string _thesisLevel, string _thesisCategory) external",
-  "function getThesis(string _sha256Hash) external view returns (tuple(string sha256Hash, string submissionType, string thesisLevel, string thesisCategory, uint256 timestamp, address registeredBy))",
-  "function isRegistered(string _sha256Hash) public view returns (bool)",
+  "event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)",
+  "event ThesisRegistered(bytes32 indexed sha256Hash, address indexed registeredBy, uint256 indexed timestamp)",
+  "function owner() external view returns (address)",
+  "function transferOwnership(address newOwner) external",
+  "function registerThesis(bytes32 _sha256Hash, string _submissionType, string _thesisLevel, string _thesisCategory) external",
+  "function getThesis(bytes32 _sha256Hash) external view returns (tuple(bytes32 sha256Hash, string submissionType, string thesisLevel, string thesisCategory, uint256 timestamp, address registeredBy))",
+  "function isRegistered(bytes32 _sha256Hash) public view returns (bool)",
 ] as const;
 
 export function getProvider() {
