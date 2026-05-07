@@ -306,7 +306,7 @@ export default function RegisterThesisPage() {
             <div>
               <span className="text-white/60">SHA-256 Hash:</span>
               <div className="mt-1">
-                <HashDisplay hash={state.sha256Hash!} />
+                <HashDisplay hash={state.sha256Hash!} copyable />
               </div>
             </div>
             <div>
@@ -401,7 +401,7 @@ export default function RegisterThesisPage() {
             />
             {hash && (
               <div className="mt-2 text-xs text-white/40 font-mono">
-                SHA-256: <HashDisplay hash={hash} />
+                SHA-256: <HashDisplay hash={hash} copyable />
               </div>
             )}
           </div>

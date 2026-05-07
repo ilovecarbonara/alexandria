@@ -527,7 +527,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                     />
                     <div className="flex flex-col gap-1">
                       <span className="font-mono text-xs text-white/40">SHA-256 Hash</span>
-                      <HashDisplay hash={selectedThesis.sha256_hash} />
+                      <HashDisplay hash={selectedThesis.sha256_hash} copyable />
                     </div>
                     <div className="flex flex-col gap-1">
                       <span className="font-mono text-xs text-white/40">Transaction</span>
@@ -580,7 +580,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                   />
                   <div className="flex flex-col gap-1">
                     <span className="font-mono text-xs text-white/40">SHA-256 Hash</span>
-                    <HashDisplay hash={selectedThesis.sha256_hash} />
+                    <HashDisplay hash={selectedThesis.sha256_hash} copyable />
                   </div>
                   <div className="flex flex-col gap-1">
                     <span className="font-mono text-xs text-white/40">Transaction</span>
@@ -656,7 +656,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                   <p className="font-mono text-sm text-white/90">{fileName}</p>
                   {fileHash && (
                     <p className="mt-1 font-mono text-xs text-white/40">
-                      SHA-256: <HashDisplay hash={fileHash} />
+                      SHA-256: <HashDisplay hash={fileHash} copyable />
                     </p>
                   )}
                 </>
@@ -833,6 +833,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                           verifyResult.thesis?.sha256_hash ??
                           verifyResult.blockchain!.sha256Hash
                         }
+                        copyable
                       />
                     </div>
 
@@ -944,7 +945,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                                       ).toLocaleDateString()}
                                     </span>
                                     <span>·</span>
-                                    <HashDisplay hash={entry.sha256Hash} />
+                                    <HashDisplay hash={entry.sha256Hash} copyable />
                                   </div>
                                 </div>
                               </div>

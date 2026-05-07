@@ -161,7 +161,7 @@ export function DashboardRegistrations({
                     />
                     <div className="flex flex-col gap-1">
                       <span className="font-mono text-xs text-white/40">SHA-256 Hash</span>
-                      <HashDisplay hash={selectedThesis.sha256_hash} />
+                      <HashDisplay hash={selectedThesis.sha256_hash} copyable />
                     </div>
                     <div className="flex flex-col gap-1">
                       <span className="font-mono text-xs text-white/40">Transaction</span>
@@ -223,7 +223,7 @@ export function DashboardRegistrations({
                   />
                   <div className="flex flex-col gap-1">
                     <span className="font-mono text-xs text-white/40">SHA-256 Hash</span>
-                    <HashDisplay hash={selectedThesis.sha256_hash} />
+                    <HashDisplay hash={selectedThesis.sha256_hash} copyable />
                   </div>
                   <div className="flex flex-col gap-1">
                     <span className="font-mono text-xs text-white/40">Transaction</span>

@@ -112,7 +112,7 @@ export function VersionTimeline({
                   {new Date(entry.registeredAt).toLocaleDateString()}
                 </span>
                 <span>·</span>
-                <HashDisplay hash={entry.sha256Hash} />
+                <HashDisplay hash={entry.sha256Hash} copyable />
               </div>
             </div>
           </div>
