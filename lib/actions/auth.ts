@@ -119,7 +119,7 @@ export async function signIn(
 
   const { data: profile } = await service
     .from("users")
-    .select("is_approved, is_admin, is_active")
+    .select("approval_status, is_admin, is_active")
     .eq("id", data.user.id)
     .single();
 
@@ -131,6 +131,20 @@ export async function signIn(
   if (!profile.is_active) {
     await supabase.auth.signOut();
     return { error: "Your account has been deactivated. Contact an administrator." };
+  }
+
+  if (profile.approval_status === "rejected") {
+    await supabase.auth.signOut();
+    return { error: "Your request has been rejected. Contact an administrator." };
+  }
+
+  if (profile.approval_status === "revoked") {
+    await supabase.auth.signOut();
+    return { error: "Your approval has been revoked. Contact an administrator." };
+  }
+
+  if (profile.approval_status === "pending") {
+    redirect("/pending");
   }
 
   // Update last_active_at
@@ -148,11 +162,7 @@ export async function signIn(
     redirect("/admin");
   }
 
-  if (profile.is_approved) {
-    redirect("/dashboard");
-  }
-
-  redirect("/pending");
+  redirect("/dashboard");
 }
 
 export async function signOut() {

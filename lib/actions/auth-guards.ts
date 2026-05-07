@@ -1,8 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
+import type { UserApprovalStatus } from "@/lib/supabase/types";
 
 type AuthSuccess = {
   user: { id: string; email?: string };
-  profile: { is_approved: boolean; is_active: boolean; is_admin: boolean };
+  profile: { approval_status: UserApprovalStatus; is_active: boolean; is_admin: boolean };
   supabase: Awaited<ReturnType<typeof createClient>>;
 };
 
@@ -20,7 +21,7 @@ export async function requireAuth(): Promise<AuthResult> {
 
   const { data: profile } = await supabase
     .from("users")
-    .select("is_approved, is_active, is_admin")
+    .select("approval_status, is_active, is_admin")
     .eq("id", user.id)
     .single();
 
@@ -28,7 +29,17 @@ export async function requireAuth(): Promise<AuthResult> {
 
   if (!profile.is_active) return { error: "Account deactivated." };
 
-  if (!profile.is_approved) return { error: "Account not yet approved." };
+  if (profile.approval_status === "pending") {
+    return { error: "Account not yet approved." };
+  }
+
+  if (profile.approval_status === "rejected") {
+    return { error: "Account request rejected." };
+  }
+
+  if (profile.approval_status === "revoked") {
+    return { error: "Account approval revoked." };
+  }
 
   return { user, profile, supabase };
 }

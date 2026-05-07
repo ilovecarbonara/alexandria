@@ -83,12 +83,12 @@ After deployment, copy the logged contract address into `CONTRACT_ADDRESS` in `.
 After running the migration, manually insert the admin user. First, create an account via Supabase Auth (email + password), then run:
 
 ```sql
-INSERT INTO public.users (id, email, full_name, is_approved, is_admin)
+INSERT INTO public.users (id, email, full_name, approval_status, is_admin)
 VALUES (
   '<supabase-auth-user-uuid>',
   'admin@uspf.edu.ph',
   'Admin Name',
-  true,
+  'approved',
   true
 );
 ```

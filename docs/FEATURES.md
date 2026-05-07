@@ -2,8 +2,9 @@
 
 ## F1: Authentication
 - University email only (@uspf.edu.ph)
-- Registration creates account with is_approved: false
-- Admin must flip is_approved: true before user can log in
+- Registration creates account with approval_status: pending
+- Admin must set approval_status: approved before user can log in
+- Rejected requests and revoked approvals display distinct login messages
 - Session management via Supabase Auth
 
 ## F2: Thesis Registration
@@ -122,11 +123,14 @@
 
 ## F10: User Management
 - Admin can view all registered users
+- Pending users can be approved or rejected
+- Approved users can be deactivated or have approval revoked
 - Admin can deactivate a user (sets is_active: false)
 - Admin can reactivate a user (sets is_active: true)
 - Deactivated users are signed out on next request and cannot log in
-- Admin can reject a user (sets is_approved: false — soft, reversible)
-- Admin can re-approve a rejected user
+- Rejected users see a rejected-request message when trying to log in
+- Revoked users are signed out on next request and see an approval-revoked message when trying to log in
+- Admin can re-approve a rejected or revoked user
 - last_active_at is tracked for user activity monitoring
 
 ## F11: Activity Logging

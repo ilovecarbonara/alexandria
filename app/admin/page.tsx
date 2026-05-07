@@ -12,7 +12,7 @@ export default async function AdminDashboardPage() {
       supabase.from("theses").select("id", { count: "exact", head: true }).eq("status", "pending"),
       supabase.from("disputes").select("id", { count: "exact", head: true }).eq("status", "open"),
       supabase.from("users").select("id", { count: "exact", head: true }).eq("is_admin", false),
-      supabase.from("users").select("id", { count: "exact", head: true }).eq("is_approved", false).eq("is_admin", false),
+      supabase.from("users").select("id", { count: "exact", head: true }).eq("approval_status", "pending").eq("is_admin", false),
       supabase
         .from("theses")
         .select("id, title, status, registered_at, thesis_authors(name, position)")

@@ -1,6 +1,6 @@
 type Status =
   | "verified" | "pending" | "disputed" | "open" | "resolved" | "notified"
-  | "accepted" | "flagged" | "rejected" | "active" | "deactivated";
+  | "accepted" | "flagged" | "rejected" | "revoked" | "active" | "deactivated";
 
 const statusStyles: Record<Status, string> = {
   verified: "border-l-success text-success",
@@ -12,6 +12,7 @@ const statusStyles: Record<Status, string> = {
   accepted: "border-l-success text-success",
   flagged: "border-l-dispute text-dispute",
   rejected: "border-l-dispute text-dispute",
+  revoked: "border-l-dispute text-dispute",
   active: "border-l-success text-success",
   deactivated: "border-l-white/40 text-white/40",
 };

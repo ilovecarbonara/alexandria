@@ -13,6 +13,7 @@
 | thesis_level        | undergraduate, masteral, doctoral          |
 | submission_type     | draft, final                               |
 | thesis_status       | pending, accepted, flagged, rejected       |
+| user_approval_status | pending, approved, rejected, revoked      |
 | dispute_status      | open, resolved                             |
 | dispute_author_role | flagger, admin, owner                      |
 | alert_status        | sent, failed, notified                     |
@@ -25,7 +26,7 @@
 | id             | uuid        | NO       |         | PK · FK → auth.users(id) ON DELETE CASCADE |
 | email          | text        | NO       |         | Must be @uspf.edu.ph                       |
 | full_name      | text        | NO       |         |                                            |
-| is_approved    | boolean     | NO       | false   | Admin approves before access               |
+| approval_status | user_approval_status | NO | 'pending' | pending, approved, rejected, revoked       |
 | is_admin       | boolean     | NO       | false   | Only one seeded admin                      |
 | is_active      | boolean     | NO       | true    | Admin can deactivate users                 |
 | last_active_at | timestamptz | YES      |         | Updated on authenticated requests          |
@@ -144,7 +145,8 @@ RLS is enabled on all eight application tables (`users`, `theses`, `thesis_autho
 | Users can read own row    | SELECT    | authenticated | auth.uid() = id            |
 | Admin can read all users  | SELECT    | authenticated | private.is_admin()         |
 | Admin can update users    | UPDATE    | authenticated | private.is_admin()         |
-| Users can insert own row  | INSERT    | authenticated | auth.uid() = id            |
+
+User profile rows are inserted server-side during registration; there is no authenticated `INSERT` policy on `public.users`.
 
 ### theses
 | Policy                                    | Operation | Role                | Condition              |

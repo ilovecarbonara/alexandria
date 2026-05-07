@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { requireAdmin } from "./auth-guards";
+import { requireAdmin, requireAuth } from "./auth-guards";
 import { sortThesisAuthors } from "@/lib/authors";
 import { sanitizeSearchTerm, validateUUID, validateDateRange } from "@/lib/validation";
 import type { ThesisLevel, ThesisStatus, SubmissionType } from "@/lib/supabase/types";
@@ -271,19 +271,10 @@ export async function getVersionChain(
   let showAll = false;
 
   if (options?.includeAllStatuses) {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const auth = await requireAuth();
 
-    if (user) {
-      const { data: profile } = await supabase
-        .from("users")
-        .select("is_admin")
-        .eq("id", user.id)
-        .single();
-
-      // Grant full access only to the thesis owner or an admin
-      if (target.user_id === user.id || profile?.is_admin) {
+    if (!("error" in auth)) {
+      if (target.user_id === auth.user.id || auth.profile.is_admin) {
         showAll = true;
       }
     }

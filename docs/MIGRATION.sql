@@ -14,6 +14,7 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 CREATE TYPE thesis_level AS ENUM ('undergraduate', 'masteral', 'doctoral');
 CREATE TYPE submission_type AS ENUM ('draft', 'final');
 CREATE TYPE thesis_status AS ENUM ('pending', 'accepted', 'flagged', 'rejected');
+CREATE TYPE user_approval_status AS ENUM ('pending', 'approved', 'rejected', 'revoked');
 CREATE TYPE dispute_status AS ENUM ('open', 'resolved');
 CREATE TYPE dispute_author_role AS ENUM ('flagger', 'admin', 'owner');
 CREATE TYPE alert_status AS ENUM ('sent', 'failed', 'notified');
@@ -27,7 +28,7 @@ CREATE TABLE public.users (
   id             uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email          text NOT NULL,
   full_name      text NOT NULL,
-  is_approved    boolean NOT NULL DEFAULT false,
+  approval_status user_approval_status NOT NULL DEFAULT 'pending',
   is_admin       boolean NOT NULL DEFAULT false,
   is_active      boolean NOT NULL DEFAULT true,
   last_active_at timestamptz,
@@ -131,6 +132,7 @@ CREATE INDEX idx_activity_logs_user_id ON public.activity_logs(user_id);
 CREATE INDEX idx_title_alerts_notified_user ON public.title_alerts(notified_user_id);
 CREATE INDEX idx_thesis_authors_thesis_id ON public.thesis_authors(thesis_id);
 CREATE INDEX idx_theses_authors_search ON public.theses USING gin (authors_search gin_trgm_ops);
+CREATE INDEX idx_users_approval_status ON public.users(approval_status);
 
 -- ============================================================
 -- Private Schema + Admin Helper
@@ -186,11 +188,8 @@ CREATE POLICY "Admin can update users"
   TO authenticated
   USING ((SELECT private.is_admin()));
 
--- users: insert own row on registration
-CREATE POLICY "Users can insert own row"
-  ON public.users FOR INSERT
-  TO authenticated
-  WITH CHECK ((SELECT auth.uid()) = id);
+-- users: profile rows are inserted server-side during registration.
+DROP POLICY IF EXISTS "Users can insert own row" ON public.users;
 
 -- theses: anyone can read (public verification)
 CREATE POLICY "Theses are publicly readable"

@@ -17,11 +17,16 @@ export default async function AdminLayout({
 
   const { data: profile } = await supabase
     .from("users")
-    .select("is_admin")
+    .select("approval_status, is_active, is_admin")
     .eq("id", user.id)
     .single();
 
-  if (!profile?.is_admin) redirect("/dashboard");
+  if (!profile) redirect("/login");
+  if (!profile.is_active) redirect("/login?error=deactivated");
+  if (profile.approval_status === "pending") redirect("/pending");
+  if (profile.approval_status === "rejected") redirect("/login?error=rejected");
+  if (profile.approval_status === "revoked") redirect("/login?error=revoked");
+  if (!profile.is_admin) redirect("/dashboard");
 
   const disputeUnread = await countMyDisputeUnreads();
 

@@ -1,6 +1,7 @@
 export type ThesisLevel = "undergraduate" | "masteral" | "doctoral";
 export type SubmissionType = "draft" | "final";
 export type ThesisStatus = "pending" | "accepted" | "flagged" | "rejected";
+export type UserApprovalStatus = "pending" | "approved" | "rejected" | "revoked";
 export type DisputeStatus = "open" | "resolved";
 export type DisputeAuthorRole = "flagger" | "admin" | "owner";
 export type AlertStatus = "notified"; 
@@ -13,7 +14,7 @@ export interface Database {
           id: string;
           email: string;
           full_name: string;
-          is_approved: boolean;
+          approval_status: UserApprovalStatus;
           is_admin: boolean;
           is_active: boolean;
           last_active_at: string | null;
@@ -23,7 +24,7 @@ export interface Database {
           id?: string;
           email: string;
           full_name: string;
-          is_approved?: boolean;
+          approval_status?: UserApprovalStatus;
           is_admin?: boolean;
           is_active?: boolean;
           last_active_at?: string | null;
@@ -33,7 +34,7 @@ export interface Database {
           id?: string;
           email?: string;
           full_name?: string;
-          is_approved?: boolean;
+          approval_status?: UserApprovalStatus;
           is_admin?: boolean;
           is_active?: boolean;
           last_active_at?: string | null;
@@ -299,6 +300,7 @@ export interface Database {
       thesis_level: ThesisLevel;
       submission_type: SubmissionType;
       thesis_status: ThesisStatus;
+      user_approval_status: UserApprovalStatus;
       dispute_status: DisputeStatus;
       dispute_author_role: DisputeAuthorRole;
       alert_status: AlertStatus;

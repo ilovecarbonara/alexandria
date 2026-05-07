@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
   // Verify account is approved, active, and not admin
   const { data: profile } = await supabase
     .from("users")
-    .select("full_name, is_approved, is_active, is_admin")
+    .select("full_name, approval_status, is_active, is_admin")
     .eq("id", user.id)
     .single();
 
@@ -63,8 +63,16 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Account deactivated." }, { status: 403 });
   }
 
-  if (!profile.is_approved) {
+  if (profile.approval_status === "pending") {
     return Response.json({ error: "Account not yet approved." }, { status: 403 });
+  }
+
+  if (profile.approval_status === "rejected") {
+    return Response.json({ error: "Account request rejected." }, { status: 403 });
+  }
+
+  if (profile.approval_status === "revoked") {
+    return Response.json({ error: "Account approval revoked." }, { status: 403 });
   }
 
   if (profile.is_admin) {

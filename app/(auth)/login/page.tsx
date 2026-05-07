@@ -7,12 +7,19 @@ import { signIn } from "@/lib/actions/auth";
 import { Button, Input, Card } from "@/components/ui";
 import { MAX_EMAIL_LENGTH, MAX_PASSWORD_LENGTH } from "@/lib/validation";
 
-function DeactivatedBanner() {
+const accessErrorMessages: Record<string, string> = {
+  deactivated: "Your account has been deactivated. Contact an administrator.",
+  rejected: "Your request has been rejected. Contact an administrator.",
+  revoked: "Your approval has been revoked. Contact an administrator.",
+};
+
+function AccessErrorBanner() {
   const searchParams = useSearchParams();
-  if (searchParams.get("error") !== "deactivated") return null;
+  const message = accessErrorMessages[searchParams.get("error") ?? ""];
+  if (!message) return null;
   return (
     <p className="mb-4 font-mono text-xs text-dispute">
-      Your account has been deactivated. Contact an administrator.
+      {message}
     </p>
   );
 }
@@ -68,7 +75,7 @@ export default function LoginPage() {
       <h2 className="mb-4 font-heading text-lg text-white">Log In</h2>
 
       <Suspense fallback={null}>
-        <DeactivatedBanner />
+        <AccessErrorBanner />
       </Suspense>
 
       <form action={formAction} className="flex flex-col gap-4">
