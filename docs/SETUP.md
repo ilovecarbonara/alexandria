@@ -75,7 +75,7 @@ After deployment, copy the logged contract address into `CONTRACT_ADDRESS` in `.
 ## 6. Set Up Supabase Database
 
 1. Open the Supabase SQL Editor for your project
-2. Paste and run the contents of `docs/MIGRATION.sql`
+2. Paste and run the contents of `docs/DATABASE_MIGRATION.sql`
 3. Verify all tables are created: `users`, `theses`, `disputes`, `title_alerts`
 
 ### Seed the Admin Account
