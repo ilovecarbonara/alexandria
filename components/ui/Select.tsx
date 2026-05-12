@@ -76,6 +76,48 @@ export function Select({
     return () => document.removeEventListener("keydown", onKey);
   }, [open]);
 
+  // Auto-scroll when the dropdown doesn't fit below the button
+  useEffect(() => {
+    if (!open || !containerRef.current) return;
+
+    // Walk up the DOM to find the nearest scrollable ancestor
+    function getScrollParent(el: HTMLElement): HTMLElement | Window {
+      let node: HTMLElement | null = el.parentElement;
+      while (node) {
+        const { overflowY } = window.getComputedStyle(node);
+        if (
+          (overflowY === "auto" || overflowY === "scroll") &&
+          node.scrollHeight > node.clientHeight
+        ) {
+          return node;
+        }
+        node = node.parentElement;
+      }
+      return window;
+    }
+
+    const rect = containerRef.current.getBoundingClientRect();
+    const dropdownHeight = 244; // max-h-60 (240px) + mt-1 (4px)
+    const scrollParent = getScrollParent(containerRef.current);
+
+    let viewportBottom: number;
+    if (scrollParent instanceof Window) {
+      viewportBottom = window.innerHeight;
+    } else {
+      viewportBottom = scrollParent.getBoundingClientRect().bottom;
+    }
+
+    const spaceBelow = viewportBottom - rect.bottom;
+    if (spaceBelow < dropdownHeight) {
+      const scrollAmount = dropdownHeight - spaceBelow + 16;
+      if (scrollParent instanceof Window) {
+        scrollParent.scrollBy({ top: scrollAmount, behavior: "smooth" });
+      } else {
+        scrollParent.scrollBy({ top: scrollAmount, behavior: "smooth" });
+      }
+    }
+  }, [open]);
+
   return (
     <div className="flex flex-col gap-1" ref={containerRef}>
       {label && (
