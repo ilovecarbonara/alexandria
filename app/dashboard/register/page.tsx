@@ -9,7 +9,6 @@ import {
   SUBMISSION_TYPES,
   MAX_PDF_FILE_SIZE_MB,
 } from "@/lib/constants";
-import { getUserThesesForLinking, getCurrentUserFullName } from "@/lib/actions/theses";
 import {
   MAX_AUTHORS,
   MAX_TITLE_LENGTH,
@@ -27,6 +26,19 @@ type FormState = {
   sha256Hash?: string;
 };
 
+type LinkableThesis = {
+  id: string;
+  title: string;
+  submission_type: string;
+  registered_at: string;
+};
+
+type RegisterMetadata = {
+  fullName?: string;
+  linkableTheses?: LinkableThesis[];
+  error?: string;
+};
+
 async function hashFile(file: File): Promise<string> {
   const buffer = await file.arrayBuffer();
   const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
@@ -41,9 +53,7 @@ export default function RegisterThesisPage() {
   const [hash, setHash] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [previousThesisId, setPreviousThesisId] = useState("");
-  const [linkableTheses, setLinkableTheses] = useState<
-    { id: string; title: string; submission_type: string; registered_at: string }[]
-  >([]);
+  const [linkableTheses, setLinkableTheses] = useState<LinkableThesis[]>([]);
   const [ownerName, setOwnerName] = useState("");
   const [authorNames, setAuthorNames] = useState<string[]>([""]);
   const [title, setTitle] = useState("");
@@ -54,15 +64,37 @@ export default function RegisterThesisPage() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    getUserThesesForLinking().then((result) => {
-      if (result.data) setLinkableTheses(result.data);
-    });
-    getCurrentUserFullName().then((result) => {
-      if (result.fullName) {
-        setOwnerName(result.fullName);
-        setAuthorNames([result.fullName]);
+    let active = true;
+
+    async function loadRegisterMetadata() {
+      try {
+        const response = await fetch("/api/theses/linking", { cache: "no-store" });
+        const result = (await response.json()) as RegisterMetadata;
+
+        if (!active) return;
+
+        if (!response.ok) {
+          setState({ error: result.error || "Failed to load registration options." });
+          return;
+        }
+
+        setLinkableTheses(result.linkableTheses ?? []);
+        if (result.fullName) {
+          setOwnerName(result.fullName);
+          setAuthorNames([result.fullName]);
+        }
+      } catch {
+        if (active) {
+          setState({ error: "Failed to load registration options." });
+        }
       }
-    });
+    }
+
+    loadRegisterMetadata();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   function validateField(name: string, value: string): string | null {
