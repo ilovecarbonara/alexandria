@@ -134,6 +134,8 @@ export async function generateCertificate(data: CertificateData): Promise<jsPDF>
   const valueX = MARGIN + 5;
   const lineHeight = 6;
   const contentBottom = PAGE_HEIGHT - MARGIN - 12;
+  const footerY = PAGE_HEIGHT - MARGIN + 2;
+  const footerSafeTop = footerY - 6;
 
   function addContinuationPage() {
     doc.addPage();
@@ -141,8 +143,8 @@ export async function generateCertificate(data: CertificateData): Promise<jsPDF>
     y = MARGIN + 10;
   }
 
-  function ensureSpace(requiredHeight: number) {
-    if (y + requiredHeight <= contentBottom) return;
+  function ensureSpace(requiredHeight: number, bottom = contentBottom) {
+    if (y + requiredHeight <= bottom) return;
     addContinuationPage();
   }
 
@@ -218,21 +220,77 @@ export async function generateCertificate(data: CertificateData): Promise<jsPDF>
     align: "center",
   });
 
-  // --- Version History Table (only for chains with multiple entries) ---
-  if (data.versionHistory && data.versionHistory.length > 1) {
-    ensureSpace(23 + data.versionHistory.length * 6);
-    y += 10;
-    doc.setDrawColor(COLORS.border);
-    doc.setLineWidth(0.2);
-    doc.line(MARGIN + 5, y, PAGE_WIDTH - MARGIN - 5, y);
+  // --- Disclaimer ---
+  y += 10;
+  doc.setFont("courier", "normal");
+  doc.setFontSize(7);
+  doc.setTextColor(COLORS.muted);
 
-    y += 7;
+  const disclaimer =
+    "This document certifies that the above thesis was registered on the Sepolia " +
+    "blockchain via Project Alexandria. This is a REGISTRATION RECORD only — it does " +
+    "not constitute proof of authorship, originality, or academic approval. The " +
+    "blockchain entry is immutable and publicly verifiable.";
+
+  const disclaimerLines = doc.splitTextToSize(disclaimer, CONTENT_WIDTH - 20);
+  const disclaimerLineHeight = 3.2;
+  const disclaimerHeight = 6 + disclaimerLines.length * disclaimerLineHeight;
+  ensureSpace(disclaimerHeight, footerSafeTop);
+
+  doc.setDrawColor(COLORS.border);
+  doc.setLineWidth(0.2);
+  doc.line(MARGIN + 10, y, PAGE_WIDTH - MARGIN - 10, y);
+
+  y += 6;
+  doc.text(disclaimerLines, PAGE_WIDTH / 2, y, { align: "center" });
+
+  // --- Footer ---
+  doc.setFont("courier", "normal");
+  doc.setFontSize(7);
+  doc.setTextColor(COLORS.border);
+  doc.text(
+    "Project Alexandria — USPF Blockchain Thesis Registry",
+    PAGE_WIDTH / 2,
+    footerY,
+    { align: "center" },
+  );
+
+  // --- Page 2: Version History ---
+  if (data.versionHistory && data.versionHistory.length > 1) {
+    doc.addPage();
+    drawPageFrame();
+    y = MARGIN + 10;
+
+    // Header
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
+    doc.setFontSize(28);
+    doc.setTextColor(COLORS.text);
+    doc.text("ALEXANDRIA", PAGE_WIDTH / 2, y, { align: "center" });
+
+    y += 8;
+    doc.setFont("courier", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(COLORS.muted);
+    doc.text("BLOCKCHAIN THESIS REGISTRY", PAGE_WIDTH / 2, y, { align: "center" });
+
+    y += 6;
+    doc.setDrawColor(COLORS.accent);
+    doc.setLineWidth(0.4);
+    doc.line(MARGIN + 20, y, PAGE_WIDTH - MARGIN - 20, y);
+
+    y += 10;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
     doc.setTextColor(COLORS.accent);
     doc.text("VERSION HISTORY", PAGE_WIDTH / 2, y, { align: "center" });
 
-    y += 6;
+    y += 8;
+    doc.setFont("courier", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(COLORS.muted);
+    const titleLines = doc.splitTextToSize(data.title, CONTENT_WIDTH - 10);
+    doc.text(titleLines, PAGE_WIDTH / 2, y, { align: "center" });
+    y += titleLines.length * 5 + 8;
 
     // Table layout
     const tableX = MARGIN + 5;
@@ -264,6 +322,8 @@ export async function generateCertificate(data: CertificateData): Promise<jsPDF>
 
     for (let i = 0; i < data.versionHistory.length; i++) {
       const entry = data.versionHistory[i];
+
+      ensureSpace(rowHeight);
       const rowY = y;
 
       // Alternating row background
@@ -289,11 +349,11 @@ export async function generateCertificate(data: CertificateData): Promise<jsPDF>
 
       // SHA-256 (truncated)
       doc.setTextColor(COLORS.hash);
-      doc.text(entry.sha256Hash.slice(0, 16) + "…", colX + 2, rowY + 4);
+      doc.text(entry.sha256Hash.slice(0, 16) + "\u2026", colX + 2, rowY + 4);
       colX += colWidths[2];
 
       // Tx Hash (truncated)
-      doc.text(entry.txHash.slice(0, 16) + "…", colX + 2, rowY + 4);
+      doc.text(entry.txHash.slice(0, 16) + "\u2026", colX + 2, rowY + 4);
       colX += colWidths[3];
 
       // Date
@@ -307,41 +367,7 @@ export async function generateCertificate(data: CertificateData): Promise<jsPDF>
 
       y += rowHeight;
     }
-
-    y += 2;
   }
-
-  // --- Disclaimer ---
-  y += 10;
-  ensureSpace(28);
-  doc.setDrawColor(COLORS.border);
-  doc.setLineWidth(0.2);
-  doc.line(MARGIN + 10, y, PAGE_WIDTH - MARGIN - 10, y);
-
-  y += 6;
-  doc.setFont("courier", "normal");
-  doc.setFontSize(7);
-  doc.setTextColor(COLORS.muted);
-
-  const disclaimer =
-    "This document certifies that the above thesis was registered on the Sepolia " +
-    "blockchain via Project Alexandria. This is a REGISTRATION RECORD only — it does " +
-    "not constitute proof of authorship, originality, or academic approval. The " +
-    "blockchain entry is immutable and publicly verifiable.";
-
-  const disclaimerLines = doc.splitTextToSize(disclaimer, CONTENT_WIDTH - 20);
-  doc.text(disclaimerLines, PAGE_WIDTH / 2, y, { align: "center" });
-
-  // --- Footer ---
-  doc.setFont("courier", "normal");
-  doc.setFontSize(7);
-  doc.setTextColor(COLORS.border);
-  doc.text(
-    "Project Alexandria — USPF Blockchain Thesis Registry",
-    PAGE_WIDTH / 2,
-    PAGE_HEIGHT - MARGIN + 2,
-    { align: "center" },
-  );
 
   return doc;
 }
