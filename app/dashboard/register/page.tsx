@@ -46,6 +46,15 @@ async function hashFile(file: File): Promise<string> {
   return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+function titleFromPdfFileName(fileName: string): string {
+  return fileName
+    .replace(/\.pdf$/i, "")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, MAX_TITLE_LENGTH);
+}
+
 export default function RegisterThesisPage() {
   const [state, setState] = useState<FormState>({});
   const [loading, setLoading] = useState(false);
@@ -228,6 +237,13 @@ export default function RegisterThesisPage() {
       return;
     }
     setFileName(file.name);
+    if (!title.trim()) {
+      const titleFromFileName = titleFromPdfFileName(file.name);
+      if (titleFromFileName) {
+        setTitle(titleFromFileName);
+        handleFieldChange("title", titleFromFileName);
+      }
+    }
     setState({});
     const sha256 = await hashFile(file);
     setHash(sha256);
