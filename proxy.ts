@@ -31,6 +31,11 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
+  const isServerAction = request.headers.has("next-action");
+
+  if (isServerAction) {
+    return response;
+  }
 
   // Unauthenticated users cannot access /dashboard or /admin
   if (!user && (pathname.startsWith("/dashboard") || pathname.startsWith("/admin"))) {

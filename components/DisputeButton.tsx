@@ -52,18 +52,23 @@ export function DisputeButton({
   async function handleSubmit() {
     setError(null);
     setLoading(true);
-    const result = await flagDispute(thesisId, reason);
-    setLoading(false);
+    try {
+      const result = await flagDispute(thesisId, reason);
 
-    if (result.error) {
-      setError(result.error);
-    } else {
-      setSuccess(true);
-      setTimeout(() => {
-        setOpen(false);
-        setSuccess(false);
-        setReason("");
-      }, 1500);
+      if (result.error) {
+        setError(result.error);
+      } else {
+        setSuccess(true);
+        setTimeout(() => {
+          setOpen(false);
+          setSuccess(false);
+          setReason("");
+        }, 1500);
+      }
+    } catch {
+      setError("Could not submit the dispute. Please try again.");
+    } finally {
+      setLoading(false);
     }
   }
 
