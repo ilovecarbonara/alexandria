@@ -49,9 +49,9 @@ export async function searchTheses(filters: SearchFilters) {
     )
     .order("registered_at", { ascending: false });
 
-  // Public callers exclude pending theses; admins see all statuses
+  // Public callers only see statuses that should remain visible in the registry.
   if (!filters.includeAllStatuses) {
-    query = query.neq("status", "pending");
+    query = query.in("status", ["accepted", "flagged"]);
   }
 
   // Filter by specific status
