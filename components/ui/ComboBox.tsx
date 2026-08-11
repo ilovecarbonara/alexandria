@@ -123,17 +123,17 @@ export function ComboBox({
   return (
     <div className="flex flex-col gap-1" ref={containerRef}>
       {label && (
-        <label htmlFor={id} className="text-sm text-white/60 font-mono">
+        <label htmlFor={id} className="text-sm text-ink-muted">
           {label}
         </label>
       )}
 
       <div className="relative">
         <div
-          className={`flex w-full items-center rounded-xs border bg-surface transition-colors ${
+          className={`flex w-full items-center rounded-md border bg-surface transition-colors ${
             open
-              ? "border-accent"
-              : "border-border hover:border-white/20"
+              ? "border-primary"
+              : "border-border hover:border-border"
           } ${className}`}
         >
           <input
@@ -195,7 +195,7 @@ export function ComboBox({
               setOpen(true);
               setQuery("");
             }}
-            className="w-full bg-transparent px-3 py-2 font-mono text-sm text-white/90 placeholder:text-white/30 focus:outline-none"
+            className="w-full bg-transparent px-3 py-2 text-sm text-ink placeholder:text-ink-subtle focus:outline-none"
           />
           <button
             type="button"
@@ -211,7 +211,7 @@ export function ComboBox({
                 inputRef.current?.focus();
               }
             }}
-            className="shrink-0 px-2 text-white/40"
+            className="shrink-0 px-2 text-ink-subtle"
           >
             <svg
               width="12"
@@ -237,7 +237,7 @@ export function ComboBox({
             ref={listRef}
             id={listboxId}
             role="listbox"
-            className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-xs border border-border bg-surface py-1 shadow-lg shadow-black/40"
+            className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-border bg-surface py-1 shadow-pop"
           >
             <li
               id={optionId(0)}
@@ -249,12 +249,12 @@ export function ComboBox({
                 tabIndex={-1}
                 onMouseEnter={() => setHighlightedIndex(0)}
                 onClick={() => handleSelect("")}
-                className={`block w-full px-3 py-1.5 text-left font-mono text-sm transition-colors ${
+                className={`block w-full px-3 py-1.5 text-left text-sm transition-colors ${
                   highlightedIndex === 0
-                    ? "bg-white/10 text-white/90"
+                    ? "bg-raised text-ink"
                     : value === ""
-                      ? "bg-accent/15 text-accent"
-                      : "text-white/50 hover:bg-white/5 hover:text-white/80"
+                      ? "bg-primary-soft text-primary"
+                      : "text-ink-subtle hover:bg-raised hover:text-ink"
                 }`}
               >
                 {placeholder}
@@ -276,12 +276,12 @@ export function ComboBox({
                     tabIndex={-1}
                     onMouseEnter={() => setHighlightedIndex(itemIdx)}
                     onClick={() => handleSelect(opt.value)}
-                    className={`block w-full px-3 py-1.5 text-left font-mono text-sm transition-colors ${
+                    className={`block w-full px-3 py-1.5 text-left text-sm transition-colors ${
                       isHighlighted
-                        ? "bg-white/10 text-white/90"
+                        ? "bg-raised text-ink"
                         : isSelected
-                          ? "bg-accent/15 text-accent"
-                          : "text-white/90 hover:bg-white/5"
+                          ? "bg-primary-soft text-primary"
+                          : "text-ink hover:bg-raised"
                     }`}
                   >
                     {opt.label}
@@ -290,7 +290,7 @@ export function ComboBox({
               );
             })}
             {filtered.length === 0 && (
-              <li className="px-3 py-1.5 font-mono text-sm text-white/30">
+              <li className="px-3 py-1.5 text-sm text-ink-subtle">
                 No matches
               </li>
             )}

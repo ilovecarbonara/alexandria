@@ -1,9 +1,9 @@
 "use server";
 
-import { requireAdmin } from "./auth-guards";
+import { requireLibrarian } from "./auth-guards";
 
 export async function getAnalyticsData() {
-  const auth = await requireAdmin();
+  const auth = await requireLibrarian();
   if ("error" in auth) return { error: auth.error };
 
   const supabase = auth.supabase;

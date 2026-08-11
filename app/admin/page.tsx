@@ -9,10 +9,10 @@ export default async function AdminDashboardPage() {
   const [thesesRes, pendingThesesRes, disputesRes, usersRes, pendingUsersRes, recentThesesRes, recentActivityRes] =
     await Promise.allSettled([
       supabase.from("theses").select("id", { count: "exact", head: true }),
-      supabase.from("theses").select("id", { count: "exact", head: true }).eq("status", "pending"),
+      supabase.from("theses").select("id", { count: "exact", head: true }).eq("status", "pending_librarian"),
       supabase.from("disputes").select("id", { count: "exact", head: true }).eq("status", "open"),
-      supabase.from("users").select("id", { count: "exact", head: true }).eq("is_admin", false),
-      supabase.from("users").select("id", { count: "exact", head: true }).eq("approval_status", "pending").eq("is_admin", false),
+      supabase.from("users").select("id", { count: "exact", head: true }).neq("role", "librarian"),
+      supabase.from("users").select("id", { count: "exact", head: true }).eq("approval_status", "pending").neq("role", "librarian"),
       supabase
         .from("theses")
         .select("id, title, status, registered_at, thesis_authors(name, position)")
@@ -27,7 +27,7 @@ export default async function AdminDashboardPage() {
 
   const failedLabels: string[] = [];
   if (thesesRes.status === "rejected") failedLabels.push("total theses count");
-  if (pendingThesesRes.status === "rejected") failedLabels.push("pending confirmations");
+  if (pendingThesesRes.status === "rejected") failedLabels.push("review queue count");
   if (disputesRes.status === "rejected") failedLabels.push("disputes count");
   if (usersRes.status === "rejected") failedLabels.push("users count");
   if (pendingUsersRes.status === "rejected") failedLabels.push("pending approvals");
@@ -45,14 +45,14 @@ export default async function AdminDashboardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-heading text-2xl text-white">Admin Dashboard</h1>
-        <p className="mt-1 font-mono text-sm text-white/40">
+        <h1 className="font-heading text-2xl text-ink">Admin Dashboard</h1>
+        <p className="mt-1 text-sm text-ink-subtle">
           System overview and management
         </p>
       </div>
 
       {failedLabels.length > 0 && (
-        <div className="rounded-xs border border-dispute/30 bg-dispute/10 px-4 py-3 font-mono text-sm text-dispute">
+        <div className="rounded-md border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger">
           Failed to load: {failedLabels.join(", ")}
         </div>
       )}
@@ -60,42 +60,42 @@ export default async function AdminDashboardPage() {
       {/* Stat Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Card>
-          <p className="font-mono text-xs text-white/40 uppercase">
+          <p className="text-xs text-ink-subtle uppercase">
             Total Theses
           </p>
-          <p className="mt-2 font-heading text-3xl text-white">
+          <p className="mt-2 font-heading text-3xl text-ink">
             {totalTheses}
           </p>
         </Card>
         <Card>
-          <p className="font-mono text-xs text-white/40 uppercase">
+          <p className="text-xs text-ink-subtle uppercase">
             Pending Confirmations
           </p>
-          <p className="mt-2 font-heading text-3xl text-pending">
+          <p className="mt-2 font-heading text-3xl text-warning">
             {pendingConfirmations}
           </p>
         </Card>
         <Card>
-          <p className="font-mono text-xs text-white/40 uppercase">
+          <p className="text-xs text-ink-subtle uppercase">
             Active Disputes
           </p>
-          <p className="mt-2 font-heading text-3xl text-dispute">
+          <p className="mt-2 font-heading text-3xl text-danger">
             {activeDisputes}
           </p>
         </Card>
         <Card>
-          <p className="font-mono text-xs text-white/40 uppercase">
+          <p className="text-xs text-ink-subtle uppercase">
             Registered Users
           </p>
-          <p className="mt-2 font-heading text-3xl text-white">
+          <p className="mt-2 font-heading text-3xl text-ink">
             {registeredUsers}
           </p>
         </Card>
         <Card>
-          <p className="font-mono text-xs text-white/40 uppercase">
+          <p className="text-xs text-ink-subtle uppercase">
             Pending Approvals
           </p>
-          <p className="mt-2 font-heading text-3xl text-pending">
+          <p className="mt-2 font-heading text-3xl text-warning">
             {pendingApprovals}
           </p>
         </Card>
@@ -105,7 +105,7 @@ export default async function AdminDashboardPage() {
         {/* Recent Registrations */}
         <Card className="p-0">
           <div className="flex items-center justify-between border-b border-border px-6 py-4">
-            <h2 className="font-heading text-lg text-white">
+            <h2 className="font-heading text-lg text-ink">
               Recent Registrations
             </h2>
             <Link href="/admin/theses">
@@ -115,7 +115,7 @@ export default async function AdminDashboardPage() {
             </Link>
           </div>
           {recentTheses.length === 0 ? (
-            <p className="px-6 py-8 text-center font-mono text-sm text-white/40">
+            <p className="px-6 py-8 text-center text-sm text-ink-subtle">
               No registrations yet.
             </p>
           ) : (
@@ -126,10 +126,10 @@ export default async function AdminDashboardPage() {
                   className="flex items-center justify-between px-6 py-3"
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-mono text-sm text-white/90">
+                    <p className="truncate text-sm text-ink">
                       {thesis.title}
                     </p>
-                    <p className="font-mono text-xs text-white/40">
+                    <p className="text-xs text-ink-subtle">
                       {formatAuthorNames(thesis.thesis_authors)} ·{" "}
                       {new Date(thesis.registered_at).toLocaleDateString()}
                     </p>
@@ -144,7 +144,7 @@ export default async function AdminDashboardPage() {
         {/* Active Disputes */}
         <Card className="p-0">
           <div className="flex items-center justify-between border-b border-border px-6 py-4">
-            <h2 className="font-heading text-lg text-white">
+            <h2 className="font-heading text-lg text-ink">
               Active Disputes
             </h2>
             <Link href="/admin/disputes">
@@ -154,10 +154,10 @@ export default async function AdminDashboardPage() {
             </Link>
           </div>
           <div className="px-6 py-8 text-center">
-            <p className="font-heading text-3xl text-dispute">
+            <p className="font-heading text-3xl text-danger">
               {activeDisputes}
             </p>
-            <p className="mt-1 font-mono text-xs text-white/40">
+            <p className="mt-1 text-xs text-ink-subtle">
               open disputes requiring review
             </p>
           </div>
@@ -168,7 +168,7 @@ export default async function AdminDashboardPage() {
         {/* Pending User Approvals */}
         <Card className="p-0">
           <div className="flex items-center justify-between border-b border-border px-6 py-4">
-            <h2 className="font-heading text-lg text-white">
+            <h2 className="font-heading text-lg text-ink">
               Pending Approvals
             </h2>
             <Link href="/admin/users">
@@ -178,10 +178,10 @@ export default async function AdminDashboardPage() {
             </Link>
           </div>
           <div className="px-6 py-8 text-center">
-            <p className="font-heading text-3xl text-pending">
+            <p className="font-heading text-3xl text-warning">
               {pendingApprovals}
             </p>
-            <p className="mt-1 font-mono text-xs text-white/40">
+            <p className="mt-1 text-xs text-ink-subtle">
               users awaiting approval
             </p>
           </div>
@@ -190,7 +190,7 @@ export default async function AdminDashboardPage() {
         {/* Recent Activity */}
         <Card className="p-0">
           <div className="flex items-center justify-between border-b border-border px-6 py-4">
-            <h2 className="font-heading text-lg text-white">
+            <h2 className="font-heading text-lg text-ink">
               Recent Activity
             </h2>
             <Link href="/admin/activity">
@@ -200,7 +200,7 @@ export default async function AdminDashboardPage() {
             </Link>
           </div>
           {recentActivity.length === 0 ? (
-            <p className="px-6 py-8 text-center font-mono text-sm text-white/40">
+            <p className="px-6 py-8 text-center text-sm text-ink-subtle">
               No activity yet.
             </p>
           ) : (
@@ -210,10 +210,10 @@ export default async function AdminDashboardPage() {
                   key={log.id}
                   className="flex items-center justify-between px-6 py-3"
                 >
-                  <span className="font-mono text-sm text-white/80">
+                  <span className="text-sm text-ink">
                     {log.action}
                   </span>
-                  <span className="whitespace-nowrap font-mono text-xs text-white/40">
+                  <span className="whitespace-nowrap text-xs text-ink-subtle">
                     {new Date(log.created_at).toLocaleDateString()}
                   </span>
                 </li>

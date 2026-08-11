@@ -143,7 +143,7 @@ export function DatePicker({
   return (
     <div className={`flex flex-col gap-1 ${className}`} ref={containerRef}>
       {label && (
-        <label htmlFor={id} className="font-mono text-sm text-white/60">
+        <label htmlFor={id} className="text-sm text-ink-muted">
           {label}
         </label>
       )}
@@ -153,22 +153,22 @@ export function DatePicker({
           type="button"
           id={id}
           onClick={() => setOpen((o) => !o)}
-          className={`flex w-full items-center justify-between rounded-xs border bg-surface px-3 py-2 text-left font-mono text-sm transition-colors focus:outline-none ${
-            open ? "border-accent" : "border-border hover:border-white/20"
-          } ${value ? "text-white/90" : "text-white/30"}`}>
+          className={`flex w-full items-center justify-between rounded-md border bg-surface px-3 py-2 text-left text-sm transition-colors focus:outline-none ${
+            open ? "border-primary" : "border-border hover:border-border"
+          } ${value ? "text-ink" : "text-ink-subtle"}`}>
           <span className="truncate">
             {value ? formatDisplay(value) : placeholder}
           </span>
         </button>
 
         {open && (
-          <div className="absolute z-50 mt-1 w-64 rounded-xs border border-border bg-surface p-3 shadow-lg shadow-black/40">
+          <div className="absolute z-50 mt-1 w-64 rounded-md border border-border bg-surface p-3 shadow-pop">
             {/* Month/Year nav */}
             <div className="mb-2 flex items-center justify-between">
               <button
                 type="button"
                 onClick={prevMonth}
-                className="rounded-xs p-1 text-white/40 transition-colors hover:bg-white/5 hover:text-white/80"
+                className="rounded-md p-1 text-ink-subtle transition-colors hover:bg-raised hover:text-ink"
               >
                 <svg
                   width="14"
@@ -183,13 +183,13 @@ export function DatePicker({
                   <polyline points="15 18 9 12 15 6" />
                 </svg>
               </button>
-              <span className="font-mono text-xs text-white/80">
+              <span className="text-xs text-ink">
                 {MONTHS[viewMonth]} {viewYear}
               </span>
               <button
                 type="button"
                 onClick={nextMonth}
-                className="rounded-xs p-1 text-white/40 transition-colors hover:bg-white/5 hover:text-white/80"
+                className="rounded-md p-1 text-ink-subtle transition-colors hover:bg-raised hover:text-ink"
               >
                 <svg
                   width="14"
@@ -211,7 +211,7 @@ export function DatePicker({
               {DAYS.map((d) => (
                 <div
                   key={d}
-                  className="py-1 text-center font-mono text-[10px] text-white/30"
+                  className="py-1 text-center text-[10px] text-ink-subtle"
                 >
                   {d}
                 </div>
@@ -237,12 +237,12 @@ export function DatePicker({
                     key={day}
                     type="button"
                     onClick={() => handleSelect(day)}
-                    className={`rounded-xs py-1 text-center font-mono text-xs transition-colors ${
+                    className={`rounded-md py-1 text-center text-xs transition-colors ${
                       isSelected
-                        ? "bg-accent text-white"
+                        ? "bg-primary text-ink"
                         : isToday
-                          ? "text-accent hover:bg-accent/10"
-                          : "text-white/70 hover:bg-white/5"
+                          ? "text-primary hover:bg-primary-soft"
+                          : "text-ink-muted hover:bg-raised"
                     }`}
                   >
                     {day}
@@ -261,7 +261,7 @@ export function DatePicker({
                   setViewYear(t.getFullYear());
                   setViewMonth(t.getMonth());
                 }}
-                className="font-mono text-[10px] text-accent hover:underline"
+                className="text-[10px] text-primary hover:underline"
               >
                 Today
               </button>
@@ -272,7 +272,7 @@ export function DatePicker({
                     onChange?.("");
                     setOpen(false);
                   }}
-                  className="font-mono text-[10px] text-white/40 hover:text-white/70"
+                  className="text-[10px] text-ink-subtle hover:text-ink-muted"
                 >
                   Clear
                 </button>

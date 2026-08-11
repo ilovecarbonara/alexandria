@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import Link from "next/link";
 import { Button, Input, Select, Card } from "@/components/ui";
 import { HashDisplay } from "@/components/ui";
 import {
@@ -8,6 +9,7 @@ import {
   THESIS_LEVELS,
   SUBMISSION_TYPES,
   MAX_PDF_FILE_SIZE_MB,
+  MAX_PDF_FILE_SIZE_BYTES,
 } from "@/lib/constants";
 import {
   MAX_AUTHORS,
@@ -24,6 +26,7 @@ type FormState = {
   success?: boolean;
   txHash?: string;
   sha256Hash?: string;
+  submissionType?: string;
 };
 
 type LinkableThesis = {
@@ -33,17 +36,33 @@ type LinkableThesis = {
   registered_at: string;
 };
 
-type RegisterMetadata = {
+type Adviser = { id: string; full_name: string };
+
+type SubmitMetadata = {
   fullName?: string;
   linkableTheses?: LinkableThesis[];
+  advisers?: Adviser[];
   error?: string;
 };
+
+/** What /upload/process gives back once it has read the manuscript. */
+type StagedUpload = {
+  stagedId: string;
+  sha256: string;
+  abstract: string;
+  keywords: string[];
+  confidence: "high" | "low";
+  pageCount: number;
+};
+
+type UploadPhase = "idle" | "uploading" | "reading" | "ready";
 
 async function hashFile(file: File): Promise<string> {
   const buffer = await file.arrayBuffer();
   const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 function titleFromPdfFileName(fileName: string): string {
@@ -55,14 +74,17 @@ function titleFromPdfFileName(fileName: string): string {
     .slice(0, MAX_TITLE_LENGTH);
 }
 
-export default function RegisterThesisPage() {
+export default function SubmitThesisPage() {
   const [state, setState] = useState<FormState>({});
   const [loading, setLoading] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
-  const [hash, setHash] = useState<string | null>(null);
+  const [phase, setPhase] = useState<UploadPhase>("idle");
+  const [staged, setStaged] = useState<StagedUpload | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [previousThesisId, setPreviousThesisId] = useState("");
   const [linkableTheses, setLinkableTheses] = useState<LinkableThesis[]>([]);
+  const [advisers, setAdvisers] = useState<Adviser[]>([]);
+  const [adviserId, setAdviserId] = useState("");
   const [ownerName, setOwnerName] = useState("");
   const [authorNames, setAuthorNames] = useState<string[]>([""]);
   const [title, setTitle] = useState("");
@@ -75,44 +97,37 @@ export default function RegisterThesisPage() {
   useEffect(() => {
     let active = true;
 
-    async function loadRegisterMetadata() {
+    async function loadMetadata() {
       try {
         const response = await fetch("/api/theses/linking", { cache: "no-store" });
-        const result = (await response.json()) as RegisterMetadata;
+        const result = (await response.json()) as SubmitMetadata;
 
         if (!active) return;
 
         if (!response.ok) {
-          setState({ error: result.error || "Failed to load registration options." });
+          setState({ error: result.error || "Failed to load submission options." });
           return;
         }
 
         setLinkableTheses(result.linkableTheses ?? []);
+        setAdvisers(result.advisers ?? []);
         if (result.fullName) {
           setOwnerName(result.fullName);
           setAuthorNames([result.fullName]);
         }
       } catch {
-        if (active) {
-          setState({ error: "Failed to load registration options." });
-        }
+        if (active) setState({ error: "Failed to load submission options." });
       }
     }
 
-    loadRegisterMetadata();
-
+    loadMetadata();
     return () => {
       active = false;
     };
   }, []);
 
   function validateField(name: string, value: string): string | null {
-    switch (name) {
-      case "title":
-        return validateTitle(value);
-      default:
-        return null;
-    }
+    return name === "title" ? validateTitle(value) : null;
   }
 
   function handleFieldBlur(e: React.FocusEvent<HTMLInputElement>) {
@@ -217,65 +232,134 @@ export default function RegisterThesisPage() {
     });
   }
 
+  /**
+   * Uploads the manuscript straight to storage, then asks the server to read it.
+   *
+   * Three hops rather than one: a 25 MB file cannot be POSTed through a
+   * serverless function, so the browser uploads to a signed URL and the server
+   * fetches it back to hash and parse it.
+   */
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file) {
-      setFileName(null);
-      setHash(null);
-      return;
-    }
+    if (fileRef.current) fileRef.current.value = "";
+
+    if (!file) return;
+
     if (file.type !== "application/pdf") {
       setState({ error: "Only PDF files are accepted." });
-      setFileName(null);
-      setHash(null);
       return;
     }
-    if (file.size > MAX_PDF_FILE_SIZE_MB * 1024 * 1024) {
-      setState({ error: `File size exceeds the ${MAX_PDF_FILE_SIZE_MB} MB limit.` });
-      setFileName(null);
-      setHash(null);
+    if (file.size > MAX_PDF_FILE_SIZE_BYTES) {
+      setState({
+        error: `The manuscript must be ${MAX_PDF_FILE_SIZE_MB} MB or smaller.`,
+      });
       return;
     }
-    setFileName(file.name);
-    if (!title.trim()) {
-      const titleFromFileName = titleFromPdfFileName(file.name);
-      if (titleFromFileName) {
-        setTitle(titleFromFileName);
-        handleFieldChange("title", titleFromFileName);
-      }
-    }
+
     setState({});
-    const sha256 = await hashFile(file);
-    setHash(sha256);
-    // Clear the file input — PDF is not needed after hashing
-    if (fileRef.current) fileRef.current.value = "";
+    setStaged(null);
+    setFileName(file.name);
+    setPhase("uploading");
+
+    try {
+      const clientHash = await hashFile(file);
+
+      const ticketRes = await fetch("/api/theses/upload/ticket", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientHash, sizeBytes: file.size }),
+      });
+      const ticket = await ticketRes.json();
+
+      if (!ticketRes.ok) {
+        setState({ error: ticket.error || "Could not start the upload." });
+        setPhase("idle");
+        return;
+      }
+
+      const putRes = await fetch(ticket.url, {
+        method: "PUT",
+        headers: { "Content-Type": "application/pdf" },
+        body: file,
+      });
+
+      if (!putRes.ok) {
+        setState({ error: "The upload did not complete. Please try again." });
+        setPhase("idle");
+        return;
+      }
+
+      setPhase("reading");
+
+      const processRes = await fetch("/api/theses/upload/process", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientHash, filename: file.name }),
+      });
+      const processed = await processRes.json();
+
+      if (!processRes.ok) {
+        setState({ error: processed.error || "Could not read this manuscript." });
+        setPhase("idle");
+        setFileName(null);
+        return;
+      }
+
+      setStaged(processed as StagedUpload);
+      setPhase("ready");
+
+      if (!title.trim()) {
+        const derived = titleFromPdfFileName(file.name);
+        if (derived) {
+          setTitle(derived);
+          handleFieldChange("title", derived);
+        }
+      }
+    } catch {
+      setState({ error: "Network error during upload. Please try again." });
+      setPhase("idle");
+      setFileName(null);
+    }
   }
 
+  const isFinal = submissionType === "final";
+
   const canSubmit =
+    staged !== null &&
     title.trim().length > 0 &&
     thesisLevel.length > 0 &&
     thesisCategory.length > 0 &&
     submissionType.length > 0 &&
+    (!isFinal || adviserId.length > 0) &&
     authorNames.every((name) => name.trim().length > 0) &&
     !Object.values(fieldErrors).some(Boolean);
+
+  function resetForm() {
+    setState({});
+    setStaged(null);
+    setPhase("idle");
+    setFileName(null);
+    setPreviousThesisId("");
+    setAdviserId("");
+    setAuthorNames(ownerName ? [ownerName] : [""]);
+    setTitle("");
+    setThesisLevel("");
+    setThesisCategory("");
+    setSubmissionType("");
+    setFieldErrors({});
+    setTouched({});
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setState({});
-    setLoading(true);
 
-    const formData = new FormData(e.currentTarget);
-    const title = (formData.get("title") as string)?.trim();
-    const trimmedAuthors = authorNames.map((name) => name.trim());
-    const thesisLevel = formData.get("thesisLevel") as string;
-    const thesisCategory = formData.get("thesisCategory") as string;
-    const submissionType = formData.get("submissionType") as string;
-
-    if (!title || trimmedAuthors.some((name) => !name) || !thesisLevel || !thesisCategory || !submissionType) {
-      setState({ error: "All fields are required." });
-      setLoading(false);
+    if (!staged) {
+      setState({ error: "Please upload the manuscript PDF first." });
       return;
     }
+
+    const trimmedAuthors = authorNames.map((name) => name.trim());
 
     const authorError = validateAuthorList(trimmedAuthors);
     if (authorError) {
@@ -293,7 +377,6 @@ export default function RegisterThesisPage() {
         ),
       }));
       setState({ error: authorError });
-      setLoading(false);
       return;
     }
 
@@ -304,27 +387,23 @@ export default function RegisterThesisPage() {
       )
     ) {
       setState({ error: "You must be listed as an author of your own thesis." });
-      setLoading(false);
       return;
     }
 
-    if (!hash) {
-      setState({ error: "Please upload a PDF file first." });
-      setLoading(false);
-      return;
-    }
+    setLoading(true);
 
     try {
       const res = await fetch("/api/theses/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title,
+          stagedId: staged.stagedId,
+          title: title.trim(),
           authorNames: trimmedAuthors,
           thesisLevel,
           thesisCategory,
           submissionType,
-          sha256Hash: hash,
+          adviserId: isFinal ? adviserId : null,
           previousThesisId: previousThesisId || null,
         }),
       });
@@ -332,9 +411,14 @@ export default function RegisterThesisPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setState({ error: data.error || "Registration failed." });
+        setState({ error: data.error || "Submission failed." });
       } else {
-        setState({ success: true, txHash: data.txHash, sha256Hash: hash });
+        setState({
+          success: true,
+          txHash: data.txHash,
+          sha256Hash: staged.sha256,
+          submissionType,
+        });
       }
     } catch {
       setState({ error: "Network error. Please try again." });
@@ -343,71 +427,59 @@ export default function RegisterThesisPage() {
     }
   }
 
+  // -------------------------------------------------------------------------
+
   if (state.success) {
+    const wasFinal = state.submissionType === "final";
+    const adviserName = advisers.find((a) => a.id === adviserId)?.full_name;
+
     return (
       <div className="mx-auto max-w-xl py-12 px-4">
         <Card>
-          <h1 className="font-heading text-2xl text-white mb-6">
-            Registration Successful
+          <h1 className="font-heading text-2xl text-ink mb-2">
+            {wasFinal ? "Submitted for review" : "Draft archived"}
           </h1>
-          <div className="space-y-4 font-mono text-sm">
+          <p className="text-sm text-ink-muted mb-6">
+            {wasFinal
+              ? `Your manuscript is now with ${adviserName ?? "your research adviser"}.`
+              : "Your draft is saved to the archive. Only you and the librarian can see it."}
+          </p>
+
+          <div className="space-y-4 text-sm">
+            {wasFinal && (
+              <ol className="space-y-2 border-l-2 border-primary/40 pl-4 text-ink-muted text-xs">
+                <li>1. Your adviser reviews the manuscript.</li>
+                <li>2. If endorsed, it goes to the university librarian.</li>
+                <li>3. Once approved, it is published to the public archive.</li>
+              </ol>
+            )}
+
             <div>
-              <span className="text-white/60">SHA-256 Hash:</span>
+              <span className="text-ink-muted">Document fingerprint:</span>
               <div className="mt-1">
                 <HashDisplay hash={state.sha256Hash!} copyable />
               </div>
             </div>
             <div>
-              <span className="text-white/60">Transaction Hash:</span>
+              <span className="text-ink-muted">Record reference:</span>
               <div className="mt-1">
                 <a
                   href={`https://sepolia.etherscan.io/tx/${state.txHash}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-hash hover:underline"
+                  className="font-mono text-ink-muted hover:underline"
                 >
                   <HashDisplay hash={state.txHash!} />
                 </a>
               </div>
             </div>
-            <p className="text-white/60 text-xs">
-              Your thesis has been registered on the Sepolia blockchain. The
-              status is currently pending and will be reviewed by an
-              administrator.
-            </p>
-            <p className="text-white/40 text-xs border-l-2 border-accent/40 pl-3">
-              Your thesis will undergo an automated similarity review. Check
-              your dashboard for status updates.
-            </p>
-            <div className="flex gap-3 mt-6">
-              <Button
-                onClick={() => {
-                  setState({});
-                  setHash(null);
-                  setFileName(null);
-                  setPreviousThesisId("");
-                  setAuthorNames(ownerName ? [ownerName] : [""]);
-                  setTitle("");
-                  setThesisLevel("");
-                  setThesisCategory("");
-                  setSubmissionType("");
-                  setFieldErrors({});
-                  setTouched({});
-                }}
-              >
-                Register Another
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  window.open(
-                    `https://sepolia.etherscan.io/tx/${state.txHash}`,
-                    "_blank",
-                    "noopener,noreferrer",
-                  );
-                }}
-              >
-                View on Etherscan
+
+            <div className="flex gap-3 pt-2">
+              <Link href="/dashboard">
+                <Button>Go to dashboard</Button>
+              </Link>
+              <Button variant="secondary" onClick={resetForm}>
+                Submit another
               </Button>
             </div>
           </div>
@@ -416,28 +488,37 @@ export default function RegisterThesisPage() {
     );
   }
 
+  const busy = phase === "uploading" || phase === "reading";
+
   return (
     <div className="mx-auto max-w-3xl py-12 px-4">
       <Card>
-        <h1 className="font-heading text-2xl text-white mb-6">
-          Register Thesis
-        </h1>
+        <h1 className="font-heading text-2xl text-ink mb-1">Submit Thesis</h1>
+        <p className="text-sm text-ink-subtle mb-6">
+          Upload the manuscript, then confirm its details.
+        </p>
+
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* PDF Upload */}
+          {/* ---- Manuscript ---- */}
           <div className="flex flex-col gap-1">
-            <label className="text-sm text-white/60 font-mono">
-              Upload PDF
+            <label className="text-sm text-ink-muted">
+              Manuscript PDF
             </label>
             <div className="flex items-center gap-3">
               <Button
                 type="button"
                 variant="secondary"
+                disabled={busy}
                 onClick={() => fileRef.current?.click()}
               >
-                Choose File
+                {staged ? "Replace file" : "Choose file"}
               </Button>
-              <span className="text-sm text-white/60 font-mono truncate">
-                {fileName || "No file selected"}
+              <span className="text-sm text-ink-muted truncate">
+                {phase === "uploading"
+                  ? "Uploading…"
+                  : phase === "reading"
+                    ? "Reading the abstract…"
+                    : (fileName ?? "No file selected")}
               </span>
             </div>
             <input
@@ -447,12 +528,48 @@ export default function RegisterThesisPage() {
               className="hidden"
               onChange={handleFileChange}
             />
-            {hash && (
-              <div className="mt-2 text-xs text-white/40 font-mono">
-                SHA-256: <HashDisplay hash={hash} copyable />
-              </div>
-            )}
+            <span className="text-xs text-ink-subtle">
+              PDF, up to {MAX_PDF_FILE_SIZE_MB} MB. Must contain selectable text —
+              a scan of a printed copy cannot be read.
+            </span>
           </div>
+
+          {/* ---- Extracted abstract ---- */}
+          {staged && (
+            <div className="flex flex-col gap-2 rounded-md border border-border bg-surface/60 p-4">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-xs uppercase text-ink-subtle">
+                  Abstract read from your PDF
+                </span>
+                <span className="text-xs text-ink-subtle">
+                  {staged.pageCount} pages
+                </span>
+              </div>
+
+              {staged.confidence === "low" && (
+                <p className="border-l-2 border-warning pl-3 text-xs text-warning">
+                  No “ABSTRACT” heading was found, so this is a best guess taken
+                  from your front matter. Your adviser can correct it during
+                  review.
+                </p>
+              )}
+
+              <p className="max-h-48 overflow-y-auto text-sm leading-relaxed text-ink">
+                {staged.abstract}
+              </p>
+
+              {staged.keywords.length > 0 && (
+                <p className="text-xs text-ink-subtle">
+                  Keywords: {staged.keywords.join(", ")}
+                </p>
+              )}
+
+              <p className="text-xs text-ink-subtle">
+                Taken directly from the manuscript and not editable here. If it
+                looks wrong, correct the PDF and upload it again.
+              </p>
+            </div>
+          )}
 
           <Input
             id="title"
@@ -470,10 +587,11 @@ export default function RegisterThesisPage() {
             required
           />
 
+          {/* ---- Authors ---- */}
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-sm text-white/60 font-mono">Authors</span>
-              <span className="font-mono text-xs text-white/40">
+              <span className="text-sm text-ink-muted">Authors</span>
+              <span className="text-xs text-ink-subtle">
                 {authorNames.length}/{MAX_AUTHORS}
               </span>
             </div>
@@ -481,7 +599,7 @@ export default function RegisterThesisPage() {
               <div key={index} className="flex flex-col gap-1">
                 {index === 0 ? (
                   <>
-                    <label htmlFor="author-0" className="text-sm text-white/60 font-mono">
+                    <label htmlFor="author-0" className="text-sm text-ink-muted">
                       First Author
                     </label>
                     <div className="relative">
@@ -494,11 +612,11 @@ export default function RegisterThesisPage() {
                         readOnly
                         onBlur={(e) => handleAuthorBlur(index, e.target.value)}
                         required
-                        className={`w-full rounded-xs border border-border bg-surface px-3 py-2 pr-9 font-mono text-sm text-white/70 placeholder:text-white/30 focus:border-accent focus:outline-none ${fieldErrors["author-0"] ? "border-dispute" : ""}`}
+                        className={`w-full rounded-md border border-border bg-surface px-3 py-2 pr-9 text-sm text-ink-muted placeholder:text-ink-subtle focus:border-primary focus:outline-none ${fieldErrors["author-0"] ? "border-danger" : ""}`}
                       />
                       <svg
                         aria-hidden="true"
-                        className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40"
+                        className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-subtle"
                         viewBox="0 0 24 24"
                         fill="none"
                         stroke="currentColor"
@@ -510,11 +628,12 @@ export default function RegisterThesisPage() {
                         <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                       </svg>
                     </div>
-                    <span className="font-mono text-xs text-white/40">
-                      You&apos;re automatically listed as an author.
+                    <span className="text-xs text-ink-subtle">
+                      You&apos;re automatically listed as an author. Co-authors with
+                      an Alexandria account can read the full manuscript.
                     </span>
                     {fieldErrors["author-0"] && (
-                      <span className="font-mono text-xs text-dispute">
+                      <span className="text-xs text-danger">
                         {fieldErrors["author-0"]}
                       </span>
                     )}
@@ -523,7 +642,7 @@ export default function RegisterThesisPage() {
                   <>
                     <label
                       htmlFor={`author-${index}`}
-                      className="text-sm text-white/60 font-mono"
+                      className="text-sm text-ink-muted"
                     >
                       {`Author ${index + 1}`}
                     </label>
@@ -537,7 +656,7 @@ export default function RegisterThesisPage() {
                         onChange={(e) => handleAuthorChange(index, e.target.value)}
                         onBlur={(e) => handleAuthorBlur(index, e.target.value)}
                         required
-                        className={`flex-1 rounded-xs border border-border bg-surface px-3 py-2 font-mono text-sm text-white/90 placeholder:text-white/30 focus:border-accent focus:outline-none ${fieldErrors[`author-${index}`] ? "border-dispute" : ""}`}
+                        className={`flex-1 rounded-md border border-border bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-subtle focus:border-primary focus:outline-none ${fieldErrors[`author-${index}`] ? "border-danger" : ""}`}
                       />
                       <Button
                         type="button"
@@ -550,7 +669,7 @@ export default function RegisterThesisPage() {
                       </Button>
                     </div>
                     {fieldErrors[`author-${index}`] && (
-                      <span className="font-mono text-xs text-dispute">
+                      <span className="text-xs text-danger">
                         {fieldErrors[`author-${index}`]}
                       </span>
                     )}
@@ -575,10 +694,7 @@ export default function RegisterThesisPage() {
             label="Thesis Level"
             value={thesisLevel}
             onChange={(e) => setThesisLevel(e.target.value)}
-            options={THESIS_LEVELS.map((l) => ({
-              value: l.value,
-              label: l.label,
-            }))}
+            options={THESIS_LEVELS.map((l) => ({ value: l.value, label: l.label }))}
             required
           />
 
@@ -592,15 +708,14 @@ export default function RegisterThesisPage() {
             required
           />
 
+          {/* ---- Submission type ---- */}
           <div className="flex flex-col gap-1">
-            <span className="text-sm text-white/60 font-mono">
-              Submission Type
-            </span>
+            <span className="text-sm text-ink-muted">Submission Type</span>
             <div className="flex gap-6">
               {SUBMISSION_TYPES.map((t) => (
                 <label
                   key={t.value}
-                  className="flex items-center gap-2 font-mono text-sm text-white/90 cursor-pointer"
+                  className="flex items-center gap-2 text-sm text-ink cursor-pointer"
                 >
                   <input
                     type="radio"
@@ -609,19 +724,49 @@ export default function RegisterThesisPage() {
                     checked={submissionType === t.value}
                     onChange={(e) => setSubmissionType(e.target.value)}
                     required
-                    className="accent-accent"
+                    className=""
                   />
                   {t.label}
                 </label>
               ))}
             </div>
+            <span className="text-xs text-ink-subtle">
+              {isFinal
+                ? "Finals go to your adviser for review, then to the librarian for publication."
+                : submissionType === "draft"
+                  ? "Drafts are archived privately and skip review. Only you and the librarian can see them."
+                  : "Drafts are archived privately. Finals go through adviser and librarian review."}
+            </span>
           </div>
+
+          {/* ---- Adviser ---- */}
+          {isFinal && (
+            <div className="flex flex-col gap-1">
+              <Select
+                id="adviserId"
+                label="Research Adviser"
+                placeholder={
+                  advisers.length ? "Select your adviser" : "No advisers available"
+                }
+                value={adviserId}
+                onChange={(e) => setAdviserId(e.target.value)}
+                options={advisers.map((a) => ({ value: a.id, label: a.full_name }))}
+                required
+              />
+              {advisers.length === 0 && (
+                <span className="text-xs text-warning">
+                  No research advisers are registered yet. Contact the university
+                  librarian before submitting a final manuscript.
+                </span>
+              )}
+            </div>
+          )}
 
           {linkableTheses.length > 0 && (
             <Select
               id="previousThesisId"
               label="This is a revision of"
-              placeholder="None — new registration"
+              placeholder="None — new submission"
               value={previousThesisId}
               onChange={(e) => setPreviousThesisId(e.target.value)}
               options={linkableTheses.map((t) => ({
@@ -632,15 +777,21 @@ export default function RegisterThesisPage() {
           )}
 
           {state.error && (
-            <p className="text-sm text-dispute font-mono">{state.error}</p>
+            <p className="rounded-md border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger">
+              {state.error}
+            </p>
           )}
 
           <Button
             type="submit"
-            disabled={loading || !hash || !canSubmit}
+            disabled={loading || busy || !canSubmit}
             className="w-full"
           >
-            {loading ? "Registering on blockchain…" : "Register Thesis"}
+            {loading
+              ? "Submitting…"
+              : isFinal
+                ? "Submit for adviser review"
+                : "Submit"}
           </Button>
         </form>
       </Card>

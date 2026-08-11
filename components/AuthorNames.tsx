@@ -13,13 +13,13 @@ export function AuthorNamesStack({
 
   return (
     <div className="flex flex-col gap-1">
-      <span className="font-mono text-xs text-white/40">{label}</span>
+      <span className="text-xs text-ink-subtle">{label}</span>
       {names.length > 0 ? (
-        <p className="font-mono text-sm text-white/90 wrap-break-word">
+        <p className="text-sm text-ink wrap-break-word">
           {names.join(", ")}
         </p>
       ) : (
-        <span className="font-mono text-sm text-white/90">Unknown author</span>
+        <span className="text-sm text-ink">Unknown author</span>
       )}
     </div>
   );

@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs.js";
 import hre from "hardhat";
-import type { ThesisRegistry } from "../typechain-types";
+import type { ThesisRegistry } from "../../typechain-types";
 
 type HardhatSigner = Awaited<ReturnType<typeof hre.ethers.getSigners>>[number];
 

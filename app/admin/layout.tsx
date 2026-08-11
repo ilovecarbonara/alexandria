@@ -1,37 +1,23 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { Sidebar, Button } from "@/components/ui";
 import { countMyDisputeUnreads } from "@/lib/actions/disputes";
+import { requireArea } from "@/lib/actions/require-area";
+import { countLibrarianQueue } from "@/lib/actions/reviews";
 
 export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  await requireArea("librarian");
 
-  if (!user) redirect("/login");
-
-  const { data: profile } = await supabase
-    .from("users")
-    .select("approval_status, is_active, is_admin")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile) redirect("/login");
-  if (!profile.is_active) redirect("/login?error=deactivated");
-  if (profile.approval_status === "pending") redirect("/pending");
-  if (profile.approval_status === "rejected") redirect("/login?error=rejected");
-  if (profile.approval_status === "revoked") redirect("/login?error=revoked");
-  if (!profile.is_admin) redirect("/dashboard");
-
-  const disputeUnread = await countMyDisputeUnreads();
+  const [disputeUnread, queueCount] = await Promise.all([
+    countMyDisputeUnreads(),
+    countLibrarianQueue(),
+  ]);
 
   const navItems = [
     { href: "/admin", label: "Dashboard" },
+    { href: "/admin/review", label: "Review Queue", badge: queueCount },
     { href: "/admin/theses", label: "Thesis Registry" },
     { href: "/admin/users", label: "User Management" },
     { href: "/admin/disputes", label: "Disputes", badge: disputeUnread },

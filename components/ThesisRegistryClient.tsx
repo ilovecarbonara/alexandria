@@ -64,7 +64,7 @@ function ThesisActivityHistory({ thesisId }: { thesisId: string }) {
 
   if (loading) {
     return (
-      <p className="py-4 text-center font-mono text-xs text-white/40">
+      <p className="py-4 text-center text-xs text-ink-subtle">
         Loading activity…
       </p>
     );
@@ -72,13 +72,13 @@ function ThesisActivityHistory({ thesisId }: { thesisId: string }) {
 
   if (state.error) {
     return (
-      <p className="py-4 text-center font-mono text-xs text-dispute">{state.error}</p>
+      <p className="py-4 text-center text-xs text-danger">{state.error}</p>
     );
   }
 
   if (state.logs.length === 0) {
     return (
-      <p className="py-4 text-center font-mono text-xs text-white/40">
+      <p className="py-4 text-center text-xs text-ink-subtle">
         No activity recorded for this thesis.
       </p>
     );
@@ -89,10 +89,10 @@ function ThesisActivityHistory({ thesisId }: { thesisId: string }) {
       {state.logs.map((log) => (
         <li
           key={log.id}
-          className="rounded-xs border border-border bg-surface/50 px-3 py-2"
+          className="rounded-md border border-border bg-surface/50 px-3 py-2"
         >
-          <p className="font-mono text-sm text-white/90">{log.action}</p>
-          <p className="mt-0.5 font-mono text-xs text-white/40">
+          <p className="text-sm text-ink">{log.action}</p>
+          <p className="mt-0.5 text-xs text-ink-subtle">
             {log.user_name} · {new Date(log.created_at).toLocaleString()}
           </p>
         </li>
@@ -337,8 +337,8 @@ export function ThesisRegistryClient() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-heading text-2xl text-white">Thesis Registry</h1>
-          <p className="mt-1 font-mono text-sm text-white/40">
+          <h1 className="font-heading text-2xl text-ink">Thesis Registry</h1>
+          <p className="mt-1 text-sm text-ink-subtle">
             Manage thesis registrations and statuses
           </p>
         </div>
@@ -352,20 +352,20 @@ export function ThesisRegistryClient() {
       </div>
 
       {error && (
-        <div className="rounded-xs border border-dispute/30 bg-dispute/20 px-4 py-3 font-mono text-sm text-dispute">
+        <div className="rounded-md border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger">
           {error}
         </div>
       )}
 
       {selected.size > 0 && (
-        <div className="flex items-center gap-3 rounded-xs border border-accent/30 bg-accent/10 px-4 py-3">
-          <span className="font-mono text-sm text-white/80">
+        <div className="flex items-center gap-3 rounded-md border border-primary/30 bg-primary-soft px-4 py-3">
+          <span className="text-sm text-ink">
             {bulkProgress
               ? `Processing ${bulkProgress.current} of ${bulkProgress.total}…`
               : `${selected.size} selected`}
           </span>
           <div className="ml-auto flex items-center gap-2">
-            <span className="font-mono text-xs text-white/40">Set status to</span>
+            <span className="text-xs text-ink-subtle">Set status to</span>
             <div className="w-36">
               <Select
                 value={bulkTargetStatus}
@@ -402,7 +402,7 @@ export function ThesisRegistryClient() {
           <div className="flex gap-3">
             <div className="relative flex-1">
               <svg
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/30"
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle"
                 width="16"
                 height="16"
                 viewBox="0 0 24 24"
@@ -420,7 +420,7 @@ export function ThesisRegistryClient() {
                 placeholder="Search by title, author name, or keyword…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-xs border border-border bg-surface py-2.5 pl-10 pr-3 font-mono text-sm text-white/90 placeholder:text-white/30 focus:border-accent focus:outline-none"
+                className="w-full rounded-md border border-border bg-surface py-2.5 pl-10 pr-3 text-sm text-ink placeholder:text-ink-subtle focus:border-primary focus:outline-none"
               />
             </div>
             <Button type="submit" disabled={searchLoading}>
@@ -462,7 +462,7 @@ export function ThesisRegistryClient() {
               onChange={(e) => setStatusFilter(e.target.value as ThesisStatus | "")}
             />
             <div className="flex flex-col gap-1">
-              <label className="font-mono text-sm text-white/60">
+              <label className="text-sm text-ink-muted">
                 Date Range
               </label>
               <div className="flex items-center gap-2">
@@ -472,7 +472,7 @@ export function ThesisRegistryClient() {
                   onChange={(v) => setDateFrom(v)}
                   className="w-40"
                 />
-                <span className="shrink-0 self-end pb-2.5 font-mono text-xs text-white/40">to</span>
+                <span className="shrink-0 self-end pb-2.5 text-xs text-ink-subtle">to</span>
                 <DatePicker
                   value={dateTo}
                   placeholder="To…"
@@ -486,7 +486,7 @@ export function ThesisRegistryClient() {
             <button
               type="button"
               onClick={clearSearch}
-              className="mt-2 font-mono text-xs text-white/40 hover:text-white/70 transition-colors"
+              className="mt-2 text-xs text-ink-subtle hover:text-ink-muted transition-colors"
             >
               Clear filters
             </button>
@@ -495,7 +495,7 @@ export function ThesisRegistryClient() {
 
         {/* Search error */}
         {searchError && (
-          <div className="mx-6 mb-6 rounded-xs border border-dispute/30 bg-dispute/10 px-4 py-3 font-mono text-sm text-dispute">
+          <div className="mx-6 mb-6 rounded-md border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger">
             {searchError}
           </div>
         )}
@@ -505,14 +505,14 @@ export function ThesisRegistryClient() {
           <div className="border-t border-border">
             {searchLoading ? (
               <div className="flex items-center justify-center gap-3 px-6 py-10">
-                <svg className="h-5 w-5 animate-spin text-accent" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <svg className="h-5 w-5 animate-spin text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                <span className="font-mono text-sm text-white/40">Loading theses…</span>
+                <span className="text-sm text-ink-subtle">Loading theses…</span>
               </div>
             ) : theses.length === 0 ? (
-              <p className="px-6 py-10 text-center font-mono text-sm text-white/40">
+              <p className="px-6 py-10 text-center text-sm text-ink-subtle">
                 No theses found matching your criteria.
               </p>
             ) : (
@@ -529,12 +529,12 @@ export function ThesisRegistryClient() {
                           className="cb"
                         />
                       </th>
-                      <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">Title</th>
-                      <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">Authors</th>
-                      <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">Type</th>
-                      <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">Date</th>
-                      <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">Status</th>
-                      <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">Actions</th>
+                      <th className="px-6 py-3 text-xs text-ink-subtle uppercase">Title</th>
+                      <th className="px-6 py-3 text-xs text-ink-subtle uppercase">Authors</th>
+                      <th className="px-6 py-3 text-xs text-ink-subtle uppercase">Type</th>
+                      <th className="px-6 py-3 text-xs text-ink-subtle uppercase">Date</th>
+                      <th className="px-6 py-3 text-xs text-ink-subtle uppercase">Status</th>
+                      <th className="px-6 py-3 text-xs text-ink-subtle uppercase">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -542,7 +542,7 @@ export function ThesisRegistryClient() {
                       <tr
                         key={thesis.id}
                         onClick={() => setSelectedThesis(thesis)}
-                        className="cursor-pointer border-b border-border last:border-b-0 transition-colors hover:bg-white/5"
+                        className="cursor-pointer border-b border-border last:border-b-0 transition-colors hover:bg-raised"
                       >
                         <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>
                           <input
@@ -552,23 +552,23 @@ export function ThesisRegistryClient() {
                             className="cb"
                           />
                         </td>
-                        <td className="max-w-52 truncate px-6 py-4 font-mono text-sm text-white/90">
+                        <td className="max-w-52 truncate px-6 py-4 text-sm text-ink">
                           {thesis.title}
                         </td>
-                        <td className="max-w-36 truncate px-6 py-4 font-mono text-sm text-white/60">
+                        <td className="max-w-36 truncate px-6 py-4 text-sm text-ink-muted">
                           {formatAuthorNames(thesis.thesis_authors)}
                         </td>
-                        <td className="whitespace-nowrap px-6 py-4 font-mono text-sm text-white/60 capitalize">
+                        <td className="whitespace-nowrap px-6 py-4 text-sm text-ink-muted capitalize">
                           {thesis.submission_type}
                         </td>
-                        <td className="whitespace-nowrap px-6 py-4 font-mono text-sm text-white/60">
+                        <td className="whitespace-nowrap px-6 py-4 text-sm text-ink-muted">
                           {new Date(thesis.registered_at).toLocaleDateString()}
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
                             <StatusChip status={thesis.status} />
                             {supersededIds.has(thesis.id) && (
-                              <span className="inline-block border-l-2 border-l-white/20 pl-2 py-0.5 font-mono text-xs uppercase text-white/30">
+                              <span className="inline-block border-l-2 border-l-white/20 pl-2 py-0.5 text-xs uppercase text-ink-subtle">
                                 superseded
                               </span>
                             )}
@@ -615,7 +615,7 @@ export function ThesisRegistryClient() {
                     <Field label="Category" value={selectedThesis.thesis_category} />
                     <Field label="Submission Type" value={selectedThesis.submission_type} capitalize />
                     <div className="flex flex-col gap-1">
-                      <span className="font-mono text-xs text-white/40">Status</span>
+                      <span className="text-xs text-ink-subtle">Status</span>
                       <StatusChip status={selectedThesis.status} />
                     </div>
                     <Field
@@ -623,11 +623,11 @@ export function ThesisRegistryClient() {
                       value={new Date(selectedThesis.registered_at).toLocaleString()}
                     />
                     <div className="flex flex-col gap-1">
-                      <span className="font-mono text-xs text-white/40">SHA-256 Hash</span>
+                      <span className="text-xs text-ink-subtle">SHA-256 Hash</span>
                       <HashDisplay hash={selectedThesis.sha256_hash} copyable />
                     </div>
                     <div className="flex flex-col gap-1">
-                      <span className="font-mono text-xs text-white/40">Transaction</span>
+                      <span className="text-xs text-ink-subtle">Transaction</span>
                       <a
                         href={`https://sepolia.etherscan.io/tx/${selectedThesis.tx_hash}`}
                         target="_blank"
@@ -641,7 +641,7 @@ export function ThesisRegistryClient() {
 
                   <hr className="border-border" />
                   <section>
-                    <h3 className="mb-3 font-mono text-xs uppercase text-white/40">
+                    <h3 className="mb-3 text-xs uppercase text-ink-subtle">
                       Activity History
                     </h3>
                     <ThesisActivityHistory thesisId={selectedThesis.id} />
@@ -649,7 +649,7 @@ export function ThesisRegistryClient() {
                 </div>
 
                 <div className="w-80 shrink-0 border-l border-border pl-6 max-h-[60vh] overflow-y-auto">
-                  <h3 className="mb-3 font-mono text-xs uppercase text-white/40 sticky top-0 bg-card pb-2">
+                  <h3 className="mb-3 text-xs uppercase text-ink-subtle sticky top-0 bg-surface pb-2">
                     Version History
                   </h3>
                   <VersionTimeline
@@ -670,7 +670,7 @@ export function ThesisRegistryClient() {
                   <Field label="Category" value={selectedThesis.thesis_category} />
                   <Field label="Submission Type" value={selectedThesis.submission_type} capitalize />
                   <div className="flex flex-col gap-1">
-                    <span className="font-mono text-xs text-white/40">Status</span>
+                    <span className="text-xs text-ink-subtle">Status</span>
                     <StatusChip status={selectedThesis.status} />
                   </div>
                   <Field
@@ -678,11 +678,11 @@ export function ThesisRegistryClient() {
                     value={new Date(selectedThesis.registered_at).toLocaleString()}
                   />
                   <div className="flex flex-col gap-1">
-                    <span className="font-mono text-xs text-white/40">SHA-256 Hash</span>
+                    <span className="text-xs text-ink-subtle">SHA-256 Hash</span>
                     <HashDisplay hash={selectedThesis.sha256_hash} copyable />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <span className="font-mono text-xs text-white/40">Transaction</span>
+                    <span className="text-xs text-ink-subtle">Transaction</span>
                     <a
                       href={`https://sepolia.etherscan.io/tx/${selectedThesis.tx_hash}`}
                       target="_blank"
@@ -696,7 +696,7 @@ export function ThesisRegistryClient() {
 
                 <hr className="border-border" />
                 <section>
-                  <h3 className="mb-3 font-mono text-xs uppercase text-white/40">
+                  <h3 className="mb-3 text-xs uppercase text-ink-subtle">
                     Activity History
                   </h3>
                   <ThesisActivityHistory thesisId={selectedThesis.id} />

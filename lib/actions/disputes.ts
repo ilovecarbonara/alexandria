@@ -1,6 +1,6 @@
 "use server";
 
-import { requireAuth, requireUser } from "./auth-guards";
+import { requireAuth, requireStudent } from "./auth-guards";
 import { logActivity } from "./activity";
 import { createServiceClient } from "@/lib/supabase/service";
 import { rateLimit } from "@/lib/rate-limit";
@@ -194,7 +194,7 @@ export async function flagDispute(
     return { error: `Reason must be ${MAX_REASON_LENGTH} characters or less.` };
   }
 
-  const auth = await requireUser();
+  const auth = await requireStudent();
   if ("error" in auth) return { error: auth.error };
 
   // Prevent self-flagging
@@ -274,7 +274,7 @@ export async function postDisputeMessage(
   const ctx = await loadDisputeContext(
     disputeId,
     auth.user.id,
-    auth.profile.is_admin,
+    auth.profile.role === "librarian",
   );
   if ("error" in ctx) return { error: ctx.error };
 
@@ -339,7 +339,7 @@ export async function markDisputeRead(
   const ctx = await loadDisputeContext(
     disputeId,
     auth.user.id,
-    auth.profile.is_admin,
+    auth.profile.role === "librarian",
   );
   if ("error" in ctx) return { error: ctx.error };
 
@@ -370,7 +370,7 @@ export async function getDispute(
   const ctx = await loadDisputeContext(
     disputeId,
     auth.user.id,
-    auth.profile.is_admin,
+    auth.profile.role === "librarian",
   );
   if ("error" in ctx) return { error: ctx.error };
 
@@ -415,7 +415,7 @@ export async function listMyDisputes(): Promise<{
 
   return loadDisputeSummaries({
     viewerId: auth.user.id,
-    isAdmin: auth.profile.is_admin,
+    isAdmin: auth.profile.role === "librarian",
     filter: { kind: "flagged_by", value: auth.user.id },
   });
 }
@@ -438,7 +438,7 @@ export async function listDisputesOnMyTheses(): Promise<{
 
   return loadDisputeSummaries({
     viewerId: auth.user.id,
-    isAdmin: auth.profile.is_admin,
+    isAdmin: auth.profile.role === "librarian",
     filter: { kind: "thesis_ids", value: thesisIds },
   });
 }
@@ -625,7 +625,7 @@ export async function countMyDisputeUnreads(): Promise<number> {
 
   const service = createServiceClient();
   const viewerId = auth.user.id;
-  const isAdmin = auth.profile.is_admin;
+  const isAdmin = auth.profile.role === "librarian";
 
   let disputeIds: string[] = [];
 

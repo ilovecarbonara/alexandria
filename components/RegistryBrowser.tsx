@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import Link from "next/link";
 import { searchTheses, type SearchFilters, type VersionChainEntry } from "@/lib/actions/theses";
 import {
   Button,
@@ -14,7 +15,6 @@ import {
   Modal,
 } from "@/components/ui";
 import { DisputeButton } from "@/components/DisputeButton";
-import { VersionTimeline } from "@/components/VersionTimeline";
 import { AuthorNamesStack } from "@/components/AuthorNames";
 import { formatAuthorNames, type ThesisAuthor } from "@/lib/authors";
 import {
@@ -33,6 +33,8 @@ type ThesisResult = {
   id: string;
   user_id: string;
   title: string;
+  abstract?: string | null;
+  keywords?: string[];
   thesis_authors: ThesisAuthor[];
   thesis_level: string;
   thesis_category: string;
@@ -42,6 +44,13 @@ type ThesisResult = {
   status: ThesisStatus;
   registered_at: string;
 };
+
+/** Enough abstract to judge relevance from the results list. */
+function abstractSnippet(abstract: string | null | undefined): string | null {
+  if (!abstract) return null;
+  const collapsed = abstract.replace(/\s+/g, " ").trim();
+  return collapsed.length > 280 ? collapsed.slice(0, 280) + "…" : collapsed;
+}
 
 type VerifyResult = {
   isRegistered: boolean;
@@ -80,8 +89,6 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
   const [searchLoading, setSearchLoading] = useState(true);
   const [searchError, setSearchError] = useState("");
   const [searchPage, setSearchPage] = useState(1);
-  const [chainParticipants, setChainParticipants] = useState<Set<string>>(new Set());
-  const [selectedThesis, setSelectedThesis] = useState<ThesisResult | null>(null);
 
   // Verify state
   const [verifyOpen, setVerifyOpen] = useState(false);
@@ -106,7 +113,6 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
         setSearchResults([]);
       } else {
         setSearchResults(result.data ?? []);
-        setChainParticipants(new Set(result.chainParticipantIds ?? []));
       }
       setSearchLoading(false);
     }
@@ -136,7 +142,6 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
       setSearchResults([]);
     } else {
       setSearchResults(result.data ?? []);
-      setChainParticipants(new Set(result.chainParticipantIds ?? []));
     }
 
     setSearchPage(1);
@@ -160,7 +165,6 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
       setSearchResults([]);
     } else {
       setSearchResults(result.data ?? []);
-      setChainParticipants(new Set(result.chainParticipantIds ?? []));
     }
     setSearchLoading(false);
   }
@@ -295,7 +299,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
           <div className="flex gap-3">
             <div className="relative flex-1">
               <svg
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/30"
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle"
                 width="16"
                 height="16"
                 viewBox="0 0 24 24"
@@ -313,7 +317,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                 placeholder="Search by title, author name, or keyword…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-xs border border-border bg-surface py-2.5 pl-10 pr-3 font-mono text-sm text-white/90 placeholder:text-white/30 focus:border-accent focus:outline-none"
+                className="w-full rounded-md border border-border bg-surface py-2.5 pl-10 pr-3 text-sm text-ink placeholder:text-ink-subtle focus:border-primary focus:outline-none"
               />
             </div>
             <Button type="submit" disabled={searchLoading}>
@@ -349,7 +353,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
             />
 
             <div className="flex flex-col gap-1">
-              <label className="font-mono text-sm text-white/60">
+              <label className="text-sm text-ink-muted">
                 Date Range
               </label>
               <div className="flex items-center gap-2">
@@ -359,7 +363,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                   onChange={(v) => setDateFrom(v)}
                   className="w-40"
                 />
-                <span className="shrink-0 self-end pb-2.5 font-mono text-xs text-white/40">to</span>
+                <span className="shrink-0 self-end pb-2.5 text-xs text-ink-subtle">to</span>
                 <DatePicker
                   value={dateTo}
                   placeholder="To…"
@@ -373,7 +377,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
             <button
               type="button"
               onClick={clearSearch}
-              className="mt-2 font-mono text-xs text-white/40 hover:text-white/70 transition-colors"
+              className="mt-2 text-xs text-ink-subtle hover:text-ink-muted transition-colors"
             >
               Clear filters
             </button>
@@ -382,7 +386,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
 
         {/* Search error */}
         {searchError && (
-          <div className="mx-6 mb-6 rounded-xs border border-dispute/30 bg-dispute/10 px-4 py-3 font-mono text-sm text-dispute">
+          <div className="mx-6 mb-6 rounded-md border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger">
             {searchError}
           </div>
         )}
@@ -392,95 +396,70 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
           <div className="border-t border-border">
             {searchLoading ? (
               <div className="flex items-center justify-center gap-3 px-6 py-10">
-                <svg className="h-5 w-5 animate-spin text-accent" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <svg className="h-5 w-5 animate-spin text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                <span className="font-mono text-sm text-white/40">Loading theses…</span>
+                <span className="text-sm text-ink-subtle">Loading theses…</span>
               </div>
             ) : searchResults.length === 0 ? (
-              <p className="px-6 py-10 text-center font-mono text-sm text-white/40">
+              <p className="px-6 py-10 text-center text-sm text-ink-subtle">
                 No theses found matching your criteria.
               </p>
             ) : (
               <>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-border text-left">
-                      <th className="px-6 py-3 font-mono text-xs uppercase text-white/40">
-                        Title
-                      </th>
-                      <th className="px-6 py-3 font-mono text-xs uppercase text-white/40">
-                        Authors
-                      </th>
-                      <th className="px-6 py-3 font-mono text-xs uppercase text-white/40">
-                        Date
-                      </th>
-                      <th className="px-6 py-3 font-mono text-xs uppercase text-white/40">
-                        Tx Hash
-                      </th>
-                      <th className="px-6 py-3 font-mono text-xs uppercase text-white/40">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {searchResults
-                      .slice((searchPage - 1) * SEARCH_PAGE_SIZE, searchPage * SEARCH_PAGE_SIZE)
-                      .map((thesis) => (
-                      <tr
+              {/* A catalogue of records, not a table of hashes: title, authors,
+                  and enough abstract to judge relevance at a glance. */}
+              <ul className="divide-y divide-border">
+                {searchResults
+                  .slice((searchPage - 1) * SEARCH_PAGE_SIZE, searchPage * SEARCH_PAGE_SIZE)
+                  .map((thesis) => {
+                    const snippet = abstractSnippet(thesis.abstract);
+                    return (
+                      <li
                         key={thesis.id}
-                        onClick={() => setSelectedThesis(thesis)}
-                        onKeyDown={(e) => {
-                          if (e.target !== e.currentTarget) return;
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            setSelectedThesis(thesis);
-                          }
-                        }}
-                        tabIndex={0}
-                        role="button"
-                        aria-label={`View details for ${thesis.title}`}
-                        className="cursor-pointer border-b border-border last:border-b-0 transition-colors hover:bg-white/5 focus:bg-white/5 focus:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+                        className="px-6 py-5 transition-colors hover:bg-raised/60"
                       >
-                        <td className="max-w-64 truncate px-6 py-4 font-mono text-sm text-white/90">
-                          {thesis.title}
-                        </td>
-                        <td className="max-w-36 truncate px-6 py-4 font-mono text-sm text-white/60">
-                          {formatAuthorNames(thesis.thesis_authors)}
-                        </td>
-                        <td className="whitespace-nowrap px-6 py-4 font-mono text-sm text-white/60">
-                          {new Date(thesis.registered_at).toLocaleDateString(
-                            "en-US",
-                            { month: "short", day: "numeric", year: "numeric" },
-                          )}
-                        </td>
-                        <td className="px-6 py-4">
-                          <a
-                            href={`https://sepolia.etherscan.io/tx/${thesis.tx_hash}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="hover:underline"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <HashDisplay hash={thesis.tx_hash} />
-                          </a>
-                        </td>
-                        <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                          {currentUserId && thesis.user_id !== currentUserId ? (
-                            <div className="flex items-center gap-2 whitespace-nowrap">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs uppercase tracking-wide text-ink-subtle">
+                              {thesis.thesis_level} · {thesis.thesis_category} ·{" "}
+                              {new Date(thesis.registered_at).getFullYear()}
+                            </p>
+
+                            <h3 className="mt-1 font-heading text-lg leading-snug">
+                              <Link
+                                href={`/thesis/${thesis.id}`}
+                                className="text-ink transition-colors hover:text-primary hover:underline"
+                              >
+                                {thesis.title}
+                              </Link>
+                            </h3>
+
+                            <p className="mt-1 text-sm text-ink-muted">
+                              {formatAuthorNames(thesis.thesis_authors)}
+                            </p>
+
+                            {snippet && (
+                              <p className="mt-3 max-w-3xl text-sm leading-relaxed text-ink-muted">
+                                {snippet}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="flex shrink-0 flex-col items-end gap-2">
+                            {thesis.status === "flagged" && (
+                              <StatusChip status={thesis.status} />
+                            )}
+                            {currentUserId && thesis.user_id !== currentUserId && (
                               <DisputeButton thesisId={thesis.id} fetchSimilarity />
-                            </div>
-                          ) : (
-                            <span className="font-mono text-sm text-white/30">&mdash;</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                            )}
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
+              </ul>
               <Pagination
                 currentPage={searchPage}
                 totalPages={Math.ceil(searchResults.length / SEARCH_PAGE_SIZE)}
@@ -492,120 +471,6 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
         )}
       </Card>
 
-      {/* ================================ */}
-      {/* Thesis Detail Modal              */}
-      {/* ================================ */}
-      <Modal
-        open={!!selectedThesis}
-        onClose={() => setSelectedThesis(null)}
-        title="Thesis Details"
-        className={
-          selectedThesis && chainParticipants.has(selectedThesis.id)
-            ? "w-5xl max-w-[95vw] min-h-128"
-            : "w-160 max-w-[92vw] min-h-128"
-        }
-      >
-        {selectedThesis && (
-          <div className="space-y-5">
-            {chainParticipants.has(selectedThesis.id) ? (
-              /* Side-by-side layout: metadata left, version history right */
-              <div className="flex gap-6">
-                <div className="min-w-0 flex-1 space-y-5">
-                  <AuthorNamesStack authors={selectedThesis.thesis_authors} />
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <Field label="Title" value={selectedThesis.title} />
-                    <Field label="Level" value={selectedThesis.thesis_level} capitalize />
-                    <Field label="Category" value={selectedThesis.thesis_category} />
-                    <Field label="Submission Type" value={selectedThesis.submission_type} capitalize />
-                    <div className="flex flex-col gap-1">
-                      <span className="font-mono text-xs text-white/40">Status</span>
-                      <StatusChip status={selectedThesis.status} />
-                    </div>
-                    <Field
-                      label="Registered"
-                      value={new Date(selectedThesis.registered_at).toLocaleString()}
-                    />
-                    <div className="flex flex-col gap-1">
-                      <span className="font-mono text-xs text-white/40">SHA-256 Hash</span>
-                      <HashDisplay hash={selectedThesis.sha256_hash} copyable />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <span className="font-mono text-xs text-white/40">Transaction</span>
-                      <a
-                        href={`https://sepolia.etherscan.io/tx/${selectedThesis.tx_hash}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:underline"
-                      >
-                        <HashDisplay hash={selectedThesis.tx_hash} />
-                      </a>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  {currentUserId && selectedThesis.user_id !== currentUserId && (
-                    <div className="flex items-center gap-2 border-t border-border pt-4">
-                      <DisputeButton thesisId={selectedThesis.id} fetchSimilarity />
-                    </div>
-                  )}
-                </div>
-
-                {/* Version Timeline — right side */}
-                <div className="w-80 shrink-0 border-l border-border pl-6 max-h-[60vh] overflow-y-auto">
-                  <h3 className="mb-3 font-mono text-xs uppercase text-white/40 sticky top-0 bg-card pb-2">
-                    Version History
-                  </h3>
-                  <VersionTimeline
-                    thesisId={selectedThesis.id}
-                    currentThesisId={selectedThesis.id}
-                  />
-                </div>
-              </div>
-            ) : (
-              /* Standard layout: no version chain */
-              <>
-                <AuthorNamesStack authors={selectedThesis.thesis_authors} />
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <Field label="Title" value={selectedThesis.title} />
-                  <Field label="Level" value={selectedThesis.thesis_level} capitalize />
-                  <Field label="Category" value={selectedThesis.thesis_category} />
-                  <Field label="Submission Type" value={selectedThesis.submission_type} capitalize />
-                  <div className="flex flex-col gap-1">
-                    <span className="font-mono text-xs text-white/40">Status</span>
-                    <StatusChip status={selectedThesis.status} />
-                  </div>
-                  <Field
-                    label="Registered"
-                    value={new Date(selectedThesis.registered_at).toLocaleString()}
-                  />
-                  <div className="flex flex-col gap-1">
-                    <span className="font-mono text-xs text-white/40">SHA-256 Hash</span>
-                    <HashDisplay hash={selectedThesis.sha256_hash} copyable />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="font-mono text-xs text-white/40">Transaction</span>
-                    <a
-                      href={`https://sepolia.etherscan.io/tx/${selectedThesis.tx_hash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:underline"
-                    >
-                      <HashDisplay hash={selectedThesis.tx_hash} />
-                    </a>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                {currentUserId && selectedThesis.user_id !== currentUserId && (
-                  <div className="flex items-center gap-2 border-t border-border pt-4">
-                    <DisputeButton thesisId={selectedThesis.id} fetchSimilarity />
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        )}
-      </Modal>
 
       {/* ================================ */}
       {/* Verify a Document Modal         */}
@@ -629,16 +494,16 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
               onDragOver={handleDragOver}
               onDragEnter={handleDragEnter}
               onDragLeave={handleDragLeave}
-              className={`group flex cursor-pointer flex-col items-center justify-center rounded-xs border-2 border-dashed px-6 py-10 text-center transition-colors ${
+              className={`group flex cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed px-6 py-10 text-center transition-colors ${
                 dragging
-                  ? "border-accent bg-accent/10"
+                  ? "border-primary bg-primary-soft"
                   : verifyMode === "upload" && fileName
-                    ? "border-accent/50 bg-accent/5"
-                    : "border-border hover:border-white/20"
+                    ? "border-primary/50 bg-primary-soft"
+                    : "border-border hover:border-border"
               }`}
             >
               <svg
-                className="mb-3 text-white/20 group-hover:text-white/40 transition-colors"
+                className="mb-3 text-ink-subtle group-hover:text-ink-subtle transition-colors"
                 width="32"
                 height="32"
                 viewBox="0 0 24 24"
@@ -653,21 +518,21 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
               </svg>
               {fileName ? (
                 <>
-                  <p className="font-mono text-sm text-white/90">{fileName}</p>
+                  <p className="text-sm text-ink">{fileName}</p>
                   {fileHash && (
-                    <p className="mt-1 font-mono text-xs text-white/40">
+                    <p className="mt-1 text-xs text-ink-subtle">
                       SHA-256: <HashDisplay hash={fileHash} copyable />
                     </p>
                   )}
                 </>
               ) : (
                 <>
-                  <p className="font-mono text-sm text-white/50">
+                  <p className="text-sm text-ink-subtle">
                     Drag and drop PDF thesis file here
                   </p>
-                  <p className="mt-1 font-mono text-xs text-white/30">
+                  <p className="mt-1 text-xs text-ink-subtle">
                     or{" "}
-                    <span className="text-accent underline">browse files</span>
+                    <span className="text-primary underline">browse files</span>
                   </p>
                 </>
               )}
@@ -683,15 +548,15 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
             {/* Hash paste panel */}
             <div
               onClick={() => setVerifyMode("paste")}
-              className={`flex flex-col justify-center rounded-xs border px-6 py-10 transition-colors ${
+              className={`flex flex-col justify-center rounded-md border px-6 py-10 transition-colors ${
                 verifyMode === "paste"
-                  ? "border-accent/50 bg-accent/5"
-                  : "border-border hover:border-white/20"
+                  ? "border-primary/50 bg-primary-soft"
+                  : "border-border hover:border-border"
               }`}
             >
               <div className="flex items-center gap-2 mb-3">
                 <svg
-                  className="text-white/20"
+                  className="text-ink-subtle"
                   width="18"
                   height="18"
                   viewBox="0 0 24 24"
@@ -704,7 +569,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                   <polyline points="4 17 10 11 4 5" />
                   <line x1="12" y1="19" x2="20" y2="19" />
                 </svg>
-                <span className="font-mono text-xs text-white/40 uppercase tracking-wide">
+                <span className="text-xs text-ink-subtle uppercase tracking-wide">
                   Paste SHA-256 Hash
                 </span>
               </div>
@@ -717,7 +582,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                   setVerifyMode("paste");
                 }}
                 maxLength={64}
-                className="w-full rounded-xs border border-border bg-surface px-3 py-2 font-mono text-sm text-white/90 placeholder:text-white/30 focus:border-accent focus:outline-none"
+                className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-subtle focus:border-primary focus:outline-none"
               />
             </div>
           </div>
@@ -731,7 +596,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                 handleVerify(e as unknown as React.FormEvent);
               }}
               disabled={verifyLoading || !fileHash}
-              className="rounded-xs border border-accent/40 py-2.5 font-mono text-sm text-accent transition-colors hover:bg-accent/10 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="rounded-md border border-primary/40 py-2.5 text-sm text-primary transition-colors hover:bg-primary-soft disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {verifyLoading && verifyMode === "upload"
                 ? "Verifying…"
@@ -744,7 +609,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                 handleVerify(e as unknown as React.FormEvent);
               }}
               disabled={verifyLoading || !hashInput.trim()}
-              className="rounded-xs border border-accent/40 py-2.5 font-mono text-sm text-accent transition-colors hover:bg-accent/10 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="rounded-md border border-primary/40 py-2.5 text-sm text-primary transition-colors hover:bg-primary-soft disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {verifyLoading && verifyMode === "paste"
                 ? "Verifying…"
@@ -757,7 +622,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
             <button
               type="button"
               onClick={clearVerify}
-              className="mt-3 font-mono text-xs text-white/40 hover:text-white/70 transition-colors"
+              className="mt-3 text-xs text-ink-subtle hover:text-ink-muted transition-colors"
             >
               Clear
             </button>
@@ -765,7 +630,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
 
           {/* Verify error */}
           {verifyError && (
-            <div className="mt-4 rounded-xs border border-dispute/30 bg-dispute/10 px-4 py-3 font-mono text-sm text-dispute">
+            <div className="mt-4 rounded-md border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger">
               {verifyError}
             </div>
           )}
@@ -774,9 +639,9 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
           {verifyResult && (
             <div className="mt-6 space-y-4">
               {verifyResult.isRegistered ? (
-                <div className="rounded-xs border border-success/30 bg-success/10 p-5">
+                <div className="rounded-md border border-success/30 bg-success-soft p-5">
                   <div className="mb-4 flex items-center gap-2">
-                    <span className="font-mono text-sm font-medium text-success">
+                    <span className="text-sm font-medium text-success">
                       &#10003; Registered on Blockchain
                     </span>
                   </div>
@@ -810,7 +675,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                           capitalize
                         />
                         <div className="flex flex-col gap-1">
-                          <span className="font-mono text-xs text-white/40">
+                          <span className="text-xs text-ink-subtle">
                             Status
                           </span>
                           <StatusChip status={verifyResult.thesis.status} />
@@ -825,7 +690,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                     )}
 
                     <div className="flex flex-col gap-1">
-                      <span className="font-mono text-xs text-white/40">
+                      <span className="text-xs text-ink-subtle">
                         SHA-256 Hash
                       </span>
                       <HashDisplay
@@ -838,7 +703,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                     </div>
 
                     <div className="flex flex-col gap-1">
-                      <span className="font-mono text-xs text-white/40">
+                      <span className="text-xs text-ink-subtle">
                         Transaction
                       </span>
                       {verifyResult.thesis?.tx_hash ? (
@@ -851,7 +716,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                           <HashDisplay hash={verifyResult.thesis.tx_hash} />
                         </a>
                       ) : (
-                        <span className="font-mono text-sm text-white/40">
+                        <span className="text-sm text-ink-subtle">
                           —
                         </span>
                       )}
@@ -866,7 +731,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                           ).toLocaleString()}
                         />
                         <div className="flex flex-col gap-1">
-                          <span className="font-mono text-xs text-white/40">
+                          <span className="text-xs text-ink-subtle">
                             Registered By (Wallet)
                           </span>
                           <HashDisplay
@@ -881,7 +746,7 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                   {verifyResult.versionChain &&
                     verifyResult.versionChain.length > 1 && (
                       <div className="mt-5 border-t border-success/20 pt-4">
-                        <h3 className="mb-3 font-mono text-xs uppercase text-white/40">
+                        <h3 className="mb-3 text-xs uppercase text-ink-subtle">
                           Version History
                         </h3>
                         <div>
@@ -899,46 +764,46 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                                   <div
                                     className={`mt-0.5 h-3 w-3 shrink-0 rounded-full border-2 ${
                                       isCurrent
-                                        ? "border-accent bg-accent"
-                                        : "border-white/30 bg-transparent"
+                                        ? "border-primary bg-primary"
+                                        : "border-border bg-transparent"
                                     }`}
                                   />
                                   {!isLast && (
-                                    <div className="w-px flex-1 bg-white/10" />
+                                    <div className="w-px flex-1 bg-raised" />
                                   )}
                                 </div>
 
                                 {/* Content */}
                                 <div className={isLast ? "pb-0" : "pb-5"}>
                                   <div className="flex items-center gap-2">
-                                    <span className="font-mono text-xs text-white/40">
+                                    <span className="text-xs text-ink-subtle">
                                       v{index + 1}
                                     </span>
                                     <span
-                                      className={`inline-block rounded-xs px-1.5 py-0.5 font-mono text-xs uppercase ${
+                                      className={`inline-block rounded-md px-1.5 py-0.5 text-xs uppercase ${
                                         entry.submissionType === "final"
-                                          ? "bg-success/20 text-success"
-                                          : "bg-pending/20 text-pending"
+                                          ? "bg-success-soft text-success"
+                                          : "bg-warning-soft text-warning"
                                       }`}
                                     >
                                       {entry.submissionType}
                                     </span>
                                     {isCurrent && (
-                                      <span className="font-mono text-xs text-accent">
+                                      <span className="text-xs text-primary">
                                         current
                                       </span>
                                     )}
                                   </div>
                                   <p
-                                    className={`mt-1 font-mono text-sm ${
+                                    className={`mt-1 text-sm ${
                                       isCurrent
-                                        ? "text-white"
-                                        : "text-white/70"
+                                        ? "text-ink"
+                                        : "text-ink-muted"
                                     }`}
                                   >
                                     {entry.title}
                                   </p>
-                                  <div className="mt-1 flex items-center gap-2 font-mono text-xs text-white/40">
+                                  <div className="mt-1 flex items-center gap-2 text-xs text-ink-subtle">
                                     <span>
                                       {new Date(
                                         entry.registeredAt,
@@ -956,8 +821,8 @@ export function RegistryBrowser({ currentUserId }: { currentUserId?: string }) {
                     )}
                 </div>
               ) : (
-                <div className="rounded-xs border border-white/10 bg-white/5 p-5">
-                  <span className="font-mono text-sm text-white/60">
+                <div className="rounded-md border border-border bg-raised p-5">
+                  <span className="text-sm text-ink-muted">
                     &#10007; This hash is not registered on the blockchain.
                   </span>
                 </div>

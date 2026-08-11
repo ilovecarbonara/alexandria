@@ -80,12 +80,12 @@ export function HashDisplay({
     return (
       <button
         type="button"
-        className={`inline-flex cursor-copy items-center gap-1.5 whitespace-nowrap rounded-xs font-mono transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-accent ${
+        className={`inline-flex cursor-copy items-center gap-1.5 whitespace-nowrap rounded-md transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-primary ${
           isCopied
             ? "text-success"
             : isError
-              ? "text-dispute"
-              : "text-hash hover:text-accent"
+              ? "text-danger"
+              : "font-mono text-ink-muted hover:text-primary"
         } ${className}`}
         title={
           isCopied
@@ -128,7 +128,7 @@ export function HashDisplay({
 
   return (
     <span
-      className={`whitespace-nowrap font-mono text-hash ${className}`}
+      className={`whitespace-nowrap font-mono text-ink-muted ${className}`}
       title={hash}
     >
       {truncated}

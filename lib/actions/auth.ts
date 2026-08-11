@@ -11,6 +11,12 @@ import {
   sanitizeTextInput,
 } from "@/lib/validation";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
+import { REQUESTABLE_ROLES, ROLE_HOME } from "@/lib/constants";
+import type { UserRole } from "@/lib/supabase/types";
+
+const REQUESTABLE_ROLE_VALUES: readonly string[] = REQUESTABLE_ROLES.map(
+  (r) => r.value,
+);
 
 export async function signUp(
   _prevState: { error: string } | null,
@@ -19,9 +25,15 @@ export async function signUp(
   const fullName = (formData.get("fullName") as string)?.trim();
   const email = (formData.get("email") as string)?.trim().toLowerCase();
   const password = formData.get("password") as string;
+  const requestedRole = ((formData.get("requestedRole") as string) ?? "student").trim();
 
   if (!fullName || !email || !password) {
     return { error: "All fields are required." };
+  }
+
+  // The librarian role is seeded manually and is never self-assignable.
+  if (!REQUESTABLE_ROLE_VALUES.includes(requestedRole)) {
+    return { error: "Please choose a valid account type." };
   }
 
   const nameError = validateFullName(fullName);
@@ -57,11 +69,14 @@ export async function signUp(
     return { error: "Registration failed. Please try again." };
   }
 
+  // The account always starts as a pending student. `requested_role` records
+  // what they asked to be; the librarian promotes it on approval.
   const service = createServiceClient();
   const { error: insertError } = await service.from("users").insert({
     id: data.user.id,
     email,
     full_name: sanitizeTextInput(fullName),
+    requested_role: requestedRole as UserRole,
   });
 
   if (insertError) {
@@ -70,7 +85,10 @@ export async function signUp(
 
   await service.from("activity_logs").insert({
     user_id: data.user.id,
-    action: "Account created",
+    action:
+      requestedRole === "adviser"
+        ? "Account created (research adviser requested)"
+        : "Account created",
   });
 
   redirect("/pending");
@@ -119,7 +137,7 @@ export async function signIn(
 
   const { data: profile } = await service
     .from("users")
-    .select("approval_status, is_admin, is_active")
+    .select("approval_status, role, is_active")
     .eq("id", data.user.id)
     .single();
 
@@ -158,11 +176,7 @@ export async function signIn(
     action: "Signed in",
   });
 
-  if (profile.is_admin) {
-    redirect("/admin");
-  }
-
-  redirect("/dashboard");
+  redirect(ROLE_HOME[profile.role]);
 }
 
 export async function signOut() {

@@ -84,27 +84,27 @@ export function DisputeButton({
       </Button>
       <Modal open={open} onClose={() => setOpen(false)} title="File a Dispute" className="min-w-[60vw]">
         {success ? (
-          <p className="font-mono text-sm text-success">
+          <p className="text-sm text-success">
             Dispute filed. Continue the conversation from your Disputes page.
           </p>
         ) : (
           <div className="space-y-4">
             {fetchingContext && (
-              <p className="font-mono text-xs text-white/30">
+              <p className="text-xs text-ink-subtle">
                 Loading similarity data…
               </p>
             )}
             {displayContext && (
-              <div className="rounded-xs border border-border bg-surface/50 px-3 py-2 font-mono text-xs space-y-1">
-                <div className="text-white/40">
+              <div className="rounded-md border border-border bg-surface/50 px-3 py-2 text-xs space-y-1">
+                <div className="text-ink-subtle">
                   Similarity:{" "}
-                  <span className="text-hash">
+                  <span className="font-mono text-ink-muted">
                     {(displayContext.score * 100).toFixed(1)}%
                   </span>
                 </div>
-                <div className="text-white/40">
+                <div className="text-ink-subtle">
                   Matched thesis:{" "}
-                  <span className="text-white/70">
+                  <span className="text-ink-muted">
                     {displayContext.matchedThesisTitle}
                   </span>
                 </div>
@@ -113,7 +113,7 @@ export function DisputeButton({
             <div className="flex flex-col gap-1">
               <label
                 htmlFor="dispute-reason"
-                className="text-sm text-white/60 font-mono"
+                className="text-sm text-ink-muted"
               >
                 Opening message
               </label>
@@ -124,14 +124,14 @@ export function DisputeButton({
                 onChange={(e) => setReason(e.target.value)}
                 maxLength={MAX_REASON_LENGTH}
                 rows={4}
-                className="rounded-xs border border-border bg-surface px-3 py-2 font-mono text-sm text-white/90 placeholder:text-white/30 focus:border-accent focus:outline-none resize-y"
+                className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-subtle focus:border-primary focus:outline-none resize-y"
               />
               <div className="flex justify-end">
                 <span
-                  className={`font-mono text-xs ${
+                  className={`text-xs ${
                     reason.length > 1800
-                      ? "text-dispute"
-                      : "text-white/30"
+                      ? "text-danger"
+                      : "text-ink-subtle"
                   }`}
                 >
                   {reason.length}/{MAX_REASON_LENGTH}
@@ -139,7 +139,7 @@ export function DisputeButton({
               </div>
             </div>
             {error && (
-              <p className="font-mono text-xs text-dispute">{error}</p>
+              <p className="text-xs text-danger">{error}</p>
             )}
             <div className="flex justify-end gap-3">
               <Button variant="secondary" onClick={() => setOpen(false)}>

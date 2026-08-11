@@ -48,3 +48,5 @@ docs/diagrams/
 /cache
 /artifacts
 /typechain-types
+# generated test fixtures
+test/fixtures/pdfs/

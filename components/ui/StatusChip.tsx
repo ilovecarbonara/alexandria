@@ -1,21 +1,54 @@
-type Status =
-  | "verified" | "pending" | "disputed" | "open" | "resolved" | "notified"
-  | "accepted" | "flagged" | "rejected" | "revoked" | "active" | "deactivated";
+import { STATUS_LABELS } from "@/lib/constants";
+import type { ThesisStatus } from "@/lib/supabase/types";
 
+/**
+ * Every state a record can be shown in: the seven thesis pipeline statuses
+ * plus the account, dispute, and alert states.
+ */
+type Status =
+  | ThesisStatus
+  | "verified"
+  | "pending"
+  | "approved"
+  | "disputed"
+  | "open"
+  | "resolved"
+  | "notified"
+  | "revoked"
+  | "active"
+  | "deactivated";
+
+/** Soft fill + matching ink. Colour carries state; it never decorates. */
 const statusStyles: Record<Status, string> = {
-  verified: "border-l-success text-success",
-  pending: "border-l-pending text-pending",
-  disputed: "border-l-dispute text-dispute",
-  open: "border-l-pending text-pending",
-  resolved: "border-l-success text-success",
-  notified: "border-l-success text-success",
-  accepted: "border-l-success text-success",
-  flagged: "border-l-dispute text-dispute",
-  rejected: "border-l-dispute text-dispute",
-  revoked: "border-l-dispute text-dispute",
-  active: "border-l-success text-success",
-  deactivated: "border-l-white/40 text-white/40",
+  // Thesis pipeline
+  draft: "bg-raised text-ink-muted",
+  pending_adviser: "bg-warning-soft text-warning",
+  returned: "bg-accent-soft text-accent",
+  pending_librarian: "bg-primary-soft text-primary",
+  accepted: "bg-success-soft text-success",
+  rejected: "bg-danger-soft text-danger",
+  flagged: "bg-danger-soft text-danger",
+
+  // Accounts
+  pending: "bg-warning-soft text-warning",
+  approved: "bg-success-soft text-success",
+  revoked: "bg-danger-soft text-danger",
+  active: "bg-success-soft text-success",
+  deactivated: "bg-raised text-ink-muted",
+
+  // Disputes, alerts, verification
+  verified: "bg-success-soft text-success",
+  disputed: "bg-danger-soft text-danger",
+  open: "bg-warning-soft text-warning",
+  resolved: "bg-success-soft text-success",
+  notified: "bg-primary-soft text-primary",
 };
+
+/** Pipeline statuses read better as words than as raw enum values. */
+function labelFor(status: Status): string {
+  if (status in STATUS_LABELS) return STATUS_LABELS[status as ThesisStatus];
+  return status.charAt(0).toUpperCase() + status.slice(1);
+}
 
 interface StatusChipProps {
   status: Status;
@@ -25,9 +58,9 @@ interface StatusChipProps {
 export function StatusChip({ status, className = "" }: StatusChipProps) {
   return (
     <span
-      className={`inline-block border-l-2 pl-2 py-0.5 font-mono text-xs uppercase ${statusStyles[status]} ${className}`}
+      className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ${statusStyles[status]} ${className}`}
     >
-      {status}
+      {labelFor(status)}
     </span>
   );
 }

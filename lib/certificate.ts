@@ -25,14 +25,19 @@ const PAGE_HEIGHT = 297;
 const MARGIN = 20;
 const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
 
+/**
+ * Certificate palette — a printed document, so it is ink-on-paper rather than
+ * a copy of the screen theme. Mirrors the academic palette in globals.css.
+ */
 const COLORS = {
-  dark: "#0D0F12",
-  surface: "#13161C",
-  border: "#222733",
-  accent: "#4A90D9",
-  hash: "#5CC8FF",
-  text: "#ededed",
-  muted: "#8a8f9d",
+  page: "#FFFFFF",      // paper
+  surface: "#F4F1EA",   // table header fill
+  rowAlt: "#FAF8F4",    // zebra striping
+  border: "#CFC8BB",
+  accent: "#1B3A6B",    // navy rules and headings
+  hash: "#5C5A54",      // fingerprints, set in mono
+  text: "#1A1A18",
+  muted: "#5C5A54",
 } as const;
 
 function capitalize(str: string): string {
@@ -79,7 +84,7 @@ export async function generateCertificate(data: CertificateData): Promise<jsPDF>
   });
 
   function drawPageFrame() {
-    doc.setFillColor(COLORS.dark);
+    doc.setFillColor(COLORS.page);
     doc.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT, "F");
 
     doc.setDrawColor(COLORS.border);
@@ -105,7 +110,12 @@ export async function generateCertificate(data: CertificateData): Promise<jsPDF>
   doc.setFont("courier", "normal");
   doc.setFontSize(9);
   doc.setTextColor(COLORS.muted);
-  doc.text("BLOCKCHAIN THESIS REGISTRY", PAGE_WIDTH / 2, y, { align: "center" });
+  doc.text(
+    "UNIVERSITY OF SOUTHERN PHILIPPINES FOUNDATION  ·  THESIS ARCHIVE",
+    PAGE_WIDTH / 2,
+    y,
+    { align: "center" },
+  );
 
   // --- Divider ---
   y += 6;
@@ -227,10 +237,11 @@ export async function generateCertificate(data: CertificateData): Promise<jsPDF>
   doc.setTextColor(COLORS.muted);
 
   const disclaimer =
-    "This document certifies that the above thesis was registered on the Sepolia " +
-    "blockchain via Project Alexandria. This is a REGISTRATION RECORD only — it does " +
-    "not constitute proof of authorship, originality, or academic approval. The " +
-    "blockchain entry is immutable and publicly verifiable.";
+    "This document records the submission of the above thesis to the Alexandria " +
+    "archive, together with the cryptographic fingerprint written to a public " +
+    "ledger at that time. It is a RECORD OF SUBMISSION only — it does not " +
+    "constitute proof of authorship or originality, and it is not by itself a " +
+    "statement of academic approval.";
 
   const disclaimerLines = doc.splitTextToSize(disclaimer, CONTENT_WIDTH - 20);
   const disclaimerLineHeight = 3.2;
@@ -271,7 +282,12 @@ export async function generateCertificate(data: CertificateData): Promise<jsPDF>
     doc.setFont("courier", "normal");
     doc.setFontSize(9);
     doc.setTextColor(COLORS.muted);
-    doc.text("BLOCKCHAIN THESIS REGISTRY", PAGE_WIDTH / 2, y, { align: "center" });
+    doc.text(
+    "UNIVERSITY OF SOUTHERN PHILIPPINES FOUNDATION  ·  THESIS ARCHIVE",
+    PAGE_WIDTH / 2,
+    y,
+    { align: "center" },
+  );
 
     y += 6;
     doc.setDrawColor(COLORS.accent);
@@ -328,7 +344,7 @@ export async function generateCertificate(data: CertificateData): Promise<jsPDF>
 
       // Alternating row background
       if (i % 2 === 0) {
-        doc.setFillColor("#0F1117");
+        doc.setFillColor(COLORS.rowAlt);
         doc.rect(tableX, rowY, CONTENT_WIDTH - 10, rowHeight, "F");
       }
 

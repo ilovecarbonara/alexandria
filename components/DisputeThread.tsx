@@ -29,9 +29,9 @@ interface DisputeThreadProps {
 const SOFT_LIMIT_WARN = MAX_REASON_LENGTH - 200; // 1800
 
 const ROLE_BADGE: Record<DisputeThreadView["messages"][number]["author_role"], string> = {
-  flagger: "border-l-pending text-pending",
-  owner: "border-l-accent text-accent",
-  admin: "border-l-dispute text-dispute",
+  flagger: "border-l-warning text-warning",
+  owner: "border-l-primary text-primary",
+  admin: "border-l-danger text-danger",
 };
 
 const ROLE_LABEL: Record<DisputeThreadView["messages"][number]["author_role"], string> = {
@@ -105,13 +105,13 @@ export function DisputeThread({
       {/* Thread header */}
       <div className="flex items-start justify-between gap-3 border-b border-border pb-3">
         <div className="min-w-0">
-          <p className="font-mono text-xs uppercase text-white/40">
+          <p className="text-xs uppercase text-ink-subtle">
             Thesis
           </p>
-          <p className="truncate font-mono text-sm text-white/90">
+          <p className="truncate text-sm text-ink">
             {dispute.thesis_title}
           </p>
-          <p className="mt-1 font-mono text-xs text-white/40">
+          <p className="mt-1 text-xs text-ink-subtle">
             {dispute.flagger_display_name} → {dispute.owner_display_name}
           </p>
         </div>
@@ -126,25 +126,25 @@ export function DisputeThread({
         {dispute.messages.map((m) => {
           const align = m.is_own ? "items-end" : "items-start";
           const bubble = m.is_own
-            ? "bg-accent/10 border-accent/30"
+            ? "bg-primary-soft border-primary/30"
             : "bg-surface/60 border-border";
           return (
             <div key={m.id} className={`flex flex-col ${align}`}>
               <div className="flex items-baseline gap-2">
                 <span
-                  className={`inline-block border-l-2 pl-2 font-mono text-[10px] uppercase ${ROLE_BADGE[m.author_role]}`}
+                  className={`inline-block border-l-2 pl-2 text-[10px] uppercase ${ROLE_BADGE[m.author_role]}`}
                 >
                   {ROLE_LABEL[m.author_role]}
                 </span>
-                <span className="font-mono text-xs text-white/70">
+                <span className="text-xs text-ink-muted">
                   {m.is_own ? "You" : m.author_display_name}
                 </span>
-                <span className="font-mono text-[10px] text-white/30">
+                <span className="text-[10px] text-ink-subtle">
                   {formatTimestamp(m.created_at)}
                 </span>
               </div>
               <div
-                className={`mt-1 max-w-[85%] whitespace-pre-wrap rounded-xs border px-3 py-2 font-mono text-sm text-white/90 ${bubble}`}
+                className={`mt-1 max-w-[85%] whitespace-pre-wrap rounded-md border px-3 py-2 text-sm text-ink ${bubble}`}
               >
                 {m.body}
               </div>
@@ -155,7 +155,7 @@ export function DisputeThread({
 
       {/* Composer or read-only banner */}
       {isResolved ? (
-        <div className="rounded-xs border border-border bg-surface/40 px-3 py-2 font-mono text-xs text-white/50">
+        <div className="rounded-md border border-border bg-surface/40 px-3 py-2 text-xs text-ink-subtle">
           This dispute was resolved
           {dispute.resolved_at
             ? ` on ${new Date(dispute.resolved_at).toLocaleDateString()}`
@@ -166,7 +166,7 @@ export function DisputeThread({
         <div className="flex flex-col gap-1">
           <label
             htmlFor={`dispute-reply-${dispute.id}`}
-            className="font-mono text-xs text-white/40"
+            className="text-xs text-ink-subtle"
           >
             Reply
           </label>
@@ -177,15 +177,15 @@ export function DisputeThread({
             onChange={(e) => setBody(e.target.value)}
             maxLength={MAX_REASON_LENGTH}
             rows={3}
-            className="resize-y rounded-xs border border-border bg-surface px-3 py-2 font-mono text-sm text-white/90 placeholder:text-white/30 focus:border-accent focus:outline-none"
+            className="resize-y rounded-md border border-border bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-subtle focus:border-primary focus:outline-none"
           />
           <div className="flex items-center justify-between">
-            <span className="font-mono text-xs text-dispute">
+            <span className="text-xs text-danger">
               {error ?? ""}
             </span>
             <span
-              className={`font-mono text-xs ${
-                body.length > SOFT_LIMIT_WARN ? "text-dispute" : "text-white/30"
+              className={`text-xs ${
+                body.length > SOFT_LIMIT_WARN ? "text-danger" : "text-ink-subtle"
               }`}
             >
               {body.length}/{MAX_REASON_LENGTH}

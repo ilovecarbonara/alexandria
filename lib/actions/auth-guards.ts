@@ -1,9 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
-import type { UserApprovalStatus } from "@/lib/supabase/types";
+import type { UserApprovalStatus, UserRole } from "@/lib/supabase/types";
 
 type AuthSuccess = {
   user: { id: string; email?: string };
-  profile: { approval_status: UserApprovalStatus; is_active: boolean; is_admin: boolean };
+  profile: {
+    approval_status: UserApprovalStatus;
+    is_active: boolean;
+    role: UserRole;
+    full_name: string;
+  };
   supabase: Awaited<ReturnType<typeof createClient>>;
 };
 
@@ -11,6 +16,12 @@ type AuthFailure = { error: string };
 
 type AuthResult = AuthSuccess | AuthFailure;
 
+/**
+ * Authenticated, approved, and active. The base every other guard builds on.
+ *
+ * Note that `proxy.ts` short-circuits server actions, so these guards — not the
+ * middleware — are what actually protect action and route-handler calls.
+ */
 export async function requireAuth(): Promise<AuthResult> {
   const supabase = await createClient();
   const {
@@ -21,7 +32,7 @@ export async function requireAuth(): Promise<AuthResult> {
 
   const { data: profile } = await supabase
     .from("users")
-    .select("approval_status, is_active, is_admin")
+    .select("approval_status, is_active, role, full_name")
     .eq("id", user.id)
     .single();
 
@@ -44,20 +55,33 @@ export async function requireAuth(): Promise<AuthResult> {
   return { user, profile, supabase };
 }
 
-export async function requireAdmin(): Promise<AuthResult> {
+/** Authenticated and holding one of the given roles. */
+export async function requireRole(
+  ...roles: UserRole[]
+): Promise<AuthResult> {
   const result = await requireAuth();
   if ("error" in result) return result;
 
-  if (!result.profile.is_admin) return { error: "Forbidden" };
+  if (!roles.includes(result.profile.role)) return { error: "Forbidden" };
 
   return result;
 }
 
-export async function requireUser(): Promise<AuthResult> {
-  const result = await requireAuth();
-  if ("error" in result) return result;
+/** Only students submit theses, file disputes, and receive title alerts. */
+export function requireStudent(): Promise<AuthResult> {
+  return requireRole("student");
+}
 
-  if (result.profile.is_admin) return { error: "Forbidden" };
+export function requireAdviser(): Promise<AuthResult> {
+  return requireRole("adviser");
+}
 
-  return result;
+/** The librarian — the account previously modelled as `is_admin`. */
+export function requireLibrarian(): Promise<AuthResult> {
+  return requireRole("librarian");
+}
+
+/** Either reviewing role: both see manuscripts and act on the pipeline. */
+export function requireReviewer(): Promise<AuthResult> {
+  return requireRole("adviser", "librarian");
 }

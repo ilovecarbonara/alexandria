@@ -77,7 +77,7 @@ export function Modal({ open, onClose, title, className, children }: ModalProps)
       ref={dialogRef}
       onClose={onClose}
       aria-labelledby={title ? "modal-title" : undefined}
-      className="m-auto rounded-xs border border-border bg-surface p-0 text-white/90 backdrop:bg-black/60"
+      className="m-auto rounded-lg border border-border bg-surface p-0 text-ink shadow-pop backdrop:bg-ink/25 backdrop:backdrop-blur-[1px]"
     >
       <div className={className ?? "min-w-80 max-w-lg"}>
         {title && (
@@ -89,7 +89,7 @@ export function Modal({ open, onClose, title, className, children }: ModalProps)
               type="button"
               onClick={onClose}
               aria-label="Close dialog"
-              className="font-mono text-sm text-white/40 hover:text-white/90"
+              className="text-sm text-ink-subtle hover:text-ink"
             >
               ✕
             </button>

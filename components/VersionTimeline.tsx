@@ -43,19 +43,19 @@ export function VersionTimeline({
 
   if (loading) {
     return (
-      <p className="font-mono text-sm text-white/40">
+      <p className="text-sm text-ink-subtle">
         Loading version history…
       </p>
     );
   }
 
   if (error) {
-    return <p className="font-mono text-sm text-dispute">{error}</p>;
+    return <p className="text-sm text-danger">{error}</p>;
   }
 
   if (chain.length <= 1) {
     return (
-      <p className="font-mono text-sm text-white/40">No version history.</p>
+      <p className="text-sm text-ink-subtle">No version history.</p>
     );
   }
 
@@ -72,42 +72,42 @@ export function VersionTimeline({
               <div
                 className={`mt-0.5 h-3 w-3 shrink-0 rounded-full border-2 ${
                   isCurrent
-                    ? "border-accent bg-accent"
-                    : "border-white/30 bg-transparent"
+                    ? "border-primary bg-primary"
+                    : "border-border bg-transparent"
                 }`}
               />
-              {!isLast && <div className="w-px flex-1 bg-white/10" />}
+              {!isLast && <div className="w-px flex-1 bg-raised" />}
             </div>
 
             {/* Content */}
             <div className={isLast ? "pb-0" : "pb-5"}>
               <div className="flex items-center gap-2">
-                <span className="font-mono text-xs text-white/40">
+                <span className="text-xs text-ink-subtle">
                   v{index + 1}
                 </span>
                 <span
-                  className={`inline-block rounded-xs px-1.5 py-0.5 font-mono text-xs uppercase ${
+                  className={`inline-block rounded-md px-1.5 py-0.5 text-xs uppercase ${
                     entry.submissionType === "final"
-                      ? "bg-success/20 text-success"
-                      : "bg-pending/20 text-pending"
+                      ? "bg-success-soft text-success"
+                      : "bg-warning-soft text-warning"
                   }`}
                 >
                   {entry.submissionType}
                 </span>
                 {isCurrent && (
-                  <span className="font-mono text-xs text-accent">
+                  <span className="text-xs text-primary">
                     current
                   </span>
                 )}
               </div>
               <p
-                className={`mt-1 font-mono text-sm ${
-                  isCurrent ? "text-white" : "text-white/70"
+                className={`mt-1 text-sm ${
+                  isCurrent ? "text-ink" : "text-ink-muted"
                 }`}
               >
                 {entry.title}
               </p>
-              <div className="mt-1 flex items-center gap-2 font-mono text-xs text-white/40">
+              <div className="mt-1 flex items-center gap-2 text-xs text-ink-subtle">
                 <span>
                   {new Date(entry.registeredAt).toLocaleDateString()}
                 </span>

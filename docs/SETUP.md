@@ -76,24 +76,33 @@ After deployment, copy the logged contract address into `CONTRACT_ADDRESS` in `.
 
 1. Open the Supabase SQL Editor for your project
 2. Paste and run the contents of `docs/DATABASE_MIGRATION.sql`
-3. Verify all tables are created: `users`, `theses`, `disputes`, `title_alerts`
+3. Verify all ten tables are created: `users`, `theses`, `thesis_authors`, `thesis_reviews`, `staged_uploads`, `disputes`, `dispute_messages`, `dispute_reads`, `activity_logs`, `title_alerts` — plus the internal `rate_limits` table
 
-### Seed the Admin Account
+### Verify the manuscript storage bucket
 
-After running the migration, manually insert the admin user. First, create an account via Supabase Auth (email + password), then run:
+The migration creates a **private** bucket named `theses` (25 MB limit, `application/pdf` only). Confirm under Supabase → Storage that it exists and that **Public** is off.
+
+The bucket deliberately has **no RLS policies**. Every read is streamed through `GET /api/theses/[id]/pdf`, which re-authorizes per request using the service role; uploads arrive only via short-lived signed URLs minted server-side. Adding policies here would widen access without being used.
+
+### Seed the Librarian Account
+
+The librarian role is never self-assignable, so the first one is inserted by hand. Create the account via Supabase Auth (email + password), then run:
 
 ```sql
-INSERT INTO public.users (id, email, full_name, approval_status, is_admin)
+INSERT INTO public.users (id, email, full_name, approval_status, role, requested_role)
 VALUES (
   '<supabase-auth-user-uuid>',
-  'admin@uspf.edu.ph',
-  'Admin Name',
+  'librarian@uspf.edu.ph',
+  'Librarian Name',
   'approved',
-  true
+  'librarian',
+  'student'
 );
 ```
 
 Replace `<supabase-auth-user-uuid>` with the UUID from Supabase Auth → Users.
+
+Research advisers do **not** need seeding: they choose "Research Adviser" at sign-up, and the librarian grants the role by approving the account.
 
 ## 7. Run the Dev Server
 
@@ -102,6 +111,16 @@ npm run dev
 ```
 
 Open http://localhost:3000.
+
+## 8. Run the Tests
+
+```bash
+npm test              # fixtures + abstract extraction + contract tests
+npm run test:pdf      # abstract extraction only
+npm run test:contract # Hardhat contract tests only
+```
+
+`npm run test:fixtures` regenerates the PDF corpus under `test/fixtures/pdfs/` (git-ignored) from `test/fixtures/build-pdfs.mts`.
 
 ## Current Sepolia Contract
 

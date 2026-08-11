@@ -31,7 +31,7 @@ export function Input({ label, error, className = "", id, type, ...props }: Inpu
   return (
     <div className="flex flex-col gap-1">
       {label && (
-        <label htmlFor={id} className="text-sm text-white/60 font-mono">
+        <label htmlFor={id} className="text-sm font-medium text-ink-muted">
           {label}
         </label>
       )}
@@ -39,14 +39,14 @@ export function Input({ label, error, className = "", id, type, ...props }: Inpu
         <input
           id={id}
           type={inputType}
-          className={`w-full rounded-xs border border-border bg-surface px-3 py-2 font-mono text-sm text-white/90 placeholder:text-white/30 focus:border-accent focus:outline-none ${isPassword ? "pr-9" : ""} ${error ? "border-dispute" : ""} ${className}`}
+          className={`w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-ink transition-colors placeholder:text-ink-subtle hover:border-border-strong focus:border-primary ${isPassword ? "pr-9" : ""} ${error ? "border-danger" : ""} ${className}`}
           {...props}
         />
         {isPassword && (
           <button
             type="button"
             onClick={() => setShowPassword((v) => !v)}
-            className="absolute inset-y-0 right-0 flex items-center px-2.5 text-white/40 transition-colors hover:text-white/70 focus-visible:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+            className="absolute inset-y-0 right-0 flex items-center px-2.5 text-ink-subtle transition-colors hover:text-ink-muted focus-visible:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
             aria-label={showPassword ? "Hide password" : "Show password"}
             aria-pressed={showPassword}
           >
@@ -54,7 +54,7 @@ export function Input({ label, error, className = "", id, type, ...props }: Inpu
           </button>
         )}
       </div>
-      {error && <span className="text-xs text-dispute font-mono">{error}</span>}
+      {error && <span className="text-xs text-danger">{error}</span>}
     </div>
   );
 }

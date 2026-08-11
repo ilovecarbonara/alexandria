@@ -8,7 +8,7 @@ export default async function AdminAnalyticsPage() {
   if (result.error || !result.data) {
     return (
       <Card>
-        <p className="py-8 text-center font-mono text-sm text-white/40">
+        <p className="py-8 text-center text-sm text-ink-subtle">
           Failed to load analytics data.
         </p>
       </Card>

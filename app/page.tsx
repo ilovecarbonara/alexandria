@@ -2,23 +2,28 @@ import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-bg font-mono text-white/90">
+    <div className="min-h-screen bg-page text-ink">
       {/* ── Nav ──────────────────────────────────────────────────── */}
-      <header className="border-b border-border">
+      <header className="border-b border-border bg-surface">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-          <span className="font-heading text-xl text-white">Alexandria</span>
+          <Link href="/" className="flex items-baseline gap-3">
+            <span className="font-heading text-2xl text-ink">Alexandria</span>
+            <span className="hidden text-xs tracking-wide text-ink-subtle sm:inline">
+              University of Southern Philippines Foundation
+            </span>
+          </Link>
           <nav className="flex items-center gap-3">
             <Link
               href="/verify"
-              className="rounded-xs border border-border bg-surface px-4 py-2 text-sm text-white/70 transition-colors hover:text-white"
+              className="rounded-md px-4 py-2 text-sm text-ink-muted transition-colors hover:bg-raised hover:text-ink"
             >
-              Verify
+              Browse the archive
             </Link>
             <Link
               href="/login"
-              className="rounded-xs bg-accent px-4 py-2 text-sm text-white transition-opacity hover:opacity-90"
+              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white shadow-card transition-colors hover:bg-primary-hover"
             >
-              Sign In
+              Sign in
             </Link>
           </nav>
         </div>
@@ -27,77 +32,78 @@ export default function Home() {
       {/* ── Hero ─────────────────────────────────────────────────── */}
       <section className="border-b border-border">
         <div className="mx-auto max-w-6xl px-6 py-24">
-          <p className="mb-4 font-mono text-xs uppercase tracking-widest text-accent">
-            USPF · Academic Thesis Registry
+          <p className="mb-5 text-xs font-medium uppercase tracking-[0.18em] text-accent">
+            Thesis &amp; Capstone Archive
           </p>
-          <h1 className="font-heading text-5xl leading-tight text-white sm:text-6xl">
-            A permanent record
-            <br />
-            for academic work.
+          <h1 className="max-w-3xl font-heading text-5xl leading-[1.1] text-ink sm:text-6xl">
+            The university&apos;s record of its own research.
           </h1>
-          <p className="mt-6 max-w-xl font-mono text-sm leading-relaxed text-white/50">
-            Alexandria registers the SHA-256 hash of your thesis on the Sepolia
-            blockchain — establishing tamper-proof, publicly verifiable proof of
-            existence and registration without ever storing the document itself.
+          <div className="mt-6 h-px w-16 bg-accent" />
+          <p className="mt-6 max-w-2xl text-base leading-relaxed text-ink-muted">
+            Alexandria holds the theses and capstone projects of USPF students and
+            faculty. Every submission is reviewed by a research adviser and the
+            university librarian before it joins the archive — where its title,
+            authors, and abstract are open to anyone.
           </p>
           <div className="mt-10 flex flex-wrap gap-3">
             <Link
-              href="/register"
-              className="rounded-xs bg-accent px-6 py-3 text-sm text-white transition-opacity hover:opacity-90"
+              href="/verify"
+              className="rounded-md bg-primary px-6 py-3 text-sm font-medium text-white shadow-card transition-colors hover:bg-primary-hover"
             >
-              Get Started
+              Browse the archive
             </Link>
             <Link
-              href="/verify"
-              className="rounded-xs border border-border bg-surface px-6 py-3 text-sm text-white/70 transition-colors hover:text-white"
+              href="/register"
+              className="rounded-md border border-border bg-surface px-6 py-3 text-sm font-medium text-ink shadow-card transition-colors hover:bg-raised"
             >
-              Verify a Document
+              Create an account
             </Link>
           </div>
         </div>
       </section>
 
-      {/* ── Feature Highlights ───────────────────────────────────── */}
-      <section className="border-b border-border">
-        <div className="mx-auto max-w-6xl px-6 py-16">
-          <h2 className="mb-10 font-heading text-2xl text-white">
-            How it works
+      {/* ── How submission works ─────────────────────────────────── */}
+      <section className="border-b border-border bg-surface">
+        <div className="mx-auto max-w-6xl px-6 py-20">
+          <h2 className="font-heading text-3xl text-ink">
+            From submission to shelf
           </h2>
-          <div className="grid gap-px border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
-            {FEATURES.map((f, i) => (
-              <div key={i} className="bg-surface p-6">
-                <p className="mb-3 font-mono text-xs text-accent">{f.step}</p>
-                <h3 className="mb-2 font-heading text-lg text-white">
-                  {f.title}
+          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-ink-muted">
+            Four steps, two reviewers. Nothing reaches the public archive without
+            passing both.
+          </p>
+
+          <ol className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            {STEPS.map((step) => (
+              <li key={step.step} className="border-t-2 border-accent pt-5">
+                <p className="font-heading text-2xl text-accent">{step.step}</p>
+                <h3 className="mt-2 font-heading text-lg text-ink">
+                  {step.title}
                 </h3>
-                <p className="font-mono text-xs leading-relaxed text-white/40">
-                  {f.description}
+                <p className="mt-2 text-sm leading-relaxed text-ink-muted">
+                  {step.description}
                 </p>
-              </div>
+              </li>
             ))}
-          </div>
+          </ol>
         </div>
       </section>
 
-      {/* ── Properties ───────────────────────────────────────────── */}
+      {/* ── What the archive does ────────────────────────────────── */}
       <section className="border-b border-border">
-        <div className="mx-auto max-w-6xl px-6 py-16">
-          <h2 className="mb-10 font-heading text-2xl text-white">
-            System properties
+        <div className="mx-auto max-w-6xl px-6 py-20">
+          <h2 className="font-heading text-3xl text-ink">
+            How the archive works
           </h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {PROPERTIES.map((p, i) => (
+
+          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {PROPERTIES.map((p) => (
               <div
-                key={i}
-                className="rounded-xs border border-border bg-surface p-5"
+                key={p.title}
+                className="rounded-lg border border-border bg-surface p-6 shadow-card"
               >
-                <div
-                  className="mb-3 inline-block rounded-xs px-2 py-0.5 font-mono text-xs"
-                  style={{ background: p.chipBg, color: p.chipColor }}
-                >
-                  {p.chip}
-                </div>
-                <p className="font-mono text-xs leading-relaxed text-white/50">
+                <h3 className="font-heading text-lg text-ink">{p.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-ink-muted">
                   {p.description}
                 </p>
               </div>
@@ -107,47 +113,45 @@ export default function Home() {
       </section>
 
       {/* ── CTA ──────────────────────────────────────────────────── */}
-      <section className="border-b border-border">
-        <div className="mx-auto max-w-6xl px-6 py-16">
-          <div className="rounded-xs border border-border bg-surface p-10">
-            <h2 className="font-heading text-3xl text-white">
-              Ready to register?
-            </h2>
-            <p className="mt-3 max-w-lg font-mono text-sm text-white/40">
-              Create an account with your USPF email address. Access is granted
-              after admin approval.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link
-                href="/register"
-                className="rounded-xs bg-accent px-6 py-3 text-sm text-white transition-opacity hover:opacity-90"
-              >
-                Create Account
-              </Link>
-              <Link
-                href="/verify"
-                className="rounded-xs border border-border bg-bg px-6 py-3 text-sm text-white/60 transition-colors hover:text-white"
-              >
-                Browse Public Registry
-              </Link>
-            </div>
+      <section className="border-b border-border bg-surface">
+        <div className="mx-auto max-w-6xl px-6 py-20">
+          <h2 className="font-heading text-3xl text-ink">
+            Ready to submit your thesis?
+          </h2>
+          <p className="mt-3 max-w-xl text-sm leading-relaxed text-ink-muted">
+            Register with your <span className="text-ink">@uspf.edu.ph</span>{" "}
+            address. The university librarian approves new accounts, and research
+            advisers can request their role when signing up.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link
+              href="/register"
+              className="rounded-md bg-primary px-6 py-3 text-sm font-medium text-white shadow-card transition-colors hover:bg-primary-hover"
+            >
+              Create an account
+            </Link>
+            <Link
+              href="/verify"
+              className="rounded-md border border-border bg-page px-6 py-3 text-sm font-medium text-ink transition-colors hover:bg-raised"
+            >
+              Search without an account
+            </Link>
           </div>
         </div>
       </section>
 
       {/* ── Footer ───────────────────────────────────────────────── */}
-      <footer className="mx-auto max-w-6xl px-6 py-8">
-        <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+      <footer className="mx-auto max-w-6xl px-6 py-10">
+        <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
           <div>
-            <span className="font-heading text-sm text-white/60">
-              Alexandria
-            </span>
-            <span className="ml-2 font-mono text-xs text-white/20">
-              · USPF Academic Thesis Registry
+            <span className="font-heading text-base text-ink">Alexandria</span>
+            <span className="ml-2 text-xs text-ink-subtle">
+              University of Southern Philippines Foundation
             </span>
           </div>
-          <p className="font-mono text-xs text-white/20">
-            Records on blockchain are permanent and unalterable.
+          <p className="text-xs text-ink-subtle">
+            Full manuscripts are available to their authors, advisers, and the
+            university librarian.
           </p>
         </div>
       </footer>
@@ -155,74 +159,62 @@ export default function Home() {
   );
 }
 
-const FEATURES = [
+const STEPS = [
   {
     step: "01",
-    title: "Hash your thesis",
+    title: "Submit the manuscript",
     description:
-      "Upload your PDF. A SHA-256 fingerprint is computed in your browser. The file is discarded immediately — it never leaves your device.",
+      "Upload the PDF and choose your research adviser. Alexandria reads the abstract straight out of the document — you never retype it.",
   },
   {
     step: "02",
-    title: "Register on-chain",
+    title: "Adviser review",
     description:
-      "The hash is submitted to a smart contract on the Sepolia Ethereum testnet, creating an immutable timestamped record.",
+      "Your adviser reads the full manuscript and either endorses it or returns it with written comments for revision.",
   },
   {
     step: "03",
-    title: "Receive a certificate",
+    title: "Librarian approval",
     description:
-      "A registration certificate is generated with the hash, transaction ID, and a QR code linking to the blockchain record.",
+      "The university librarian gives the final approval, checking the record against the rest of the collection.",
   },
   {
     step: "04",
-    title: "Publicly verifiable",
+    title: "Published to the archive",
     description:
-      "Anyone can verify a document without an account by uploading the PDF or pasting the hash on the public verification page.",
+      "Title, authors, and abstract become publicly searchable. The full text stays with the authors, their adviser, and the librarian.",
   },
 ];
 
 const PROPERTIES = [
   {
-    chip: "IMMUTABLE",
-    chipBg: "#4A90D915",
-    chipColor: "#4A90D9",
+    title: "Abstracts, not paperwork",
     description:
-      "Blockchain entries cannot be altered or deleted, even by administrators. The record stands permanently.",
+      "The abstract is extracted from the manuscript itself, so what the archive shows is what the thesis actually says — never a summary retyped from memory.",
   },
   {
-    chip: "PDF-FREE",
-    chipBg: "#2ECC8F15",
-    chipColor: "#2ECC8F",
+    title: "Open metadata, protected text",
     description:
-      "Only the cryptographic hash is registered. The document itself is never uploaded, stored, or transmitted.",
+      "Anyone can search titles, authors, and abstracts without an account. The complete manuscript is restricted to its authors, their adviser, and the librarian.",
   },
   {
-    chip: "SIMILARITY ALERTS",
-    chipBg: "#E2A84B15",
-    chipColor: "#E2A84B",
+    title: "Two-stage review",
     description:
-      "Title similarity checks run automatically on every registration using pg_trgm. Authors of matching entries are notified.",
+      "Every final submission passes a research adviser and the university librarian. A returned submission comes back with comments and can be revised.",
   },
   {
-    chip: "DISPUTE FLAGS",
-    chipBg: "#C0392B15",
-    chipColor: "#C0392B",
+    title: "Similar-title alerts",
     description:
-      "Any authenticated user can raise a dispute against a registration. Flags are reviewed by administrators.",
+      "Each new submission is compared against the existing collection. Close matches notify both parties and raise a flag for the reviewers.",
   },
   {
-    chip: "STATUS WORKFLOW",
-    chipBg: "#4A90D915",
-    chipColor: "#4A90D9",
+    title: "Tamper-evident records",
     description:
-      "Registrations move through pending → accepted / flagged / rejected. Status changes trigger email notifications.",
+      "A cryptographic fingerprint of every manuscript is written to a public ledger at submission, so the archive can prove a document has not been altered since.",
   },
   {
-    chip: "NO-LOGIN VERIFY",
-    chipBg: "#2ECC8F15",
-    chipColor: "#2ECC8F",
+    title: "A permanent collection",
     description:
-      "The public verification interface requires no account. Search, filter, and verify against the blockchain freely.",
+      "Once published, a record stays. Disputes are recorded alongside it rather than erasing it, keeping the collection's history intact.",
   },
 ];

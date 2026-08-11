@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Card, Button } from "@/components/ui";
 import { DashboardRegistrations } from "@/components/DashboardRegistrations";
+import { isAwaitingReview, isPublic } from "@/lib/workflow";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -56,6 +57,10 @@ export default async function DashboardPage() {
   const recentActivity = activityRes.data ?? [];
   const alertCount = alertCountRes.count ?? 0;
 
+  const returned = theses.filter((t) => t.status === "returned");
+  const published = theses.filter((t) => isPublic(t.status)).length;
+  const inReview = theses.filter((t) => isAwaitingReview(t.status)).length;
+
   // Determine which theses participate in a version chain
   const chainParticipants = new Set<string>();
   for (const t of theses) {
@@ -70,54 +75,79 @@ export default async function DashboardPage() {
       {/* Welcome Banner */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-heading text-2xl text-white">
+          <h1 className="font-heading text-2xl text-ink">
             Welcome, {fullName}
           </h1>
-          <p className="mt-1 font-mono text-sm text-white/40">
-            Manage your thesis registrations
+          <p className="mt-1 text-sm text-ink-subtle">
+            Track your submissions through review
           </p>
         </div>
-        <Link href="/dashboard/register">
-          <Button>Register New Thesis</Button>
+        <Link href="/dashboard/submit">
+          <Button>Submit Thesis</Button>
         </Link>
       </div>
+
+      {/* Anything the student has to act on comes before everything else. */}
+      {returned.length > 0 && (
+        <Card className="border-warning/40 bg-warning-soft">
+          <h2 className="font-heading text-lg text-warning">
+            {returned.length === 1
+              ? "A submission needs your attention"
+              : `${returned.length} submissions need your attention`}
+          </h2>
+          <p className="mt-1 text-sm text-ink-muted">
+            These were returned for revision. Open one to read the reviewer&apos;s
+            comments, then upload a corrected manuscript.
+          </p>
+          <ul className="mt-4 space-y-2">
+            {returned.map((t) => (
+              <li key={t.id} className="text-sm text-ink">
+                · {t.title}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
-          <p className="font-mono text-xs text-white/40 uppercase">
-            My Registered Theses
+          <p className="text-xs text-ink-subtle uppercase">
+            My Submissions
           </p>
-          <p className="mt-2 font-heading text-3xl text-white">
+          <p className="mt-2 font-heading text-3xl text-ink">
             {theses.length}
+          </p>
+          <p className="mt-1 text-xs text-ink-subtle">
+            {published} published · {inReview} in review
           </p>
         </Card>
         <Card>
           <Link href="/dashboard/disputes" className="block">
-            <p className="font-mono text-xs text-white/40 uppercase">
+            <p className="text-xs text-ink-subtle uppercase">
               Open Disputes
             </p>
-            <p className="mt-2 font-heading text-3xl text-white">
+            <p className="mt-2 font-heading text-3xl text-ink">
               {activeDisputeCount}
             </p>
-            <p className="mt-1 font-mono text-xs text-accent">
+            <p className="mt-1 text-xs text-primary">
               View threads →
             </p>
           </Link>
         </Card>
         <Card>
-          <p className="font-mono text-xs text-white/40 uppercase">
+          <p className="text-xs text-ink-subtle uppercase">
             Title Alerts
           </p>
-          <p className="mt-2 font-heading text-3xl text-pending">
+          <p className="mt-2 font-heading text-3xl text-warning">
             {alertCount}
           </p>
         </Card>
         <Card>
-          <p className="font-mono text-xs text-white/40 uppercase">
+          <p className="text-xs text-ink-subtle uppercase">
             Recent Activity
           </p>
-          <p className="mt-2 font-heading text-3xl text-white">
+          <p className="mt-2 font-heading text-3xl text-ink">
             {recentActivity.length}
           </p>
         </Card>
@@ -134,12 +164,12 @@ export default async function DashboardPage() {
         {/* Recent Activity Feed */}
         <Card className="p-0">
           <div className="border-b border-border px-6 py-4">
-            <h2 className="font-heading text-lg text-white">
+            <h2 className="font-heading text-lg text-ink">
               Recent Activity
             </h2>
           </div>
           {recentActivity.length === 0 ? (
-            <p className="px-6 py-8 text-center font-mono text-sm text-white/40">
+            <p className="px-6 py-8 text-center text-sm text-ink-subtle">
               No activity yet.
             </p>
           ) : (
@@ -149,10 +179,10 @@ export default async function DashboardPage() {
                   key={log.id}
                   className="flex items-center justify-between px-6 py-3"
                 >
-                  <span className="font-mono text-sm text-white/80">
+                  <span className="text-sm text-ink">
                     {log.action}
                   </span>
-                  <span className="whitespace-nowrap font-mono text-xs text-white/40">
+                  <span className="whitespace-nowrap text-xs text-ink-subtle">
                     {new Date(log.created_at).toLocaleDateString()}
                   </span>
                 </li>
@@ -163,16 +193,16 @@ export default async function DashboardPage() {
 
         {/* Quick Actions */}
         <Card>
-          <h2 className="mb-4 font-heading text-lg text-white">
+          <h2 className="mb-4 font-heading text-lg text-ink">
             Quick Actions
           </h2>
           <div className="flex flex-col gap-3">
-            <Link href="/dashboard/register">
-              <Button className="w-full">Register a Thesis</Button>
+            <Link href="/dashboard/submit">
+              <Button className="w-full">Submit a Thesis</Button>
             </Link>
             <Link href="/dashboard/browse">
               <Button variant="secondary" className="w-full">
-                Browse Registry
+                Browse Archive
               </Button>
             </Link>
           </div>

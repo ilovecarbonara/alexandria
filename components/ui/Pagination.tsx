@@ -32,7 +32,7 @@ export function Pagination({
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
-        className="rounded-xs px-3 py-1.5 font-mono text-xs text-white/60 transition-colors hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-30"
+        className="rounded-md px-3 py-1.5 text-xs text-ink-muted transition-colors hover:bg-raised disabled:cursor-not-allowed disabled:opacity-30"
       >
         Prev
       </button>
@@ -41,7 +41,7 @@ export function Pagination({
         typeof page === "string" ? (
           <span
             key={page}
-            className="px-2 font-mono text-xs text-white/30"
+            className="px-2 text-xs text-ink-subtle"
           >
             …
           </span>
@@ -49,10 +49,10 @@ export function Pagination({
           <button
             key={page}
             onClick={() => onPageChange(page)}
-            className={`min-w-8 rounded-xs px-2 py-1.5 font-mono text-xs transition-colors ${
+            className={`min-w-8 rounded-md px-2 py-1.5 text-xs transition-colors ${
               page === currentPage
-                ? "bg-accent text-white"
-                : "text-white/60 hover:bg-white/5"
+                ? "bg-primary text-ink"
+                : "text-ink-muted hover:bg-raised"
             }`}
           >
             {page}
@@ -63,7 +63,7 @@ export function Pagination({
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className="rounded-xs px-3 py-1.5 font-mono text-xs text-white/60 transition-colors hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-30"
+        className="rounded-md px-3 py-1.5 text-xs text-ink-muted transition-colors hover:bg-raised disabled:cursor-not-allowed disabled:opacity-30"
       >
         Next
       </button>

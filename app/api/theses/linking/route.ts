@@ -1,4 +1,4 @@
-import { requireUser } from "@/lib/actions/auth-guards";
+import { requireStudent } from "@/lib/actions/auth-guards";
 import { getClientIp, rateLimit } from "@/lib/rate-limit";
 
 const noStoreHeaders = {
@@ -19,7 +19,7 @@ export async function GET() {
     );
   }
 
-  const auth = await requireUser();
+  const auth = await requireStudent();
   if ("error" in auth) {
     const status = auth.error === "Unauthorized" ? 401 : 403;
     return Response.json({ error: auth.error }, { status, headers: noStoreHeaders });
@@ -84,8 +84,26 @@ export async function GET() {
   );
   const linkableTheses = (drafts ?? []).filter((draft) => !parentIds.has(draft.id));
 
+  // The adviser roster for the submission form. RLS exposes exactly the
+  // approved, active advisers to any signed-in account.
+  const { data: advisers, error: advisersError } = await supabase
+    .from("users")
+    .select("id, full_name")
+    .eq("role", "adviser")
+    .eq("approval_status", "approved")
+    .eq("is_active", true)
+    .order("full_name", { ascending: true });
+
+  if (advisersError) {
+    return Response.json(
+      { error: "Failed to load the list of research advisers." },
+      { status: 500, headers: noStoreHeaders },
+    );
+  }
+
   return Response.json({
     fullName: profile.full_name,
     linkableTheses,
+    advisers: advisers ?? [],
   }, { headers: noStoreHeaders });
 }

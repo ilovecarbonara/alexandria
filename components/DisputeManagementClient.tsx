@@ -58,8 +58,8 @@ const ROLE_LABEL: Record<DisputeAuthorRole, string> = {
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <span className="font-mono text-xs text-white/40">{label}</span>
-      <span className="font-mono text-sm text-white/90">{value}</span>
+      <span className="text-xs text-ink-subtle">{label}</span>
+      <span className="text-sm text-ink">{value}</span>
     </div>
   );
 }
@@ -215,10 +215,10 @@ export function DisputeManagementClient({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-heading text-2xl text-white">
+          <h1 className="font-heading text-2xl text-ink">
             Dispute Management
           </h1>
-          <p className="mt-1 font-mono text-sm text-white/40">
+          <p className="mt-1 text-sm text-ink-subtle">
             Review threaded disputes and resolve open cases
           </p>
         </div>
@@ -250,7 +250,7 @@ export function DisputeManagementClient({
 
       <Card className="p-0">
         {filtered.length === 0 ? (
-          <p className="px-6 py-12 text-center font-mono text-sm text-white/40">
+          <p className="px-6 py-12 text-center text-sm text-ink-subtle">
             No disputes found.
           </p>
         ) : (
@@ -259,22 +259,22 @@ export function DisputeManagementClient({
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border text-left">
-                    <th className="px-6 py-3 font-mono text-xs uppercase text-white/40">
+                    <th className="px-6 py-3 text-xs uppercase text-ink-subtle">
                       Thesis
                     </th>
-                    <th className="px-6 py-3 font-mono text-xs uppercase text-white/40">
+                    <th className="px-6 py-3 text-xs uppercase text-ink-subtle">
                       Flagged By
                     </th>
-                    <th className="px-6 py-3 font-mono text-xs uppercase text-white/40">
+                    <th className="px-6 py-3 text-xs uppercase text-ink-subtle">
                       Last Message
                     </th>
-                    <th className="px-6 py-3 font-mono text-xs uppercase text-white/40">
+                    <th className="px-6 py-3 text-xs uppercase text-ink-subtle">
                       Last Activity
                     </th>
-                    <th className="px-6 py-3 font-mono text-xs uppercase text-white/40">
+                    <th className="px-6 py-3 text-xs uppercase text-ink-subtle">
                       Status
                     </th>
-                    <th className="px-6 py-3 font-mono text-xs uppercase text-white/40">
+                    <th className="px-6 py-3 text-xs uppercase text-ink-subtle">
                       Actions
                     </th>
                   </tr>
@@ -285,16 +285,16 @@ export function DisputeManagementClient({
                       key={dispute.id}
                       className="border-b border-border last:border-b-0"
                     >
-                      <td className="max-w-48 truncate px-6 py-4 font-mono text-sm text-white/90">
+                      <td className="max-w-48 truncate px-6 py-4 text-sm text-ink">
                         {dispute.thesis_title}
                       </td>
-                      <td className="max-w-36 truncate px-6 py-4 font-mono text-sm text-white/60">
+                      <td className="max-w-36 truncate px-6 py-4 text-sm text-ink-muted">
                         {dispute.flagged_by_name}
                       </td>
-                      <td className="max-w-72 px-6 py-4 font-mono text-sm text-white/60">
+                      <td className="max-w-72 px-6 py-4 text-sm text-ink-muted">
                         <span className="flex items-center gap-2">
                           {dispute.unread_count > 0 && (
-                            <span className="inline-flex min-w-5 shrink-0 items-center justify-center rounded-full bg-dispute px-1.5 py-0.5 font-mono text-[10px] leading-none text-white">
+                            <span className="inline-flex min-w-5 shrink-0 items-center justify-center rounded-full bg-danger px-1.5 py-0.5 text-[10px] leading-none text-ink">
                               {dispute.unread_count}
                             </span>
                           )}
@@ -303,7 +303,7 @@ export function DisputeManagementClient({
                           </span>
                         </span>
                       </td>
-                      <td className="whitespace-nowrap px-6 py-4 font-mono text-sm text-white/60">
+                      <td className="whitespace-nowrap px-6 py-4 text-sm text-ink-muted">
                         {new Date(
                           dispute.last_message_at ?? dispute.created_at,
                         ).toLocaleDateString()}
@@ -346,7 +346,7 @@ export function DisputeManagementClient({
           <div className="space-y-5">
             {/* Thesis info */}
             <section className="space-y-3">
-              <h4 className="font-heading text-sm text-white/60">
+              <h4 className="font-heading text-sm text-ink-muted">
                 Thesis Involved
               </h4>
               <DetailRow label="Title" value={selected.thesis_title} />
@@ -380,15 +380,15 @@ export function DisputeManagementClient({
 
             {/* Thread */}
             <section className="space-y-3">
-              <h4 className="font-heading text-sm text-white/60">
+              <h4 className="font-heading text-sm text-ink-muted">
                 Conversation
               </h4>
               {loadError ? (
-                <p className="font-mono text-sm text-dispute">{loadError}</p>
+                <p className="text-sm text-danger">{loadError}</p>
               ) : thread ? (
                 <DisputeThread dispute={thread} onChanged={refetchThread} />
               ) : (
-                <p className="font-mono text-sm text-white/50">
+                <p className="text-sm text-ink-subtle">
                   Loading thread…
                 </p>
               )}
@@ -399,19 +399,19 @@ export function DisputeManagementClient({
               <>
                 <hr className="border-border" />
                 <section className="space-y-3">
-                  <h4 className="font-heading text-sm text-white/60">
+                  <h4 className="font-heading text-sm text-ink-muted">
                     Resolve Dispute
                   </h4>
-                  <p className="font-mono text-xs text-white/40">
+                  <p className="text-xs text-ink-subtle">
                     Posting a closing note appends it as the final admin
                     message and locks the thread.
                   </p>
                   <div className="flex flex-col gap-1">
                     <label
                       htmlFor="closing-note"
-                      className="font-mono text-xs text-white/40"
+                      className="text-xs text-ink-subtle"
                     >
-                      Closing Note <span className="text-dispute">*</span>
+                      Closing Note <span className="text-danger">*</span>
                     </label>
                     <textarea
                       id="closing-note"
@@ -420,14 +420,14 @@ export function DisputeManagementClient({
                       onChange={(e) => setClosingNote(e.target.value)}
                       maxLength={MAX_REASON_LENGTH}
                       rows={3}
-                      className="resize-y rounded-xs border border-border bg-surface px-3 py-2 font-mono text-sm text-white/90 placeholder:text-white/30 focus:border-accent focus:outline-none"
+                      className="resize-y rounded-md border border-border bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-subtle focus:border-primary focus:outline-none"
                     />
                     <div className="flex justify-end">
                       <span
-                        className={`font-mono text-xs ${
+                        className={`text-xs ${
                           closingNote.length > 1800
-                            ? "text-dispute"
-                            : "text-white/30"
+                            ? "text-danger"
+                            : "text-ink-subtle"
                         }`}
                       >
                         {closingNote.length}/{MAX_REASON_LENGTH}
@@ -435,7 +435,7 @@ export function DisputeManagementClient({
                     </div>
                   </div>
                   {resolveError && (
-                    <p className="font-mono text-xs text-dispute">
+                    <p className="text-xs text-danger">
                       {resolveError}
                     </p>
                   )}
@@ -459,7 +459,7 @@ export function DisputeManagementClient({
               <>
                 <hr className="border-border" />
                 <section className="space-y-3">
-                  <h4 className="font-heading text-sm text-white/60">
+                  <h4 className="font-heading text-sm text-ink-muted">
                     Resolution
                   </h4>
                   <div className="grid grid-cols-2 gap-x-6 gap-y-3">

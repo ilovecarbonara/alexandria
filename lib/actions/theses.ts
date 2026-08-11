@@ -2,9 +2,11 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { requireAdmin, requireAuth } from "./auth-guards";
+import { requireLibrarian, requireAuth } from "./auth-guards";
 import { sortThesisAuthors } from "@/lib/authors";
 import { sanitizeSearchTerm, validateUUID, validateDateRange } from "@/lib/validation";
+import { PUBLIC_STATUSES, STATUS_LABELS } from "@/lib/constants";
+import { assertTransition } from "@/lib/workflow";
 import type { ThesisLevel, ThesisStatus, SubmissionType } from "@/lib/supabase/types";
 
 export interface VersionChainEntry {
@@ -34,9 +36,9 @@ export async function searchTheses(filters: SearchFilters) {
   const dateError = validateDateRange(filters.dateFrom, filters.dateTo);
   if (dateError) return { error: dateError };
 
-  // Admin-only flags require admin auth
+  // Librarian-only flags require the librarian role
   if (filters.includeAllStatuses || filters.includeEmail) {
-    const auth = await requireAdmin();
+    const auth = await requireLibrarian();
     if ("error" in auth) return { error: auth.error };
   }
 
@@ -45,13 +47,14 @@ export async function searchTheses(filters: SearchFilters) {
   let query = supabase
     .from("theses")
     .select(
-      "id, user_id, title, thesis_level, thesis_category, submission_type, sha256_hash, tx_hash, status, registered_at, previous_thesis_id, thesis_authors(name, position)",
+      "id, user_id, adviser_id, title, abstract, keywords, thesis_level, thesis_category, submission_type, sha256_hash, tx_hash, status, similarity_flagged, registered_at, previous_thesis_id, thesis_authors(name, position)",
     )
     .order("registered_at", { ascending: false });
 
-  // Public callers only see statuses that should remain visible in the registry.
+  // Only published records reach the registry. RLS enforces the same rule at
+  // the database, so this is the second of two gates rather than the only one.
   if (!filters.includeAllStatuses) {
-    query = query.in("status", ["accepted", "flagged"]);
+    query = query.in("status", PUBLIC_STATUSES);
   }
 
   // Filter by specific status
@@ -102,7 +105,9 @@ export async function searchTheses(filters: SearchFilters) {
     thesis_authors: sortThesisAuthors(thesis.thesis_authors),
   }));
 
-  // Exclude superseded drafts (drafts that already have a child revision)
+  // Drafts that already have a child revision. Drafts are never public now, so
+  // this only affects the librarian's view — but it still drives the History
+  // buttons for both.
   const { data: childLinks } = await supabase
     .from("theses")
     .select("previous_thesis_id")
@@ -160,10 +165,23 @@ export async function updateThesisStatus(
     return { error: "Invalid thesis ID format." };
   }
 
-  const auth = await requireAdmin();
+  const auth = await requireLibrarian();
   if ("error" in auth) return { error: auth.error };
 
   const service = createServiceClient();
+
+  // Post-publication status changes only. Moving a submission through review
+  // goes via lib/actions/reviews.ts, which records the reviewer's comments.
+  const { data: current } = await service
+    .from("theses")
+    .select("status")
+    .eq("id", thesisId)
+    .single();
+
+  if (!current) return { error: "Thesis not found." };
+
+  const check = assertTransition(auth.profile.role, current.status, status);
+  if (!check.ok) return { error: check.error };
 
   const { error } = await service
     .from("theses")
@@ -172,18 +190,11 @@ export async function updateThesisStatus(
 
   if (error) return { error: error.message };
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (user) {
-    await service.from("activity_logs").insert({
-      user_id: user.id,
-      action: `Thesis status changed to ${status}`,
-      thesis_id: thesisId,
-    });
-  }
+  await service.from("activity_logs").insert({
+    user_id: auth.user.id,
+    action: `Thesis status changed to ${STATUS_LABELS[status]}`,
+    thesis_id: thesisId,
+  });
 
   return {};
 }
@@ -274,7 +285,7 @@ export async function getVersionChain(
     const auth = await requireAuth();
 
     if (!("error" in auth)) {
-      if (target.user_id === auth.user.id || auth.profile.is_admin) {
+      if (target.user_id === auth.user.id || auth.profile.role === "librarian") {
         showAll = true;
       }
     }
@@ -288,9 +299,9 @@ export async function getVersionChain(
     )
     .eq("user_id", target.user_id);
 
-  // Public callers: exclude pending theses from the chain
+  // Public callers see only the published members of the chain
   if (!showAll) {
-    thesisQuery = thesisQuery.neq("status", "pending");
+    thesisQuery = thesisQuery.in("status", PUBLIC_STATUSES);
   }
 
   const { data: userTheses, error: fetchErr } = await thesisQuery;

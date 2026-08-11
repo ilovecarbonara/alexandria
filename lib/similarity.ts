@@ -165,7 +165,7 @@ export async function checkTitleSimilarity(thesisId: string) {
       status: "notified",
     });
 
-    // Auto-flag the incoming thesis when similarity meets the auto-flag threshold
+    // Raise the advisory flag when similarity meets the auto-flag threshold.
     if (!autoFlagged && match.similarity_score >= autoFlagThreshold) {
       const score = (match.similarity_score * 100).toFixed(1);
 
@@ -195,9 +195,12 @@ export async function checkTitleSimilarity(thesisId: string) {
         });
       }
 
+      // Advisory only. Setting `status` here would eject the submission from
+      // the review pipeline it just entered; instead the flag raises a warning
+      // banner on the adviser's and librarian's review pages, and they decide.
       await service
         .from("theses")
-        .update({ status: "flagged" })
+        .update({ similarity_flagged: true })
         .eq("id", thesis.id);
 
       await service.from("activity_logs").insert({

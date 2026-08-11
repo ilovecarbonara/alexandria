@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { requireAdmin } from "./auth-guards";
+import { requireLibrarian } from "./auth-guards";
 import { MAX_ACTIVITY_ACTION_LENGTH } from "@/lib/validation";
 import { validateUUID } from "@/lib/validation";
 
@@ -31,7 +31,7 @@ export async function getThesisActivityLogs(thesisId: string): Promise<{
     return { error: "Invalid thesis ID format." };
   }
 
-  const auth = await requireAdmin();
+  const auth = await requireLibrarian();
   if ("error" in auth) return { error: auth.error };
 
   const service = createServiceClient();

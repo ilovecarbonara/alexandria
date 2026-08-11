@@ -13,11 +13,13 @@ import {
   validateFullName,
   validatePassword,
 } from "@/lib/validation";
+import { REQUESTABLE_ROLES } from "@/lib/constants";
 
 export default function RegisterPage() {
   const [state, formAction, isPending] = useActionState(signUp, null);
   const [errors, setErrors] = useState<Record<string, string | null>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [requestedRole, setRequestedRole] = useState<string>("student");
 
   const validate = useCallback(
     (name: string, value: string): string | null => {
@@ -61,7 +63,7 @@ export default function RegisterPage() {
 
   return (
     <Card>
-      <h2 className="mb-4 font-heading text-lg text-white">Register</h2>
+      <h2 className="mb-4 font-heading text-lg text-ink">Register</h2>
 
       <form action={formAction} className="flex flex-col gap-4">
         <Input
@@ -105,8 +107,37 @@ export default function RegisterPage() {
           required
         />
 
+        {/* Recorded as `requested_role`; the librarian grants it on approval. */}
+        <fieldset className="flex flex-col gap-2">
+          <legend className="mb-1 text-sm text-ink-muted">
+            I am registering as
+          </legend>
+          {REQUESTABLE_ROLES.map((role) => (
+            <label
+              key={role.value}
+              className="flex cursor-pointer items-center gap-2 text-sm text-ink"
+            >
+              <input
+                type="radio"
+                name="requestedRole"
+                value={role.value}
+                checked={requestedRole === role.value}
+                onChange={(e) => setRequestedRole(e.target.value)}
+                className=""
+                required
+              />
+              {role.label}
+            </label>
+          ))}
+          <span className="text-xs text-ink-subtle">
+            {requestedRole === "adviser"
+              ? "Adviser accounts review student submissions. The university librarian confirms this when approving your account."
+              : "Students submit theses to the archive for review."}
+          </span>
+        </fieldset>
+
         {state?.error && (
-          <p className="font-mono text-xs text-dispute">{state.error}</p>
+          <p className="text-xs text-danger">{state.error}</p>
         )}
 
         <Button type="submit" disabled={isPending}>
@@ -114,9 +145,9 @@ export default function RegisterPage() {
         </Button>
       </form>
 
-      <p className="mt-4 text-center font-mono text-xs text-white/40">
+      <p className="mt-4 text-center text-xs text-ink-subtle">
         Already have an account?{" "}
-        <Link href="/login" className="text-accent hover:underline">
+        <Link href="/login" className="text-primary hover:underline">
           Log in
         </Link>
       </p>

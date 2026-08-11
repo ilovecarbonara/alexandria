@@ -136,18 +136,18 @@ export function DashboardDisputesClient({
       <button
         type="button"
         onClick={() => switchTab(key)}
-        className={`flex items-center gap-2 border-b-2 px-4 py-2 font-mono text-sm transition-colors ${
+        className={`flex items-center gap-2 border-b-2 px-4 py-2 text-sm transition-colors ${
           active
-            ? "border-accent text-accent"
-            : "border-transparent text-white/50 hover:text-white/80"
+            ? "border-primary text-primary"
+            : "border-transparent text-ink-subtle hover:text-ink"
         }`}
       >
         <span>
           {label}{" "}
-          <span className="text-white/30">({count})</span>
+          <span className="text-ink-subtle">({count})</span>
         </span>
         {unread > 0 && (
-          <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-dispute px-1.5 py-0.5 font-mono text-[10px] leading-none text-white">
+          <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-danger px-1.5 py-0.5 text-[10px] leading-none text-ink">
             {unread > 99 ? "99+" : unread}
           </span>
         )}
@@ -158,8 +158,8 @@ export function DashboardDisputesClient({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-heading text-2xl text-white">Disputes</h1>
-        <p className="mt-1 font-mono text-sm text-white/40">
+        <h1 className="font-heading text-2xl text-ink">Disputes</h1>
+        <p className="mt-1 text-sm text-ink-subtle">
           Threaded conversations with the admin about flagged theses
         </p>
       </div>
@@ -171,7 +171,7 @@ export function DashboardDisputesClient({
 
       <Card className="p-0">
         {rows.length === 0 ? (
-          <p className="px-6 py-12 text-center font-mono text-sm text-white/40">
+          <p className="px-6 py-12 text-center text-sm text-ink-subtle">
             {tab === "filed"
               ? "You haven't filed any disputes yet."
               : "No one has flagged your theses."}
@@ -184,30 +184,30 @@ export function DashboardDisputesClient({
                   <button
                     type="button"
                     onClick={() => setOpenId(row.id)}
-                    className="grid w-full grid-cols-[1fr_auto] items-start gap-3 px-6 py-4 text-left transition-colors hover:bg-white/5"
+                    className="grid w-full grid-cols-[1fr_auto] items-start gap-3 px-6 py-4 text-left transition-colors hover:bg-raised"
                   >
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="truncate font-mono text-sm text-white/90">
+                        <span className="truncate text-sm text-ink">
                           {row.thesis_title}
                         </span>
                         {row.unread_count > 0 && (
-                          <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-dispute px-1.5 py-0.5 font-mono text-[10px] leading-none text-white">
+                          <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-danger px-1.5 py-0.5 text-[10px] leading-none text-ink">
                             {row.unread_count}
                           </span>
                         )}
                       </div>
-                      <p className="mt-0.5 truncate font-mono text-xs text-white/40">
+                      <p className="mt-0.5 truncate text-xs text-ink-subtle">
                         {tab === "filed" ? "To" : "From"}:{" "}
                         {row.counterparty_display_name}
                       </p>
-                      <p className="mt-1 truncate font-mono text-xs text-white/60">
+                      <p className="mt-1 truncate text-xs text-ink-muted">
                         {summarize(row)}
                       </p>
                     </div>
                     <div className="flex flex-col items-end gap-1">
                       <StatusChip status={row.status} />
-                      <span className="whitespace-nowrap font-mono text-xs text-white/40">
+                      <span className="whitespace-nowrap text-xs text-ink-subtle">
                         {formatRelative(
                           row.last_message_at ?? row.created_at,
                         )}
@@ -233,11 +233,11 @@ export function DashboardDisputesClient({
         className="w-[70vw] max-w-[70vw] min-w-[20rem]"
       >
         {loadError ? (
-          <p className="font-mono text-sm text-dispute">{loadError}</p>
+          <p className="text-sm text-danger">{loadError}</p>
         ) : thread ? (
           <DisputeThread dispute={thread} onChanged={refetchThread} />
         ) : (
-          <p className="font-mono text-sm text-white/50">Loading thread…</p>
+          <p className="text-sm text-ink-subtle">Loading thread…</p>
         )}
       </Modal>
     </div>

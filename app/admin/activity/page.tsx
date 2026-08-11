@@ -40,19 +40,19 @@ export default async function AdminActivityPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-heading text-2xl text-white">Activity Logs</h1>
-        <p className="mt-1 font-mono text-sm text-white/40">
+        <h1 className="font-heading text-2xl text-ink">Activity Logs</h1>
+        <p className="mt-1 text-sm text-ink-subtle">
           All system activity ({totalCount} total)
         </p>
       </div>
 
       <Card className="p-0">
         {error ? (
-          <p className="px-6 py-12 text-center font-mono text-sm text-dispute">
+          <p className="px-6 py-12 text-center text-sm text-danger">
             Failed to load activity logs.
           </p>
         ) : logs.length === 0 ? (
-          <p className="px-6 py-12 text-center font-mono text-sm text-white/40">
+          <p className="px-6 py-12 text-center text-sm text-ink-subtle">
             No activity logs found.
           </p>
         ) : (
@@ -61,13 +61,13 @@ export default async function AdminActivityPage({
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border text-left">
-                    <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">
+                    <th className="px-6 py-3 text-xs text-ink-subtle uppercase">
                       Action
                     </th>
-                    <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">
+                    <th className="px-6 py-3 text-xs text-ink-subtle uppercase">
                       User
                     </th>
-                    <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">
+                    <th className="px-6 py-3 text-xs text-ink-subtle uppercase">
                       Date
                     </th>
                   </tr>
@@ -80,20 +80,20 @@ export default async function AdminActivityPage({
                         key={log.id}
                         className="border-b border-border last:border-b-0"
                       >
-                        <td className="max-w-96 truncate px-6 py-4 font-mono text-sm text-white/90">
+                        <td className="max-w-96 truncate px-6 py-4 text-sm text-ink">
                           {log.action}
                         </td>
                         <td className="px-6 py-4">
                           <div>
-                            <p className="font-mono text-sm text-white/80">
+                            <p className="text-sm text-ink">
                               {user?.full_name ?? "Unknown"}
                             </p>
-                            <p className="font-mono text-xs text-white/40">
+                            <p className="text-xs text-ink-subtle">
                               {user?.email ?? ""}
                             </p>
                           </div>
                         </td>
-                        <td className="whitespace-nowrap px-6 py-4 font-mono text-sm text-white/60">
+                        <td className="whitespace-nowrap px-6 py-4 text-sm text-ink-muted">
                           {new Date(log.created_at).toLocaleString()}
                         </td>
                       </tr>

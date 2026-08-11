@@ -72,7 +72,7 @@ export function CertificateButton({ thesisId, thesis, status, className }: Certi
         {loading ? "Generating…" : "Certificate"}
       </Button>
       <Modal open={showWarning} onClose={() => setShowWarning(false)} title="Flagged Thesis" className="w-120 max-w-[90vw]">
-        <p className="font-mono text-sm text-dispute text-justify whitespace-normal wrap-break-word">
+        <p className="text-sm text-danger text-justify whitespace-normal wrap-break-word">
           This thesis has been flagged and is currently under dispute review.
           The generated certificate will only confirm its blockchain registration
           and cannot be used as proof of verified authorship until the dispute

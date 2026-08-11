@@ -28,18 +28,29 @@ ChartJS.register(
   Legend,
 );
 
+/**
+ * Categorical series colours, keyed off the academic palette.
+ *
+ * Ordered so adjacent series stay distinguishable, and all are dark enough to
+ * read as fills against the ivory ground.
+ */
 const CHART_COLORS = [
-  "#4A90D9",
-  "#2ECC8F",
-  "#E2A84B",
-  "#C0392B",
-  "#5CC8FF",
-  "#9B59B6",
-  "#1ABC9C",
-  "#E67E22",
-  "#3498DB",
-  "#E74C3C",
+  "#1B3A6B", // navy — primary
+  "#A67C2E", // gold — accent
+  "#2F6B4F", // forest
+  "#9B2C2C", // brick
+  "#4B6E9C", // slate blue
+  "#6B5B95", // muted violet
+  "#357A6B", // teal
+  "#B4713A", // burnt orange
+  "#7A6A4F", // stone
+  "#8A6D1F", // ochre
 ];
+
+const INK_MUTED = "#5C5A54";
+const INK_SUBTLE = "#86837B";
+const GRID = "rgba(26, 26, 24, 0.08)";
+const CHART_FONT = "Inter, system-ui, sans-serif";
 
 const CHART_OPTIONS = {
   responsive: true,
@@ -47,19 +58,19 @@ const CHART_OPTIONS = {
   plugins: {
     legend: {
       labels: {
-        color: "rgba(255,255,255,0.6)",
-        font: { family: "DM Mono, monospace", size: 11 },
+        color: INK_MUTED,
+        font: { family: CHART_FONT, size: 11 },
       },
     },
   },
   scales: {
     x: {
-      ticks: { color: "rgba(255,255,255,0.4)", font: { family: "DM Mono, monospace", size: 10 } },
-      grid: { color: "rgba(255,255,255,0.05)" },
+      ticks: { color: INK_SUBTLE, font: { family: CHART_FONT, size: 10 } },
+      grid: { color: GRID },
     },
     y: {
-      ticks: { color: "rgba(255,255,255,0.4)", font: { family: "DM Mono, monospace", size: 10 } },
-      grid: { color: "rgba(255,255,255,0.05)" },
+      ticks: { color: INK_SUBTLE, font: { family: CHART_FONT, size: 10 } },
+      grid: { color: GRID },
     },
   },
 } as const;
@@ -71,8 +82,8 @@ const PIE_OPTIONS = {
     legend: {
       position: "bottom" as const,
       labels: {
-        color: "rgba(255,255,255,0.6)",
-        font: { family: "DM Mono, monospace", size: 11 },
+        color: INK_MUTED,
+        font: { family: CHART_FONT, size: 11 },
         padding: 12,
       },
     },
@@ -128,8 +139,8 @@ export function AnalyticsClient({ data }: { data: AnalyticsData }) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-heading text-2xl text-white">Analytics</h1>
-          <p className="mt-1 font-mono text-sm text-white/40">
+          <h1 className="font-heading text-2xl text-ink">Analytics</h1>
+          <p className="mt-1 text-sm text-ink-subtle">
             Registration statistics and system overview
           </p>
         </div>
@@ -144,15 +155,15 @@ export function AnalyticsClient({ data }: { data: AnalyticsData }) {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
-          <p className="font-mono text-xs text-white/40 uppercase">
+          <p className="text-xs text-ink-subtle uppercase">
             Open Disputes
           </p>
-          <p className="mt-2 font-heading text-3xl text-dispute">
+          <p className="mt-2 font-heading text-3xl text-danger">
             {data.openDisputes}
           </p>
         </Card>
         <Card>
-          <p className="font-mono text-xs text-white/40 uppercase">
+          <p className="text-xs text-ink-subtle uppercase">
             Resolved Disputes
           </p>
           <p className="mt-2 font-heading text-3xl text-success">
@@ -160,18 +171,18 @@ export function AnalyticsClient({ data }: { data: AnalyticsData }) {
           </p>
         </Card>
         <Card>
-          <p className="font-mono text-xs text-white/40 uppercase">
+          <p className="text-xs text-ink-subtle uppercase">
             Total Alerts
           </p>
-          <p className="mt-2 font-heading text-3xl text-white">
+          <p className="mt-2 font-heading text-3xl text-ink">
             {data.totalAlerts}
           </p>
         </Card>
         <Card>
-          <p className="font-mono text-xs text-white/40 uppercase">
+          <p className="text-xs text-ink-subtle uppercase">
             Alerts (Last 30 Days)
           </p>
-          <p className="mt-2 font-heading text-3xl text-pending">
+          <p className="mt-2 font-heading text-3xl text-warning">
             {data.recentAlerts}
           </p>
         </Card>
@@ -180,7 +191,7 @@ export function AnalyticsClient({ data }: { data: AnalyticsData }) {
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
-          <h2 className="mb-4 font-heading text-lg text-white">
+          <h2 className="mb-4 font-heading text-lg text-ink">
             Theses by Category
           </h2>
           <div className="h-64">
@@ -199,7 +210,7 @@ export function AnalyticsClient({ data }: { data: AnalyticsData }) {
                 options={PIE_OPTIONS}
               />
             ) : (
-              <p className="flex h-full items-center justify-center font-mono text-sm text-white/40">
+              <p className="flex h-full items-center justify-center text-sm text-ink-subtle">
                 No data available
               </p>
             )}
@@ -207,7 +218,7 @@ export function AnalyticsClient({ data }: { data: AnalyticsData }) {
         </Card>
 
         <Card>
-          <h2 className="mb-4 font-heading text-lg text-white">
+          <h2 className="mb-4 font-heading text-lg text-ink">
             Theses by Level
           </h2>
           <div className="h-64">
@@ -219,7 +230,7 @@ export function AnalyticsClient({ data }: { data: AnalyticsData }) {
                     {
                       label: "Theses",
                       data: levelValues,
-                      backgroundColor: "#4A90D9",
+                      backgroundColor: CHART_COLORS[0],
                     },
                   ],
                 }}
@@ -232,7 +243,7 @@ export function AnalyticsClient({ data }: { data: AnalyticsData }) {
                 }}
               />
             ) : (
-              <p className="flex h-full items-center justify-center font-mono text-sm text-white/40">
+              <p className="flex h-full items-center justify-center text-sm text-ink-subtle">
                 No data available
               </p>
             )}
@@ -242,7 +253,7 @@ export function AnalyticsClient({ data }: { data: AnalyticsData }) {
 
       {/* Charts Row 2 */}
       <Card>
-        <h2 className="mb-4 font-heading text-lg text-white">
+        <h2 className="mb-4 font-heading text-lg text-ink">
           Monthly Registrations
         </h2>
         <div className="h-72">
@@ -254,7 +265,7 @@ export function AnalyticsClient({ data }: { data: AnalyticsData }) {
                   {
                     label: "Registrations",
                     data: monthValues,
-                    borderColor: "#4A90D9",
+                    borderColor: CHART_COLORS[0],
                     backgroundColor: "rgba(74,144,217,0.1)",
                     fill: true,
                     tension: 0.3,
@@ -270,7 +281,7 @@ export function AnalyticsClient({ data }: { data: AnalyticsData }) {
               }}
             />
           ) : (
-            <p className="flex h-full items-center justify-center font-mono text-sm text-white/40">
+            <p className="flex h-full items-center justify-center text-sm text-ink-subtle">
               No data available
             </p>
           )}

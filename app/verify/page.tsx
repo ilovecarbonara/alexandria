@@ -4,18 +4,18 @@ import { RegistryBrowser } from "@/components/RegistryBrowser";
 
 export default function VerifyPage() {
   return (
-    <div className="min-h-screen bg-bg">
+    <div className="min-h-screen bg-page">
       {/* Header */}
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-360 items-center justify-between px-6 py-4">
           <div className="flex items-baseline gap-3">
             <Link
               href="/"
-              className="font-heading text-lg tracking-widest text-white"
+              className="font-heading text-lg tracking-widest text-ink"
             >
               Alexandria
             </Link>
-            <span className="hidden font-mono text-[10px] tracking-[0.2em] text-white/30 uppercase sm:inline">
+            <span className="hidden text-[10px] tracking-[0.2em] text-ink-subtle uppercase sm:inline">
               Academic Blockchain Registry
             </span>
           </div>
@@ -28,11 +28,11 @@ export default function VerifyPage() {
       </header>
 
       {/* Hero */}
-      <section className="bg-bg py-16 text-center">
-        <h1 className="font-heading text-4xl text-white">
+      <section className="bg-page py-16 text-center">
+        <h1 className="font-heading text-4xl text-ink">
           Public Thesis Registry & Verification
         </h1>
-        <p className="mt-4 font-mono text-sm text-white/40 whitespace-nowrap">
+        <p className="mt-4 text-sm text-ink-subtle whitespace-nowrap">
           Search and verify academic thesis registrations secured on the Sepolia blockchain.
         </p>
         <div className="mx-auto mt-6 h-px w-12 bg-border" />

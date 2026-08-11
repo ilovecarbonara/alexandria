@@ -18,7 +18,7 @@ function AccessErrorBanner() {
   const message = accessErrorMessages[searchParams.get("error") ?? ""];
   if (!message) return null;
   return (
-    <p className="mb-4 font-mono text-xs text-dispute">
+    <p className="mb-4 text-xs text-danger">
       {message}
     </p>
   );
@@ -72,7 +72,7 @@ export default function LoginPage() {
 
   return (
     <Card>
-      <h2 className="mb-4 font-heading text-lg text-white">Log In</h2>
+      <h2 className="mb-4 font-heading text-lg text-ink">Log In</h2>
 
       <Suspense fallback={null}>
         <AccessErrorBanner />
@@ -106,7 +106,7 @@ export default function LoginPage() {
         />
 
         {state?.error && (
-          <p className="font-mono text-xs text-dispute">{state.error}</p>
+          <p className="text-xs text-danger">{state.error}</p>
         )}
 
         <Button type="submit" disabled={isPending}>
@@ -114,9 +114,9 @@ export default function LoginPage() {
         </Button>
       </form>
 
-      <p className="mt-4 text-center font-mono text-xs text-white/40">
+      <p className="mt-4 text-center text-xs text-ink-subtle">
         Don&apos;t have an account?{" "}
-        <Link href="/register" className="text-accent hover:underline">
+        <Link href="/register" className="text-primary hover:underline">
           Register
         </Link>
       </p>

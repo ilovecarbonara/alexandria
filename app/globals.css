@@ -1,68 +1,137 @@
 @import "tailwindcss";
 
+/*
+ * Alexandria — an academic archive, not a crypto product.
+ *
+ * Warm ivory ground, deep navy for action, muted gold for scholarly accents.
+ * Light only: there is deliberately no dark mode.
+ */
+
 :root {
-  --color-bg: #0D0F12;
-  --color-surface: #13161C;
-  --color-sidebar: #0A0C0F;
-  --color-border: #222733;
-  --color-accent: #4A90D9;
-  --color-success: #2ECC8F;
-  --color-pending: #E2A84B;
-  --color-dispute: #C0392B;
-  --color-hash: #5CC8FF;
+  /* Surfaces */
+  --color-page: #FBFAF7;          /* ivory / parchment */
+  --color-surface: #FFFFFF;       /* cards, panels */
+  --color-raised: #F4F1EA;        /* table headers, wells, hover */
+  --color-sidebar: #F7F5F0;
+
+  /* Rules */
+  --color-border: #E5E0D8;
+  --color-border-strong: #CFC8BB;
+
+  /* Ink */
+  --color-ink: #1A1A18;
+  --color-ink-muted: #5C5A54;
+  --color-ink-subtle: #86837B;
+
+  /* Action */
+  --color-primary: #1B3A6B;       /* deep academic navy */
+  --color-primary-hover: #16305A;
+  --color-primary-soft: #EAF0F9;
+
+  /* Scholarly accent — rules and marks, never large fills */
+  --color-accent: #A67C2E;
+  --color-accent-soft: #FBF3E2;
+
+  /* State */
+  --color-success: #2F6B4F;
+  --color-success-soft: #E8F2EC;
+  --color-warning: #8A6D1F;
+  --color-warning-soft: #FBF2DC;
+  --color-danger: #9B2C2C;
+  --color-danger-soft: #FAECEC;
+
+  /* Geometry */
+  --radius-sm: 4px;
+  --radius: 8px;
+  --radius-lg: 12px;
 }
 
 @theme inline {
-  --color-bg: var(--color-bg);
+  --color-page: var(--color-page);
   --color-surface: var(--color-surface);
+  --color-raised: var(--color-raised);
   --color-sidebar: var(--color-sidebar);
-  --color-border: var(--color-border);
-  --color-accent: var(--color-accent);
-  --color-success: var(--color-success);
-  --color-pending: var(--color-pending);
-  --color-dispute: var(--color-dispute);
-  --color-hash: var(--color-hash);
 
-  --font-heading: "Playfair Display", serif;
-  --font-mono: "DM Mono", monospace;
+  --color-border: var(--color-border);
+  --color-border-strong: var(--color-border-strong);
+
+  --color-ink: var(--color-ink);
+  --color-ink-muted: var(--color-ink-muted);
+  --color-ink-subtle: var(--color-ink-subtle);
+
+  --color-primary: var(--color-primary);
+  --color-primary-hover: var(--color-primary-hover);
+  --color-primary-soft: var(--color-primary-soft);
+
+  --color-accent: var(--color-accent);
+  --color-accent-soft: var(--color-accent-soft);
+
+  --color-success: var(--color-success);
+  --color-success-soft: var(--color-success-soft);
+  --color-warning: var(--color-warning);
+  --color-warning-soft: var(--color-warning-soft);
+  --color-danger: var(--color-danger);
+  --color-danger-soft: var(--color-danger-soft);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius);
+  --radius-lg: var(--radius-lg);
+
+  /* Serif for headings and thesis titles; humanist sans for everything the
+     reader actually reads; mono reserved for hashes and transaction ids. */
+  --font-heading: var(--font-source-serif), Georgia, serif;
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  /* Two elevation levels. No gradients, no glows. */
+  --shadow-card: 0 1px 2px rgb(26 26 24 / 0.04), 0 1px 3px rgb(26 26 24 / 0.06);
+  --shadow-pop: 0 4px 12px rgb(26 26 24 / 0.08), 0 2px 4px rgb(26 26 24 / 0.06);
+}
+
+html {
+  background: var(--color-page);
 }
 
 body {
-  background: var(--color-bg);
-  color: #ededed;
-  font-family: var(--font-mono);
+  background: var(--color-page);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Scrollbar — blends into the background */
+h1, h2, h3 {
+  font-family: var(--font-heading);
+  letter-spacing: -0.01em;
+}
+
+/* Scrollbar — visible but quiet against the ivory ground */
 * {
   scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-}
-*:hover {
-  scrollbar-color: #222733 transparent;
+  scrollbar-color: var(--color-border-strong) transparent;
 }
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 10px;
+  height: 10px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 3px;
+  background: var(--color-border-strong);
+  border: 3px solid var(--color-page);
+  border-radius: 6px;
 }
-*:hover::-webkit-scrollbar-thumb {
-  background: #222733;
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-ink-subtle);
 }
 
-/* Custom checkbox — matches design system */
+/* Checkbox */
 input[type="checkbox"].cb {
   appearance: none;
   width: 1rem;
   height: 1rem;
-  border-radius: 2px;
-  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-strong);
   background: var(--color-surface);
   cursor: pointer;
   position: relative;
@@ -70,8 +139,8 @@ input[type="checkbox"].cb {
   flex-shrink: 0;
 }
 input[type="checkbox"].cb:checked {
-  background: var(--color-accent);
-  border-color: var(--color-accent);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
 }
 input[type="checkbox"].cb:checked::after {
   content: "";
@@ -81,14 +150,25 @@ input[type="checkbox"].cb:checked::after {
   width: 4px;
   height: 8px;
   border: solid white;
-  border-width: 0 1.5px 1.5px 0;
+  border-width: 0 2px 2px 0;
   transform: rotate(45deg);
 }
 input[type="checkbox"].cb:focus-visible {
-  outline: none;
-  border-color: var(--color-accent);
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 input[type="checkbox"].cb:hover:not(:disabled) {
-  border-color: var(--color-accent);
+  border-color: var(--color-primary);
 }
 
+/* Radios pick up the navy without per-instance classes */
+input[type="radio"] {
+  accent-color: var(--color-primary);
+}
+
+/* A consistent focus ring everywhere, since the palette is low-contrast */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}

@@ -121,7 +121,7 @@ export function Select({
   return (
     <div className="flex flex-col gap-1" ref={containerRef}>
       {label && (
-        <label htmlFor={id} className="text-sm text-white/60 font-mono">
+        <label htmlFor={id} className="text-sm text-ink-muted">
           {label}
         </label>
       )}
@@ -152,20 +152,20 @@ export function Select({
           id={id}
           disabled={disabled}
           onClick={() => !disabled && setOpen((o) => !o)}
-          className={`flex w-full items-center justify-between rounded-xs border bg-surface px-3 py-2 text-left font-mono text-sm transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
+          className={`flex w-full items-center justify-between rounded-md border bg-surface px-3 py-2 text-left text-sm transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
             open
-              ? "border-accent"
+              ? "border-primary"
               : error
-                ? "border-dispute"
-                : "border-border hover:border-white/20"
-          } ${value ? "text-white/90" : "text-white/30"} ${className}`}
+                ? "border-danger"
+                : "border-border hover:border-border"
+          } ${value ? "text-ink" : "text-ink-subtle"} ${className}`}
         >
           <span className="truncate">{selectedLabel}</span>
           <svg
             width="12"
             height="12"
             viewBox="0 0 12 12"
-            className={`ml-2 shrink-0 text-white/40 transition-transform ${open ? "rotate-180" : ""}`}
+            className={`ml-2 shrink-0 text-ink-subtle transition-transform ${open ? "rotate-180" : ""}`}
           >
             <path
               d="M2 4l4 4 4-4"
@@ -179,15 +179,15 @@ export function Select({
         </button>
 
         {open && (
-          <ul className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-xs border border-border bg-surface py-1 shadow-lg shadow-black/40">
+          <ul className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-border bg-surface py-1 shadow-pop">
             <li>
               <button
                 type="button"
                 onClick={() => handleSelect("")}
-                className={`block w-full px-3 py-1.5 text-left font-mono text-sm transition-colors ${
+                className={`block w-full px-3 py-1.5 text-left text-sm transition-colors ${
                   value === ""
-                    ? "bg-accent/15 text-accent"
-                    : "text-white/50 hover:bg-white/5 hover:text-white/80"
+                    ? "bg-primary-soft text-primary"
+                    : "text-ink-subtle hover:bg-raised hover:text-ink"
                 }`}
               >
                 {placeholder}
@@ -198,10 +198,10 @@ export function Select({
                 <button
                   type="button"
                   onClick={() => handleSelect(opt.value)}
-                  className={`block w-full px-3 py-1.5 text-left font-mono text-sm transition-colors ${
+                  className={`block w-full px-3 py-1.5 text-left text-sm transition-colors ${
                     value === opt.value
-                      ? "bg-accent/15 text-accent"
-                      : "text-white/90 hover:bg-white/5"
+                      ? "bg-primary-soft text-primary"
+                      : "text-ink hover:bg-raised"
                   }`}
                 >
                   {opt.label}
@@ -212,7 +212,7 @@ export function Select({
         )}
       </div>
 
-      {error && <span className="text-xs text-dispute font-mono">{error}</span>}
+      {error && <span className="text-xs text-danger">{error}</span>}
     </div>
   );
 }

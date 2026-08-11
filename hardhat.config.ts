@@ -6,6 +6,11 @@ dotenv.config({ path: ".env.local" });
 
 const config: HardhatUserConfig = {
   solidity: "0.8.28",
+  paths: {
+    // Scoped to the contract tests. The rest of test/ holds the ESM-only PDF
+    // extraction suite, which Hardhat's CommonJS mocha cannot load.
+    tests: "test/contracts",
+  },
   networks: {
     sepolia: {
       url: `https://eth-sepolia.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`,

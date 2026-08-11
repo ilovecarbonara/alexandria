@@ -9,9 +9,9 @@ import {
   deactivateUser,
   activateUser,
 } from "@/lib/actions/users";
-import { PAGE_SIZE } from "@/lib/constants";
+import { PAGE_SIZE, ROLE_LABELS } from "@/lib/constants";
 import { generateCSV, downloadCSV } from "@/lib/export";
-import type { UserApprovalStatus } from "@/lib/supabase/types";
+import type { UserApprovalStatus, UserRole } from "@/lib/supabase/types";
 
 type UserFilter = "all" | "pending" | "active" | "rejected" | "revoked" | "deactivated";
 type UserStatus = Exclude<UserFilter, "all">;
@@ -24,6 +24,9 @@ interface User {
   email: string;
   full_name: string;
   approval_status: UserApprovalStatus;
+  role: UserRole;
+  /** What the account asked to be at sign-up; promoted to `role` on approval. */
+  requested_role: UserRole;
   is_active: boolean;
   last_active_at: string | null;
   created_at: string;
@@ -249,8 +252,8 @@ export function UserManagementClient({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-heading text-2xl text-white">User Management</h1>
-          <p className="mt-1 font-mono text-sm text-white/40">
+          <h1 className="font-heading text-2xl text-ink">User Management</h1>
+          <p className="mt-1 text-sm text-ink-subtle">
             Approve, reject, revoke, and manage user accounts
           </p>
         </div>
@@ -277,14 +280,14 @@ export function UserManagementClient({
       </div>
 
       {error && (
-        <div className="rounded-xs border border-dispute/30 bg-dispute/20 px-4 py-3 font-mono text-sm text-dispute">
+        <div className="rounded-md border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger">
           {error}
         </div>
       )}
 
       {selected.size > 0 && (
-        <div className="flex items-center gap-3 rounded-xs border border-accent/30 bg-accent/10 px-4 py-3">
-          <span className="font-mono text-sm text-white/80">
+        <div className="flex items-center gap-3 rounded-md border border-primary/30 bg-primary-soft px-4 py-3">
+          <span className="text-sm text-ink">
             {bulkProgress
               ? `Processing ${bulkProgress.current} of ${bulkProgress.total}...`
               : `${selected.size} selected`}
@@ -327,7 +330,7 @@ export function UserManagementClient({
 
       <Card className="p-0">
         {filtered.length === 0 ? (
-          <p className="px-6 py-12 text-center font-mono text-sm text-white/40">
+          <p className="px-6 py-12 text-center text-sm text-ink-subtle">
             No users found.
           </p>
         ) : (
@@ -344,22 +347,25 @@ export function UserManagementClient({
                         className="cb"
                       />
                     </th>
-                    <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">
+                    <th className="px-6 py-3 text-xs text-ink-subtle uppercase">
                       Name
                     </th>
-                    <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">
+                    <th className="px-6 py-3 text-xs text-ink-subtle uppercase">
                       Email
                     </th>
-                    <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">
+                    <th className="px-6 py-3 text-xs text-ink-subtle uppercase">
+                      Role
+                    </th>
+                    <th className="px-6 py-3 text-xs text-ink-subtle uppercase">
                       Status
                     </th>
-                    <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">
+                    <th className="px-6 py-3 text-xs text-ink-subtle uppercase">
                       Joined
                     </th>
-                    <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">
+                    <th className="px-6 py-3 text-xs text-ink-subtle uppercase">
                       Last Active
                     </th>
-                    <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">
+                    <th className="px-6 py-3 text-xs text-ink-subtle uppercase">
                       Actions
                     </th>
                   </tr>
@@ -386,19 +392,30 @@ export function UserManagementClient({
                             className="cb"
                           />
                         </td>
-                        <td className="max-w-40 truncate px-6 py-4 font-mono text-sm text-white/90">
+                        <td className="max-w-40 truncate px-6 py-4 text-sm text-ink">
                           {user.full_name}
                         </td>
-                        <td className="max-w-48 truncate px-6 py-4 font-mono text-sm text-white/60">
+                        <td className="max-w-48 truncate px-6 py-4 text-sm text-ink-muted">
                           {user.email}
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4">
+                          <span className="text-sm text-ink">
+                            {ROLE_LABELS[user.role]}
+                          </span>
+                          {/* Approving this account will promote it. */}
+                          {isPending && user.requested_role !== "student" && (
+                            <span className="ml-2 border-l-2 border-primary pl-2 text-xs uppercase text-primary">
+                              Requests {ROLE_LABELS[user.requested_role]}
+                            </span>
+                          )}
                         </td>
                         <td className="px-6 py-4">
                           <StatusChip status={status} />
                         </td>
-                        <td className="whitespace-nowrap px-6 py-4 font-mono text-sm text-white/60">
+                        <td className="whitespace-nowrap px-6 py-4 text-sm text-ink-muted">
                           {new Date(user.created_at).toLocaleDateString()}
                         </td>
-                        <td className="whitespace-nowrap px-6 py-4 font-mono text-sm text-white/60">
+                        <td className="whitespace-nowrap px-6 py-4 text-sm text-ink-muted">
                           {user.last_active_at
                             ? new Date(user.last_active_at).toLocaleDateString()
                             : "Never"}

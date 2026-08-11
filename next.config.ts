@@ -7,7 +7,10 @@ const nextConfig: NextConfig = {
       {
         source: "/:path*",
         headers: [
-          { key: "X-Frame-Options", value: "DENY" },
+          // SAMEORIGIN rather than DENY so the manuscript reader on
+          // /thesis/[id] can embed /api/theses/[id]/pdf. Cross-origin framing
+          // is still blocked, here and by `frame-ancestors` below.
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
           { key: "X-Content-Type-Options", value: "nosniff" },
           {
             key: "Referrer-Policy",
@@ -27,6 +30,13 @@ const nextConfig: NextConfig = {
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: blob:",
               "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.alchemy.com",
+              // Direct-to-Storage manuscript uploads use a signed Supabase URL.
+              "form-action 'self'",
+              // Supersedes X-Frame-Options in modern browsers. Required for the
+              // manuscript reader to embed the PDF stream route.
+              "frame-ancestors 'self'",
+              "object-src 'none'",
+              "base-uri 'self'",
             ].join("; "),
           },
         ],

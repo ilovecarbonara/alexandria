@@ -1,10 +1,28 @@
+export type UserRole = "student" | "adviser" | "librarian";
 export type ThesisLevel = "undergraduate" | "masteral" | "doctoral";
 export type SubmissionType = "draft" | "final";
-export type ThesisStatus = "pending" | "accepted" | "flagged" | "rejected";
+
+/**
+ * The review pipeline. `draft` and `rejected` are resting states, the two
+ * `pending_*` values are queues, `returned` bounces back to the student, and
+ * only `accepted` / `flagged` are publicly visible.
+ */
+export type ThesisStatus =
+  | "draft"
+  | "pending_adviser"
+  | "returned"
+  | "pending_librarian"
+  | "accepted"
+  | "rejected"
+  | "flagged";
+
 export type UserApprovalStatus = "pending" | "approved" | "rejected" | "revoked";
+export type ReviewerRole = "adviser" | "librarian";
+export type ReviewDecision = "endorsed" | "returned" | "approved" | "rejected";
+export type AbstractConfidence = "high" | "low";
 export type DisputeStatus = "open" | "resolved";
 export type DisputeAuthorRole = "flagger" | "admin" | "owner";
-export type AlertStatus = "notified"; 
+export type AlertStatus = "notified";
 
 export interface Database {
   public: {
@@ -14,8 +32,10 @@ export interface Database {
           id: string;
           email: string;
           full_name: string;
+          full_name_normalized: string;
           approval_status: UserApprovalStatus;
-          is_admin: boolean;
+          role: UserRole;
+          requested_role: UserRole;
           is_active: boolean;
           last_active_at: string | null;
           created_at: string;
@@ -24,8 +44,10 @@ export interface Database {
           id?: string;
           email: string;
           full_name: string;
+          full_name_normalized?: string;
           approval_status?: UserApprovalStatus;
-          is_admin?: boolean;
+          role?: UserRole;
+          requested_role?: UserRole;
           is_active?: boolean;
           last_active_at?: string | null;
           created_at?: string;
@@ -34,8 +56,10 @@ export interface Database {
           id?: string;
           email?: string;
           full_name?: string;
+          full_name_normalized?: string;
           approval_status?: UserApprovalStatus;
-          is_admin?: boolean;
+          role?: UserRole;
+          requested_role?: UserRole;
           is_active?: boolean;
           last_active_at?: string | null;
           created_at?: string;
@@ -46,49 +70,91 @@ export interface Database {
         Row: {
           id: string;
           user_id: string;
+          adviser_id: string | null;
           title: string;
-          title_normalized: string; 
+          title_normalized: string;
           authors_search: string;
+          abstract: string | null;
+          abstract_confidence: AbstractConfidence | null;
+          abstract_extracted_at: string | null;
+          abstract_corrected_by: string | null;
+          abstract_corrected_at: string | null;
+          keywords: string[];
           thesis_level: ThesisLevel;
           thesis_category: string;
           submission_type: SubmissionType;
           sha256_hash: string;
           tx_hash: string;
           block_timestamp: string;
+          pdf_path: string | null;
+          pdf_size_bytes: number | null;
+          pdf_page_count: number | null;
           previous_thesis_id: string | null;
           status: ThesisStatus;
+          similarity_flagged: boolean;
+          revision_count: number;
+          adviser_reviewed_at: string | null;
+          librarian_reviewed_at: string | null;
           registered_at: string;
         };
         Insert: {
           id?: string;
           user_id: string;
+          adviser_id?: string | null;
           title: string;
-          title_normalized: string; 
+          title_normalized: string;
           authors_search?: string;
+          abstract?: string | null;
+          abstract_confidence?: AbstractConfidence | null;
+          abstract_extracted_at?: string | null;
+          abstract_corrected_by?: string | null;
+          abstract_corrected_at?: string | null;
+          keywords?: string[];
           thesis_level: ThesisLevel;
           thesis_category: string;
           submission_type: SubmissionType;
           sha256_hash: string;
           tx_hash: string;
           block_timestamp: string;
+          pdf_path?: string | null;
+          pdf_size_bytes?: number | null;
+          pdf_page_count?: number | null;
           previous_thesis_id?: string | null;
           status?: ThesisStatus;
+          similarity_flagged?: boolean;
+          revision_count?: number;
+          adviser_reviewed_at?: string | null;
+          librarian_reviewed_at?: string | null;
           registered_at?: string;
         };
         Update: {
           id?: string;
           user_id?: string;
+          adviser_id?: string | null;
           title?: string;
-          title_normalized?: string; 
+          title_normalized?: string;
           authors_search?: string;
+          abstract?: string | null;
+          abstract_confidence?: AbstractConfidence | null;
+          abstract_extracted_at?: string | null;
+          abstract_corrected_by?: string | null;
+          abstract_corrected_at?: string | null;
+          keywords?: string[];
           thesis_level?: ThesisLevel;
           thesis_category?: string;
           submission_type?: SubmissionType;
           sha256_hash?: string;
           tx_hash?: string;
           block_timestamp?: string;
+          pdf_path?: string | null;
+          pdf_size_bytes?: number | null;
+          pdf_page_count?: number | null;
           previous_thesis_id?: string | null;
           status?: ThesisStatus;
+          similarity_flagged?: boolean;
+          revision_count?: number;
+          adviser_reviewed_at?: string | null;
+          librarian_reviewed_at?: string | null;
           registered_at?: string;
         };
         Relationships: [];
@@ -98,18 +164,21 @@ export interface Database {
           id: string;
           thesis_id: string;
           name: string;
+          user_id: string | null;
           position: number;
         };
         Insert: {
           id?: string;
           thesis_id: string;
           name: string;
+          user_id?: string | null;
           position: number;
         };
         Update: {
           id?: string;
           thesis_id?: string;
           name?: string;
+          user_id?: string | null;
           position?: number;
         };
         Relationships: [
@@ -121,6 +190,89 @@ export interface Database {
             referencedColumns: ["id"];
           },
         ];
+      };
+      thesis_reviews: {
+        Row: {
+          id: string;
+          thesis_id: string;
+          reviewer_id: string;
+          reviewer_role: ReviewerRole;
+          decision: ReviewDecision;
+          comments: string | null;
+          revision_number: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          thesis_id: string;
+          reviewer_id: string;
+          reviewer_role: ReviewerRole;
+          decision: ReviewDecision;
+          comments?: string | null;
+          revision_number?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          thesis_id?: string;
+          reviewer_id?: string;
+          reviewer_role?: ReviewerRole;
+          decision?: ReviewDecision;
+          comments?: string | null;
+          revision_number?: number;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "thesis_reviews_thesis_id_fkey";
+            columns: ["thesis_id"];
+            isOneToOne: false;
+            referencedRelation: "theses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      staged_uploads: {
+        Row: {
+          id: string;
+          user_id: string;
+          sha256_hash: string;
+          storage_path: string;
+          abstract: string | null;
+          abstract_confidence: AbstractConfidence | null;
+          keywords: string[];
+          page_count: number | null;
+          size_bytes: number | null;
+          original_filename: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          sha256_hash: string;
+          storage_path: string;
+          abstract?: string | null;
+          abstract_confidence?: AbstractConfidence | null;
+          keywords?: string[];
+          page_count?: number | null;
+          size_bytes?: number | null;
+          original_filename?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          sha256_hash?: string;
+          storage_path?: string;
+          abstract?: string | null;
+          abstract_confidence?: AbstractConfidence | null;
+          keywords?: string[];
+          page_count?: number | null;
+          size_bytes?: number | null;
+          original_filename?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
       };
       disputes: {
         Row: {
@@ -282,14 +434,21 @@ export interface Database {
       register_thesis_with_authors: {
         Args: {
           p_user_id: string;
+          p_adviser_id: string | null;
           p_title: string;
           p_title_normalized: string;
+          p_abstract: string | null;
+          p_abstract_confidence: AbstractConfidence | null;
+          p_keywords: string[];
           p_thesis_level: ThesisLevel;
           p_thesis_category: string;
           p_submission_type: SubmissionType;
           p_sha256_hash: string;
           p_tx_hash: string;
           p_block_timestamp: string;
+          p_pdf_path: string | null;
+          p_pdf_size_bytes: number | null;
+          p_pdf_page_count: number | null;
           p_previous_thesis_id: string | null;
           p_author_names: string[];
         };
@@ -297,10 +456,14 @@ export interface Database {
       };
     };
     Enums: {
+      user_role: UserRole;
       thesis_level: ThesisLevel;
       submission_type: SubmissionType;
       thesis_status: ThesisStatus;
       user_approval_status: UserApprovalStatus;
+      reviewer_role: ReviewerRole;
+      review_decision: ReviewDecision;
+      abstract_confidence: AbstractConfidence;
       dispute_status: DisputeStatus;
       dispute_author_role: DisputeAuthorRole;
       alert_status: AlertStatus;

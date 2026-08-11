@@ -85,8 +85,8 @@ export function AlertsTableClient({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-heading text-2xl text-white">{title}</h1>
-          <p className="mt-1 font-mono text-sm text-white/40">{subtitle}</p>
+          <h1 className="font-heading text-2xl text-ink">{title}</h1>
+          <p className="mt-1 text-sm text-ink-subtle">{subtitle}</p>
         </div>
         {alerts.length > 0 && (
           <div className="flex items-center gap-3">
@@ -98,7 +98,7 @@ export function AlertsTableClient({
                 Export CSV
               </Button>
             )}
-            <span className="font-mono text-sm text-white/40">Sort by</span>
+            <span className="text-sm text-ink-subtle">Sort by</span>
             <div className="w-56">
               <Select
                 options={SORT_OPTIONS}
@@ -115,7 +115,7 @@ export function AlertsTableClient({
 
       <Card className="p-0">
         {alerts.length === 0 ? (
-          <p className="py-8 text-center font-mono text-sm text-white/40">
+          <p className="py-8 text-center text-sm text-ink-subtle">
             No title alerts found.
           </p>
         ) : (
@@ -124,28 +124,28 @@ export function AlertsTableClient({
         <table className="w-full">
           <thead>
             <tr className="border-b border-border text-left">
-              <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">
+              <th className="px-6 py-3 text-xs text-ink-subtle uppercase">
                 New Thesis
               </th>
-              <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">
+              <th className="px-6 py-3 text-xs text-ink-subtle uppercase">
                 Matched Thesis
               </th>
               {showNotifiedUser && (
-                <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">
+                <th className="px-6 py-3 text-xs text-ink-subtle uppercase">
                   Notified User
                 </th>
               )}
-              <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">
+              <th className="px-6 py-3 text-xs text-ink-subtle uppercase">
                 Similarity
               </th>
-              <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">
+              <th className="px-6 py-3 text-xs text-ink-subtle uppercase">
                 Status
               </th>
-              <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">
+              <th className="px-6 py-3 text-xs text-ink-subtle uppercase">
                 Date
               </th>
               {showDisputeAction && (
-                <th className="px-6 py-3 font-mono text-xs text-white/40 uppercase">
+                <th className="px-6 py-3 text-xs text-ink-subtle uppercase">
                   Actions
                 </th>
               )}
@@ -157,24 +157,24 @@ export function AlertsTableClient({
                 key={alert.id}
                 className="border-b border-border last:border-b-0"
               >
-                <td className="max-w-48 truncate px-6 py-4 font-mono text-sm text-white/90">
+                <td className="max-w-48 truncate px-6 py-4 text-sm text-ink">
                   {alert.newThesisTitle}
                 </td>
-                <td className="max-w-48 truncate px-6 py-4 font-mono text-sm text-white/90">
+                <td className="max-w-48 truncate px-6 py-4 text-sm text-ink">
                   {alert.matchedThesisTitle}
                 </td>
                 {showNotifiedUser && (
-                  <td className="max-w-36 truncate px-6 py-4 font-mono text-sm text-white/60">
+                  <td className="max-w-36 truncate px-6 py-4 text-sm text-ink-muted">
                     {alert.notifiedUserName ?? "Unknown"}
                   </td>
                 )}
-                <td className="px-6 py-4 font-mono text-sm text-hash">
+                <td className="px-6 py-4 text-sm font-mono text-ink-muted">
                   {(alert.similarityScore * 100).toFixed(1)}%
                 </td>
                 <td className="px-6 py-4">
                   <StatusChip status={alert.status} />
                 </td>
-                <td className="whitespace-nowrap px-6 py-4 font-mono text-sm text-white/60">
+                <td className="whitespace-nowrap px-6 py-4 text-sm text-ink-muted">
                   {new Date(alert.createdAt).toLocaleDateString()}
                 </td>
                 {showDisputeAction && (

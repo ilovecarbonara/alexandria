@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { ROLE_HOME } from "@/lib/constants";
+import type { UserRole } from "@/lib/supabase/types";
+
+/** Protected areas, each owned by exactly one role. */
+const ROLE_AREAS: { prefix: string; role: UserRole }[] = [
+  { prefix: "/dashboard", role: "student" },
+  { prefix: "/adviser", role: "adviser" },
+  { prefix: "/admin", role: "librarian" },
+];
 
 export async function proxy(request: NextRequest) {
   const response = NextResponse.next({
@@ -37,8 +46,10 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
-  // Unauthenticated users cannot access /dashboard or /admin
-  if (!user && (pathname.startsWith("/dashboard") || pathname.startsWith("/admin"))) {
+  const requestedArea = ROLE_AREAS.find((a) => pathname.startsWith(a.prefix));
+
+  // Unauthenticated users cannot access any role area
+  if (!user && requestedArea) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
@@ -57,11 +68,19 @@ export async function proxy(request: NextRequest) {
       return redirectRes;
     }
 
-    const { data: profile } = await supabase
+    // This client is built without the Database generic, so the row comes back
+    // untyped.
+    const { data: profile } = (await supabase
       .from("users")
-      .select("approval_status, is_admin, is_active")
+      .select("approval_status, role, is_active")
       .eq("id", user.id)
-      .single();
+      .single()) as {
+      data: {
+        approval_status: string;
+        role: UserRole;
+        is_active: boolean;
+      } | null;
+    };
 
     // Deactivated users are signed out and redirected to login
     if (profile && !profile.is_active) {
@@ -87,23 +106,17 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(new URL("/pending", request.url));
     }
 
-    // Admin users cannot access /dashboard
-    if (pathname.startsWith("/dashboard") && profile?.is_admin) {
-      return NextResponse.redirect(new URL("/admin", request.url));
-    }
+    const home = profile ? ROLE_HOME[profile.role] : "/dashboard";
 
-    // Non-admin users cannot access /admin
-    if (pathname.startsWith("/admin") && (!profile || !profile.is_admin)) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+    // Each role is confined to its own area
+    if (requestedArea && (!profile || profile.role !== requestedArea.role)) {
+      return NextResponse.redirect(new URL(home, request.url));
     }
 
     // Authenticated users shouldn't see login/register
     if (pathname.startsWith("/login") || pathname.startsWith("/register")) {
-      if (profile?.is_admin && profile.approval_status === "approved") {
-        return NextResponse.redirect(new URL("/admin", request.url));
-      }
       if (profile?.approval_status === "approved") {
-        return NextResponse.redirect(new URL("/dashboard", request.url));
+        return NextResponse.redirect(new URL(home, request.url));
       }
       return NextResponse.redirect(new URL("/pending", request.url));
     }
@@ -115,6 +128,7 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     "/dashboard/:path*",
+    "/adviser/:path*",
     "/admin/:path*",
     "/login",
     "/register",
