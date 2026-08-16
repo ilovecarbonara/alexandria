@@ -54,6 +54,15 @@ librarian   → pending_librarian ⇒ accepted | rejected | returned
               draft    ⇒ rejected
 ```
 
+**Resubmission — `POST /api/theses/resubmit`**
+The only transition a researcher owns. Reuses the same staged-upload path as a new submission (`/upload/ticket` → `/upload/process`), then revises the existing thesis **in place** rather than inserting a new row, so one thesis keeps one review thread however many attempts it takes.
+- Reachable only from `returned`, guarded by `assertTransition` and by `.eq("status", "returned")` on the update, so a reviewer acting concurrently cannot be overwritten
+- The manuscript **must differ** from the one submitted before. The identical file is caught client-side by hash before it uploads, and again server-side against `theses.sha256_hash`
+- The researcher may correct the **title and author list** — returns are often about exactly those. Level, category, and the assigned adviser are fixed; reassigning an adviser mid-review would let a submission walk away from the reviewer who returned it
+- The new manuscript's hash, transaction, abstract, and PDF replace the old ones on the row; `revision_count` increments and the superseded PDF is deleted from storage. The old chain entry remains on chain, simply no longer referenced
+- Any reviewer correction to the previous abstract is cleared, since the new abstract came out of a different PDF
+- Author rows are rewritten only when the list actually changed, re-running co-author account matching
+
 - Every decision writes a `thesis_reviews` row carrying the reviewer, their role, the decision, and their comments. **Returning or rejecting requires written comments** — enforced in the action and by a DB CHECK
 - The researcher reads those comments in full on their dashboard. A returned submission is useless without them
 - An adviser may only act on submissions where `adviser_id` matches them
