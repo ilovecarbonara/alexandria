@@ -403,7 +403,7 @@ export function UserManagementClient({
                             {ROLE_LABELS[user.role]}
                           </span>
                           {/* Approving this account will promote it. */}
-                          {isPending && user.requested_role !== "student" && (
+                          {isPending && user.requested_role !== "researcher" && (
                             <span className="ml-2 border-l-2 border-primary pl-2 text-xs uppercase text-primary">
                               Requests {ROLE_LABELS[user.requested_role]}
                             </span>

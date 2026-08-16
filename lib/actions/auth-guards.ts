@@ -67,9 +67,9 @@ export async function requireRole(
   return result;
 }
 
-/** Only students submit theses, file disputes, and receive title alerts. */
-export function requireStudent(): Promise<AuthResult> {
-  return requireRole("student");
+/** Only researchers submit theses, file disputes, and receive title alerts. */
+export function requireResearcher(): Promise<AuthResult> {
+  return requireRole("researcher");
 }
 
 export function requireAdviser(): Promise<AuthResult> {

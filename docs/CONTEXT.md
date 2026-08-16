@@ -15,22 +15,22 @@ The University of Southern Philippines Foundation's archive of student and facul
 
 ## Roles
 
-Roles live in `users.role` (`student | adviser | librarian`).
+Roles live in `users.role` (`researcher | adviser | librarian`).
 
 - **Public** (no account): search the archive, read metadata and abstracts, verify a document by hash
-- **Student**: submit theses, track them through review, revise returned submissions, flag disputes, receive title alerts, link thesis revisions
+- **Researcher**: submit theses, track them through review, revise returned submissions, flag disputes, receive title alerts, link thesis revisions
 - **Research Adviser**: review submissions assigned to them — endorse to the librarian or return with comments; read the full manuscript; correct a badly-extracted abstract
 - **University Librarian**: final approval or rejection; manage accounts and roles; mediate disputes; monitor title alerts; view analytics and activity logs
 
-A person chooses `student` or `adviser` at sign-up (`requested_role`); the librarian grants it on approval. The librarian role is seeded manually and is never self-assignable.
+A person chooses `researcher` or `adviser` at sign-up (`requested_role`); the librarian grants it on approval. The librarian role is seeded manually and is never self-assignable.
 
 ## The review pipeline
 
 ```
-Student submits a Final
+Researcher submits a Final
         │
         ▼  pending_adviser
-Research Adviser reviews ──── returned ───▶ student revises and resubmits
+Research Adviser reviews ──── returned ───▶ researcher revises and resubmits
         │
         ▼  pending_librarian
 University Librarian approves
@@ -50,7 +50,7 @@ Drafts skip review entirely: they are archived privately (`draft`) and are visib
 - Duplicate detection happens BEFORE the manuscript is archived and before the blockchain write.
 - Drafts are archived privately and skip review. Only Finals enter the pipeline.
 - Theses can be linked in version chains (Draft → Final) via `previous_thesis_id`.
-- A student may resubmit a returned thesis. A new on-chain entry is written only when the document itself changed.
+- A researcher may resubmit a returned thesis. A new on-chain entry is written only when the document itself changed.
 - Blockchain records are NEVER altered, even on dispute.
 - On every new submission a title-similarity check runs against existing entries. Above the alert threshold it notifies the matching author; above the auto-flag threshold (default 75%) it also opens a dispute and sets `similarity_flagged`. **This is advisory only** — it never moves a thesis out of the review pipeline.
 - Public search returns `accepted` and `flagged` records only. RLS enforces the same rule at the database, so application filtering is the second gate rather than the only one.

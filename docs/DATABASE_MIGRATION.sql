@@ -4,9 +4,9 @@
 -- This schema supersedes the hash-only model. Alexandria now archives the
 -- manuscript PDF itself and carries a four-role, three-stage review pipeline:
 --
---   student submits -> adviser reviews -> librarian approves -> public registry
+--   researcher submits -> adviser reviews -> librarian approves -> public registry
 --
--- Roles are `users.role` (student | adviser | librarian). The old `is_admin`
+-- Roles are `users.role` (researcher | adviser | librarian). The old `is_admin`
 -- boolean is gone.
 
 -- ============================================================
@@ -20,7 +20,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 -- Enum Types
 -- ============================================================
 
-CREATE TYPE user_role AS ENUM ('student', 'adviser', 'librarian');
+CREATE TYPE user_role AS ENUM ('researcher', 'adviser', 'librarian');
 CREATE TYPE thesis_level AS ENUM ('undergraduate', 'masteral', 'doctoral');
 CREATE TYPE submission_type AS ENUM ('draft', 'final');
 
@@ -29,7 +29,7 @@ CREATE TYPE submission_type AS ENUM ('draft', 'final');
 CREATE TYPE thesis_status AS ENUM (
   'draft',              -- Draft submission. Private to owner + librarian, never public.
   'pending_adviser',    -- Final submitted, awaiting the assigned adviser.
-  'returned',           -- Sent back to the student for revision.
+  'returned',           -- Sent back to the researcher for revision.
   'pending_librarian',  -- Adviser endorsed, awaiting the librarian.
   'accepted',           -- Librarian approved. PUBLIC.
   'rejected',           -- Terminal.
@@ -55,10 +55,10 @@ CREATE TABLE public.users (
   -- Name used for co-author matching. Kept in sync by trg_users_normalize_name.
   full_name_normalized text NOT NULL DEFAULT '',
   approval_status user_approval_status NOT NULL DEFAULT 'pending',
-  role            user_role NOT NULL DEFAULT 'student',
+  role            user_role NOT NULL DEFAULT 'researcher',
   -- What the account asked to be at signup. The librarian sees this in the
   -- approval queue and promotes `requested_role` -> `role` on approval.
-  requested_role  user_role NOT NULL DEFAULT 'student',
+  requested_role  user_role NOT NULL DEFAULT 'researcher',
   is_active       boolean NOT NULL DEFAULT true,
   last_active_at  timestamptz,
   created_at      timestamptz NOT NULL DEFAULT now(),
@@ -131,7 +131,7 @@ CREATE TABLE public.thesis_authors (
 );
 
 -- Every adviser and librarian decision, in order. Carries the comments the
--- student reads when a submission is returned.
+-- researcher reads when a submission is returned.
 CREATE TABLE public.thesis_reviews (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   thesis_id       uuid NOT NULL REFERENCES public.theses(id) ON DELETE CASCADE,
@@ -370,7 +370,7 @@ CREATE POLICY "Librarian can read all users"
   TO authenticated
   USING ((SELECT private.has_role('librarian')));
 
--- Students pick an adviser at submission time, so the adviser roster is
+-- Researchers pick an adviser at submission time, so the adviser roster is
 -- readable by any signed-in account. Only name/role are ever selected.
 CREATE POLICY "Authenticated users can read advisers"
   ON public.users FOR SELECT
@@ -397,7 +397,7 @@ CREATE POLICY "Stakeholders can read in-pipeline theses"
   TO authenticated
   USING ((SELECT private.is_thesis_stakeholder(id)));
 
-CREATE POLICY "Students can insert own theses"
+CREATE POLICY "Researchers can insert own theses"
   ON public.theses FOR INSERT
   TO authenticated
   WITH CHECK ((SELECT auth.uid()) = user_id);
@@ -414,7 +414,7 @@ CREATE POLICY "Thesis authors follow thesis visibility"
   USING ((SELECT private.can_view_thesis(thesis_id)));
 
 -- ---- thesis_reviews ----
--- The student must be able to read the comments that came back to them.
+-- The researcher must be able to read the comments that came back to them.
 
 CREATE POLICY "Stakeholders can read reviews"
   ON public.thesis_reviews FOR SELECT
@@ -792,5 +792,5 @@ GRANT EXECUTE ON FUNCTION public.consume_rate_limit(text, int, int) TO service_r
 --   'Librarian Name',
 --   'approved',
 --   'librarian',
---   'student'
+--   'researcher'
 -- );

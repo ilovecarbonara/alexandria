@@ -1,6 +1,6 @@
 import { NextRequest, after } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { requireStudent } from "@/lib/actions/auth-guards";
+import { requireResearcher } from "@/lib/actions/auth-guards";
 import { isRegisteredOnChain, registerOnChain } from "@/lib/blockchain/actions";
 import { checkTitleSimilarity } from "@/lib/similarity";
 import {
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const auth = await requireStudent();
+  const auth = await requireResearcher();
   if ("error" in auth) {
     return Response.json({ error: auth.error }, { status: 403 });
   }

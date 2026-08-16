@@ -1,10 +1,10 @@
-export type UserRole = "student" | "adviser" | "librarian";
+export type UserRole = "researcher" | "adviser" | "librarian";
 export type ThesisLevel = "undergraduate" | "masteral" | "doctoral";
 export type SubmissionType = "draft" | "final";
 
 /**
  * The review pipeline. `draft` and `rejected` are resting states, the two
- * `pending_*` values are queues, `returned` bounces back to the student, and
+ * `pending_*` values are queues, `returned` bounces back to the researcher, and
  * only `accepted` / `flagged` are publicly visible.
  */
 export type ThesisStatus =

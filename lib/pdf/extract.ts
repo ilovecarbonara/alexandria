@@ -68,7 +68,7 @@ export interface AbstractResult {
 export interface AbstractError {
   ok: false;
   reason: ExtractionFailure;
-  /** Shown to the student, so it has to say what to do next. */
+  /** Shown to the researcher, so it has to say what to do next. */
   message: string;
   pageCount: number;
 }
@@ -216,7 +216,7 @@ export function looksLikeProse(line: string): boolean {
 /**
  * No `ABSTRACT` heading anywhere — the heading may be letterspaced, an image,
  * or absent. Fall back to the first substantial run of prose in the front
- * matter and mark it low-confidence, so the student sees a warning before
+ * matter and mark it low-confidence, so the researcher sees a warning before
  * submitting and the reviewer sees a banner during review.
  */
 function fallbackAbstract(lines: string[]): FoundAbstract | null {

@@ -78,8 +78,8 @@ export async function setUserRole(
   role: UserRole,
 ): Promise<{ error?: string }> {
   if (!validateUUID(userId)) return { error: "Invalid user ID format." };
-  if (role !== "student" && role !== "adviser") {
-    return { error: "Only the student and research adviser roles can be assigned." };
+  if (role !== "researcher" && role !== "adviser") {
+    return { error: "Only the researcher and research adviser roles can be assigned." };
   }
 
   const auth = await requireLibrarian();

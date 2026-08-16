@@ -1,4 +1,4 @@
-import { requireStudent } from "@/lib/actions/auth-guards";
+import { requireResearcher } from "@/lib/actions/auth-guards";
 import { getClientIp, rateLimit } from "@/lib/rate-limit";
 
 const noStoreHeaders = {
@@ -19,7 +19,7 @@ export async function GET() {
     );
   }
 
-  const auth = await requireStudent();
+  const auth = await requireResearcher();
   if ("error" in auth) {
     const status = auth.error === "Unauthorized" ? 401 : 403;
     return Response.json({ error: auth.error }, { status, headers: noStoreHeaders });

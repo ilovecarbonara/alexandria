@@ -87,7 +87,7 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
-      {/* Anything the student has to act on comes before everything else. */}
+      {/* Anything the researcher has to act on comes before everything else. */}
       {returned.length > 0 && (
         <Card className="border-warning/40 bg-warning-soft">
           <h2 className="font-heading text-lg text-warning">

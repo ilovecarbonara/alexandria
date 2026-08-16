@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { requireStudent } from "@/lib/actions/auth-guards";
+import { requireResearcher } from "@/lib/actions/auth-guards";
 import { createServiceClient } from "@/lib/supabase/service";
 import { isRegisteredOnChain } from "@/lib/blockchain/actions";
 import { extractAbstract, looksLikePdf } from "@/lib/pdf/extract";
@@ -29,7 +29,7 @@ import { sanitizeTextInput } from "@/lib/validation";
  * its word for it. The bytes we hash are now the bytes we archive.
  */
 export async function POST(request: NextRequest) {
-  const auth = await requireStudent();
+  const auth = await requireResearcher();
   if ("error" in auth) {
     return Response.json({ error: auth.error }, { status: 403 });
   }
@@ -59,8 +59,8 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Invalid file reference." }, { status: 400 });
   }
 
-  // The path is built from the caller's own id, so one student can never point
-  // this at another student's staged upload.
+  // The path is built from the caller's own id, so one researcher can never
+  // point this at another researcher's staged upload.
   const path = stagingPath(auth.user.id, clientHash.toLowerCase());
 
   const downloaded = await downloadObject(path);
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
 
   const service = createServiceClient();
 
-  // One live staged upload per student keeps the bucket tidy and makes
+  // One live staged upload per researcher keeps the bucket tidy and makes
   // "re-upload a different file" behave the way it looks like it should.
   const { data: previous } = await service
     .from("staged_uploads")

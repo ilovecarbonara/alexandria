@@ -7,7 +7,7 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  await requireArea("student");
+  await requireArea("researcher");
 
   const disputeUnread = await countMyDisputeUnreads();
 

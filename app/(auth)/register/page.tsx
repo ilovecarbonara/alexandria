@@ -19,7 +19,7 @@ export default function RegisterPage() {
   const [state, formAction, isPending] = useActionState(signUp, null);
   const [errors, setErrors] = useState<Record<string, string | null>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
-  const [requestedRole, setRequestedRole] = useState<string>("student");
+  const [requestedRole, setRequestedRole] = useState<string>("researcher");
 
   const validate = useCallback(
     (name: string, value: string): string | null => {
@@ -131,8 +131,8 @@ export default function RegisterPage() {
           ))}
           <span className="text-xs text-ink-subtle">
             {requestedRole === "adviser"
-              ? "Adviser accounts review student submissions. The university librarian confirms this when approving your account."
-              : "Students submit theses to the archive for review."}
+              ? "Adviser accounts review researcher submissions. The university librarian confirms this when approving your account."
+              : "Researchers submit theses to the archive for review."}
           </span>
         </fieldset>
 

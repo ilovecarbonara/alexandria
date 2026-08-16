@@ -37,26 +37,26 @@ export const PAGE_SIZE = 15;
 // ---------------------------------------------------------------------------
 
 export const USER_ROLES = [
-  { value: "student", label: "Student" },
+  { value: "researcher", label: "Researcher" },
   { value: "adviser", label: "Research Adviser" },
   { value: "librarian", label: "University Librarian" },
 ] as const;
 
 /** Roles a person may request for themselves at sign-up. */
 export const REQUESTABLE_ROLES = [
-  { value: "student", label: "Student" },
+  { value: "researcher", label: "Researcher" },
   { value: "adviser", label: "Research Adviser" },
 ] as const;
 
 export const ROLE_LABELS: Record<UserRole, string> = {
-  student: "Student",
+  researcher: "Researcher",
   adviser: "Research Adviser",
   librarian: "University Librarian",
 };
 
 /** Where each role lands after sign-in, and the area it is confined to. */
 export const ROLE_HOME: Record<UserRole, string> = {
-  student: "/dashboard",
+  researcher: "/dashboard",
   adviser: "/adviser",
   librarian: "/admin",
 };

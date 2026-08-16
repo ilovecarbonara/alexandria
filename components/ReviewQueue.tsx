@@ -41,7 +41,7 @@ export const ADVISER_DECISIONS: DecisionSpec[] = [
     requiresComments: true,
     variant: "secondary",
     prompt:
-      "Explain what the student needs to change. They will see this in full and can resubmit a corrected manuscript.",
+      "Explain what the researcher needs to change. They will see this in full and can resubmit a corrected manuscript.",
   },
 ];
 
@@ -60,7 +60,7 @@ export const LIBRARIAN_DECISIONS: DecisionSpec[] = [
     requiresComments: true,
     variant: "secondary",
     prompt:
-      "Explain what needs to change. The submission goes back to the student, who can resubmit to their adviser.",
+      "Explain what needs to change. The submission goes back to the researcher, who can resubmit to their adviser.",
   },
   {
     kind: "reject",

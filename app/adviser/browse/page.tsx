@@ -19,7 +19,7 @@ export default async function AdviserBrowsePage() {
         </p>
       </div>
 
-      {/* No currentUserId: disputes are filed by students, not advisers. */}
+      {/* No currentUserId: disputes are filed by researchers, not advisers. */}
       <RegistryBrowser />
     </div>
   );

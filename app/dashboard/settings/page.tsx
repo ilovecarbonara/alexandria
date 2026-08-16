@@ -1,5 +1,5 @@
 import { AccountSettings } from "@/components/AccountSettings";
 
-export default function StudentSettingsPage() {
+export default function ResearcherSettingsPage() {
   return <AccountSettings />;
 }
