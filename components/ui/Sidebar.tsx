@@ -29,7 +29,9 @@ export function Sidebar({ title, items, children }: SidebarProps) {
         </p>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-0.5 p-3">
+      {/* Scrolls only when the viewport is too short for the nav itself; the
+          header and the sign-out footer stay put either way. */}
+      <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto p-3">
         {items.map((item) => {
           // The area root would otherwise stay active on every sub-page.
           const active =
