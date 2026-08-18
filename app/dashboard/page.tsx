@@ -17,7 +17,11 @@ export default async function DashboardPage() {
 
   // Parallel queries
   const [profileRes, thesesRes, filedDisputesRes, activityRes, alertCountRes] = await Promise.all([
-    supabase.from("users").select("full_name").eq("id", user.id).single(),
+    supabase
+      .from("users")
+      .select("full_name, publication_notice_ack_at")
+      .eq("id", user.id)
+      .single(),
     supabase
       .from("theses")
       .select("*, thesis_authors(name, position)")
@@ -41,6 +45,8 @@ export default async function DashboardPage() {
   ]);
 
   const fullName = profileRes.data?.full_name ?? "User";
+  const noticeAcknowledged =
+    profileRes.data?.publication_notice_ack_at != null;
   const theses = thesesRes.data ?? [];
   const filedOpenIds = new Set((filedDisputesRes.data ?? []).map((d) => d.id));
 
@@ -92,6 +98,7 @@ export default async function DashboardPage() {
       {/* Anything the researcher has to act on comes before everything else. */}
       <ReturnedSubmissions
         ownerName={fullName}
+        noticeAcknowledged={noticeAcknowledged}
         theses={returned.map((t) => ({
           id: t.id,
           title: t.title,

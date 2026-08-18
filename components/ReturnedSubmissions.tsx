@@ -14,9 +14,12 @@ import { ReviseSubmission, type RevisableThesis } from "@/components/ReviseSubmi
 export function ReturnedSubmissions({
   theses,
   ownerName,
+  noticeAcknowledged,
 }: {
   theses: RevisableThesis[];
   ownerName: string;
+  /** Whether the researcher has dismissed the publication consent notice. */
+  noticeAcknowledged: boolean;
 }) {
   const [revising, setRevising] = useState<RevisableThesis | null>(null);
 
@@ -56,6 +59,7 @@ export function ReturnedSubmissions({
         <ReviseSubmission
           thesis={revising}
           ownerName={ownerName}
+          noticeAcknowledged={noticeAcknowledged}
           onClose={() => setRevising(null)}
         />
       )}

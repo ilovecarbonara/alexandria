@@ -61,6 +61,11 @@ CREATE TABLE public.users (
   requested_role  user_role NOT NULL DEFAULT 'researcher',
   is_active       boolean NOT NULL DEFAULT true,
   last_active_at  timestamptz,
+  -- When the researcher affirmed the publication notice AND asked not to be
+  -- shown it again. NULL means the consent modal still appears on every final
+  -- submission. One column serves both jobs on purpose: a researcher who
+  -- consents without ticking "Don't show again" simply gets asked next time.
+  publication_notice_ack_at timestamptz,
   created_at      timestamptz NOT NULL DEFAULT now(),
   -- Nobody may self-register as a librarian.
   CONSTRAINT requested_role_not_librarian CHECK (requested_role <> 'librarian')

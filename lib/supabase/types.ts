@@ -38,6 +38,7 @@ export interface Database {
           requested_role: UserRole;
           is_active: boolean;
           last_active_at: string | null;
+          publication_notice_ack_at: string | null;
           created_at: string;
         };
         Insert: {
@@ -50,6 +51,7 @@ export interface Database {
           requested_role?: UserRole;
           is_active?: boolean;
           last_active_at?: string | null;
+          publication_notice_ack_at?: string | null;
           created_at?: string;
         };
         Update: {
@@ -62,6 +64,7 @@ export interface Database {
           requested_role?: UserRole;
           is_active?: boolean;
           last_active_at?: string | null;
+          publication_notice_ack_at?: string | null;
           created_at?: string;
         };
         Relationships: [];

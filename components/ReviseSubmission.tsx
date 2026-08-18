@@ -4,6 +4,8 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Input, Modal } from "@/components/ui";
 import { ThesisReviewHistory } from "@/components/ThesisReviewHistory";
+import { PublicationConsentModal } from "@/components/PublicationConsentModal";
+import { acknowledgePublicationNotice } from "@/lib/publication-notice";
 import { MAX_PDF_FILE_SIZE_BYTES, MAX_PDF_FILE_SIZE_MB } from "@/lib/constants";
 import {
   MAX_AUTHORS,
@@ -51,10 +53,13 @@ async function hashFile(file: File): Promise<string> {
 export function ReviseSubmission({
   thesis,
   ownerName,
+  noticeAcknowledged,
   onClose,
 }: {
   thesis: RevisableThesis;
   ownerName: string;
+  /** Whether the researcher has dismissed the publication consent notice. */
+  noticeAcknowledged: boolean;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -70,6 +75,8 @@ export function ReviseSubmission({
   const [error, setError] = useState<string | null>(null);
   const [titleError, setTitleError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [acknowledged, setAcknowledged] = useState(noticeAcknowledged);
+  const [consentOpen, setConsentOpen] = useState(false);
 
   const busy = phase === "uploading" || phase === "reading";
 
@@ -178,24 +185,24 @@ export function ReviseSubmission({
     !titleError &&
     trimmedAuthors.every((name) => name.length > 0);
 
-  async function handleSubmit() {
+  function validateForResubmit(): boolean {
     setError(null);
 
     if (!staged) {
       setError("Upload the corrected manuscript first.");
-      return;
+      return false;
     }
 
     const titleProblem = validateTitle(title.trim());
     if (titleProblem) {
       setTitleError(titleProblem);
-      return;
+      return false;
     }
 
     const authorProblem = validateAuthorList(trimmedAuthors);
     if (authorProblem) {
       setError(authorProblem);
-      return;
+      return false;
     }
 
     if (
@@ -205,8 +212,14 @@ export function ReviseSubmission({
       )
     ) {
       setError("You must be listed as an author of your own thesis.");
-      return;
+      return false;
     }
+
+    return true;
+  }
+
+  async function doResubmit() {
+    if (!staged) return;
 
     setSubmitting(true);
 
@@ -238,167 +251,206 @@ export function ReviseSubmission({
     }
   }
 
+  /**
+   * A revision is always a final headed for publication, so the consent notice
+   * applies here too — unless the researcher has already dismissed it.
+   */
+  async function handleSubmit() {
+    if (!validateForResubmit()) return;
+
+    if (!acknowledged) {
+      setConsentOpen(true);
+      return;
+    }
+
+    await doResubmit();
+  }
+
+  async function handleConsent(dontShowAgain: boolean) {
+    setConsentOpen(false);
+
+    if (dontShowAgain) {
+      // Optimistic: a failed preference write only means the notice returns
+      // next time, and the consent itself has already been given.
+      setAcknowledged(true);
+      void acknowledgePublicationNotice();
+    }
+
+    await doResubmit();
+  }
+
   return (
-    <Modal
-      open
-      onClose={onClose}
-      title="Revise submission"
-      className="w-160 max-w-[95vw]"
-    >
-      <div className="space-y-5">
-        <div>
-          <h3 className="font-heading text-lg text-ink">{thesis.title}</h3>
-          <p className="mt-1 text-xs text-ink-subtle">
-            Returned for revision. Your adviser sees this again once you resubmit.
-          </p>
-        </div>
+    <>
+      {/* Closed rather than stacked while the notice is up: two nested native
+          dialogs would fight over the focus trap. */}
+      <Modal
+        open={!consentOpen}
+        onClose={onClose}
+        title="Revise submission"
+        className="w-160 max-w-[95vw]"
+      >
+        <div className="space-y-5">
+          <div>
+            <h3 className="font-heading text-lg text-ink">{thesis.title}</h3>
+            <p className="mt-1 text-xs text-ink-subtle">
+              Returned for revision. Your adviser sees this again once you resubmit.
+            </p>
+          </div>
 
-        {/* The reason this screen is open, so it leads. */}
-        <div className="flex flex-col gap-2 rounded-md border border-warning/40 bg-warning-soft p-4">
-          <span className="text-xs uppercase text-warning">
-            Reviewer comments
-          </span>
-          <ThesisReviewHistory thesisId={thesis.id} />
-        </div>
+          {/* The reason this screen is open, so it leads. */}
+          <div className="flex flex-col gap-2 rounded-md border border-warning/40 bg-warning-soft p-4">
+            <span className="text-xs uppercase text-warning">
+              Reviewer comments
+            </span>
+            <ThesisReviewHistory thesisId={thesis.id} />
+          </div>
 
-        {/* ---- Corrected manuscript ---- */}
-        <div className="flex flex-col gap-1">
-          <label className="text-sm text-ink-muted">Corrected manuscript</label>
-          <div className="flex items-center gap-3">
+          {/* ---- Corrected manuscript ---- */}
+          <div className="flex flex-col gap-1">
+            <label className="text-sm text-ink-muted">Corrected manuscript</label>
+            <div className="flex items-center gap-3">
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={busy || submitting}
+                onClick={() => fileRef.current?.click()}
+              >
+                {staged ? "Replace file" : "Choose file"}
+              </Button>
+              <span className="truncate text-sm text-ink-muted">
+                {phase === "uploading"
+                  ? "Uploading…"
+                  : phase === "reading"
+                    ? "Reading the abstract…"
+                    : (fileName ?? "No file selected")}
+              </span>
+            </div>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".pdf,application/pdf"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+            <span className="text-xs text-ink-subtle">
+              PDF, up to {MAX_PDF_FILE_SIZE_MB} MB. It must differ from the
+              manuscript you submitted before.
+            </span>
+          </div>
+
+          {staged && (
+            <div className="flex flex-col gap-2 rounded-md border border-border bg-surface/60 p-4">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-xs uppercase text-ink-subtle">
+                  Abstract read from your PDF
+                </span>
+                <span className="text-xs text-ink-subtle">
+                  {staged.pageCount} pages
+                </span>
+              </div>
+
+              {staged.confidence === "low" && (
+                <p className="border-l-2 border-warning pl-3 text-xs text-warning">
+                  No “ABSTRACT” heading was found, so this is a best guess taken
+                  from your front matter. Your adviser can correct it during
+                  review.
+                </p>
+              )}
+
+              <p className="max-h-40 overflow-y-auto text-sm leading-relaxed text-ink">
+                {staged.abstract}
+              </p>
+            </div>
+          )}
+
+          <Input
+            id="revise-title"
+            name="title"
+            label="Thesis Title"
+            maxLength={MAX_TITLE_LENGTH}
+            value={title}
+            onChange={(e) => {
+              setTitle(e.target.value);
+              if (titleError) setTitleError(validateTitle(e.target.value));
+            }}
+            onBlur={(e) => setTitleError(validateTitle(e.target.value))}
+            error={titleError ?? undefined}
+            required
+          />
+
+          {/* ---- Authors ---- */}
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm text-ink-muted">Authors</span>
+              <span className="text-xs text-ink-subtle">
+                {authorNames.length}/{MAX_AUTHORS}
+              </span>
+            </div>
+
+            {authorNames.map((name, index) => (
+              <div key={index} className="flex items-stretch gap-2">
+                <input
+                  aria-label={index === 0 ? "First author" : `Author ${index + 1}`}
+                  maxLength={MAX_AUTHOR_NAME_LENGTH}
+                  value={name}
+                  readOnly={index === 0}
+                  onChange={(e) => updateAuthor(index, e.target.value)}
+                  placeholder="Enter author name"
+                  className={`flex-1 rounded-md border border-border bg-surface px-3 py-2 text-sm placeholder:text-ink-subtle focus:border-primary focus:outline-none ${
+                    index === 0 ? "text-ink-muted" : "text-ink"
+                  }`}
+                />
+                {index > 0 && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="shrink-0 px-3 py-2 text-sm leading-none"
+                    onClick={() => removeAuthor(index)}
+                    aria-label={`Remove author ${index + 1}`}
+                  >
+                    −
+                  </Button>
+                )}
+              </div>
+            ))}
+
             <Button
               type="button"
               variant="secondary"
-              disabled={busy || submitting}
-              onClick={() => fileRef.current?.click()}
+              className="w-full justify-center px-3 py-2 text-sm"
+              onClick={addAuthor}
+              disabled={authorNames.length >= MAX_AUTHORS}
             >
-              {staged ? "Replace file" : "Choose file"}
+              + Add author
             </Button>
-            <span className="truncate text-sm text-ink-muted">
-              {phase === "uploading"
-                ? "Uploading…"
-                : phase === "reading"
-                  ? "Reading the abstract…"
-                  : (fileName ?? "No file selected")}
-            </span>
           </div>
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".pdf,application/pdf"
-            className="hidden"
-            onChange={handleFileChange}
-          />
-          <span className="text-xs text-ink-subtle">
-            PDF, up to {MAX_PDF_FILE_SIZE_MB} MB. It must differ from the
-            manuscript you submitted before.
-          </span>
-        </div>
 
-        {staged && (
-          <div className="flex flex-col gap-2 rounded-md border border-border bg-surface/60 p-4">
-            <div className="flex items-baseline justify-between gap-3">
-              <span className="text-xs uppercase text-ink-subtle">
-                Abstract read from your PDF
-              </span>
-              <span className="text-xs text-ink-subtle">
-                {staged.pageCount} pages
-              </span>
-            </div>
-
-            {staged.confidence === "low" && (
-              <p className="border-l-2 border-warning pl-3 text-xs text-warning">
-                No “ABSTRACT” heading was found, so this is a best guess taken
-                from your front matter. Your adviser can correct it during
-                review.
-              </p>
-            )}
-
-            <p className="max-h-40 overflow-y-auto text-sm leading-relaxed text-ink">
-              {staged.abstract}
+          {error && (
+            <p className="rounded-md border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger">
+              {error}
             </p>
+          )}
+
+          <div className="flex gap-3 border-t border-border pt-4">
+            <Button
+              onClick={handleSubmit}
+              disabled={!canSubmit || submitting || busy}
+            >
+              {submitting ? "Resubmitting…" : "Resubmit for adviser review"}
+            </Button>
+            <Button variant="secondary" onClick={onClose} disabled={submitting}>
+              Cancel
+            </Button>
           </div>
-        )}
-
-        <Input
-          id="revise-title"
-          name="title"
-          label="Thesis Title"
-          maxLength={MAX_TITLE_LENGTH}
-          value={title}
-          onChange={(e) => {
-            setTitle(e.target.value);
-            if (titleError) setTitleError(validateTitle(e.target.value));
-          }}
-          onBlur={(e) => setTitleError(validateTitle(e.target.value))}
-          error={titleError ?? undefined}
-          required
-        />
-
-        {/* ---- Authors ---- */}
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-sm text-ink-muted">Authors</span>
-            <span className="text-xs text-ink-subtle">
-              {authorNames.length}/{MAX_AUTHORS}
-            </span>
-          </div>
-
-          {authorNames.map((name, index) => (
-            <div key={index} className="flex items-stretch gap-2">
-              <input
-                aria-label={index === 0 ? "First author" : `Author ${index + 1}`}
-                maxLength={MAX_AUTHOR_NAME_LENGTH}
-                value={name}
-                readOnly={index === 0}
-                onChange={(e) => updateAuthor(index, e.target.value)}
-                placeholder="Enter author name"
-                className={`flex-1 rounded-md border border-border bg-surface px-3 py-2 text-sm placeholder:text-ink-subtle focus:border-primary focus:outline-none ${
-                  index === 0 ? "text-ink-muted" : "text-ink"
-                }`}
-              />
-              {index > 0 && (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="shrink-0 px-3 py-2 text-sm leading-none"
-                  onClick={() => removeAuthor(index)}
-                  aria-label={`Remove author ${index + 1}`}
-                >
-                  −
-                </Button>
-              )}
-            </div>
-          ))}
-
-          <Button
-            type="button"
-            variant="secondary"
-            className="w-full justify-center px-3 py-2 text-sm"
-            onClick={addAuthor}
-            disabled={authorNames.length >= MAX_AUTHORS}
-          >
-            + Add author
-          </Button>
         </div>
+      </Modal>
 
-        {error && (
-          <p className="rounded-md border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger">
-            {error}
-          </p>
-        )}
-
-        <div className="flex gap-3 border-t border-border pt-4">
-          <Button
-            onClick={handleSubmit}
-            disabled={!canSubmit || submitting || busy}
-          >
-            {submitting ? "Resubmitting…" : "Resubmit for adviser review"}
-          </Button>
-          <Button variant="secondary" onClick={onClose} disabled={submitting}>
-            Cancel
-          </Button>
-        </div>
-      </div>
-    </Modal>
+      <PublicationConsentModal
+        open={consentOpen}
+        onConsent={handleConsent}
+        onCancel={() => setConsentOpen(false)}
+        confirmLabel="I consent — resubmit for review"
+      />
+    </>
   );
 }

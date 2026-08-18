@@ -41,7 +41,7 @@ export async function GET() {
 
   const { data: profile, error: profileError } = await supabase
     .from("users")
-    .select("full_name")
+    .select("full_name, publication_notice_ack_at")
     .eq("id", user.id)
     .single();
 
@@ -105,5 +105,7 @@ export async function GET() {
     fullName: profile.full_name,
     linkableTheses,
     advisers: advisers ?? [],
+    // Whether the publication consent notice has been dismissed for good.
+    publicationNoticeAcknowledged: profile.publication_notice_ack_at !== null,
   }, { headers: noStoreHeaders });
 }
