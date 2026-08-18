@@ -5,10 +5,12 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { Card, StatusChip, HashDisplay, Field } from "@/components/ui";
 import { PdfViewer } from "@/components/PdfViewer";
+import { CiteButton } from "@/components/CiteButton";
 import { sortThesisAuthors } from "@/lib/authors";
 import { validateUUID } from "@/lib/validation";
 import { STATUS_LABELS } from "@/lib/constants";
 import { isPublic } from "@/lib/workflow";
+import type { ThesisLevel } from "@/lib/supabase/types";
 
 /**
  * The public record for a single thesis.
@@ -106,8 +108,10 @@ export default async function ThesisDetailPage({
       thesis.adviser_id === user.id ||
       isCoAuthor);
 
+  const publiclyListed = isPublic(thesis.status as never);
+
   // Unpublished records exist, but only their stakeholders may see them.
-  if (!isPublic(thesis.status as never) && !isStakeholder) notFound();
+  if (!publiclyListed && !isStakeholder) notFound();
 
   const authors = sortThesisAuthors(thesis.thesis_authors);
   const year = new Date(thesis.registered_at).getFullYear();
@@ -142,6 +146,17 @@ export default async function ThesisDetailPage({
           </p>
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <StatusChip status={thesis.status as never} />
+            {/* Only a published record is citable; a draft has no public
+                permalink to point a reader at. */}
+            {publiclyListed && (
+              <CiteButton
+                title={thesis.title}
+                authors={authors.map((a) => a.name)}
+                year={year}
+                level={thesis.thesis_level as ThesisLevel}
+                path={`/thesis/${thesis.id}`}
+              />
+            )}
             {thesis.submission_type === "draft" && (
               <span className="text-xs text-ink-subtle">
                 Draft — not published to the public archive
