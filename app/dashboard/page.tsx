@@ -3,7 +3,9 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Card, Button } from "@/components/ui";
 import { DashboardRegistrations } from "@/components/DashboardRegistrations";
-import { isAwaitingReview, isPublic } from "@/lib/workflow";
+import { ReturnedSubmissions } from "@/components/ReturnedSubmissions";
+import { getAuthorNames } from "@/lib/authors";
+import { isActionableByResearcher, isAwaitingReview, isPublic } from "@/lib/workflow";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -15,7 +17,11 @@ export default async function DashboardPage() {
 
   // Parallel queries
   const [profileRes, thesesRes, filedDisputesRes, activityRes, alertCountRes] = await Promise.all([
-    supabase.from("users").select("full_name").eq("id", user.id).single(),
+    supabase
+      .from("users")
+      .select("full_name, publication_notice_ack_at")
+      .eq("id", user.id)
+      .single(),
     supabase
       .from("theses")
       .select("*, thesis_authors(name, position)")
@@ -39,6 +45,8 @@ export default async function DashboardPage() {
   ]);
 
   const fullName = profileRes.data?.full_name ?? "User";
+  const noticeAcknowledged =
+    profileRes.data?.publication_notice_ack_at != null;
   const theses = thesesRes.data ?? [];
   const filedOpenIds = new Set((filedDisputesRes.data ?? []).map((d) => d.id));
 
@@ -57,7 +65,7 @@ export default async function DashboardPage() {
   const recentActivity = activityRes.data ?? [];
   const alertCount = alertCountRes.count ?? 0;
 
-  const returned = theses.filter((t) => t.status === "returned");
+  const returned = theses.filter((t) => isActionableByResearcher(t.status));
   const published = theses.filter((t) => isPublic(t.status)).length;
   const inReview = theses.filter((t) => isAwaitingReview(t.status)).length;
 
@@ -87,27 +95,17 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
-      {/* Anything the student has to act on comes before everything else. */}
-      {returned.length > 0 && (
-        <Card className="border-warning/40 bg-warning-soft">
-          <h2 className="font-heading text-lg text-warning">
-            {returned.length === 1
-              ? "A submission needs your attention"
-              : `${returned.length} submissions need your attention`}
-          </h2>
-          <p className="mt-1 text-sm text-ink-muted">
-            These were returned for revision. Open one to read the reviewer&apos;s
-            comments, then upload a corrected manuscript.
-          </p>
-          <ul className="mt-4 space-y-2">
-            {returned.map((t) => (
-              <li key={t.id} className="text-sm text-ink">
-                · {t.title}
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
+      {/* Anything the researcher has to act on comes before everything else. */}
+      <ReturnedSubmissions
+        ownerName={fullName}
+        noticeAcknowledged={noticeAcknowledged}
+        theses={returned.map((t) => ({
+          id: t.id,
+          title: t.title,
+          sha256Hash: t.sha256_hash,
+          authorNames: getAuthorNames(t.thesis_authors),
+        }))}
+      />
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -1,4 +1,4 @@
-import { requireStudent } from "@/lib/actions/auth-guards";
+import { requireResearcher } from "@/lib/actions/auth-guards";
 import { getClientIp, rateLimit } from "@/lib/rate-limit";
 
 const noStoreHeaders = {
@@ -19,7 +19,7 @@ export async function GET() {
     );
   }
 
-  const auth = await requireStudent();
+  const auth = await requireResearcher();
   if ("error" in auth) {
     const status = auth.error === "Unauthorized" ? 401 : 403;
     return Response.json({ error: auth.error }, { status, headers: noStoreHeaders });
@@ -41,7 +41,7 @@ export async function GET() {
 
   const { data: profile, error: profileError } = await supabase
     .from("users")
-    .select("full_name")
+    .select("full_name, publication_notice_ack_at")
     .eq("id", user.id)
     .single();
 
@@ -105,5 +105,7 @@ export async function GET() {
     fullName: profile.full_name,
     linkableTheses,
     advisers: advisers ?? [],
+    // Whether the publication consent notice has been dismissed for good.
+    publicationNoticeAcknowledged: profile.publication_notice_ack_at !== null,
   }, { headers: noStoreHeaders });
 }

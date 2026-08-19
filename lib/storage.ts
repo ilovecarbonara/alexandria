@@ -29,7 +29,7 @@ export async function createUploadTicket(path: string): Promise<
 > {
   const service = createServiceClient();
 
-  // An abandoned upload leaves an object behind; overwriting is how a student
+  // An abandoned upload leaves an object behind; overwriting is how a researcher
   // retries the same file after a failed parse.
   const { data, error } = await service.storage
     .from(THESIS_BUCKET)

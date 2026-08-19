@@ -10,7 +10,7 @@ import { rateLimit } from "@/lib/rate-limit";
  *
  * Full text is restricted to the people with a stake in the document: the
  * submitter, any listed co-author matched to an account, the assigned adviser,
- * and the librarian. Everyone else — including signed-in students browsing the
+ * and the librarian. Everyone else — including signed-in researchers browsing the
  * registry — gets metadata and the abstract, and nothing more.
  *
  * The bytes are streamed through this handler rather than redirected to a

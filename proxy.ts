@@ -6,7 +6,7 @@ import type { UserRole } from "@/lib/supabase/types";
 
 /** Protected areas, each owned by exactly one role. */
 const ROLE_AREAS: { prefix: string; role: UserRole }[] = [
-  { prefix: "/dashboard", role: "student" },
+  { prefix: "/dashboard", role: "researcher" },
   { prefix: "/adviser", role: "adviser" },
   { prefix: "/admin", role: "librarian" },
 ];

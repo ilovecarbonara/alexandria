@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { Button, Input, Select, Card } from "@/components/ui";
 import { HashDisplay } from "@/components/ui";
+import { PublicationConsentModal } from "@/components/PublicationConsentModal";
+import { acknowledgePublicationNotice } from "@/lib/publication-notice";
 import {
   THESIS_CATEGORIES,
   THESIS_LEVELS,
@@ -42,6 +44,7 @@ type SubmitMetadata = {
   fullName?: string;
   linkableTheses?: LinkableThesis[];
   advisers?: Adviser[];
+  publicationNoticeAcknowledged?: boolean;
   error?: string;
 };
 
@@ -93,6 +96,9 @@ export default function SubmitThesisPage() {
   const [submissionType, setSubmissionType] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string | null>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [noticeAcknowledged, setNoticeAcknowledged] = useState(false);
+  /** Validated authors held while the consent modal is open. */
+  const [pendingAuthors, setPendingAuthors] = useState<string[] | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -111,6 +117,7 @@ export default function SubmitThesisPage() {
 
         setLinkableTheses(result.linkableTheses ?? []);
         setAdvisers(result.advisers ?? []);
+        setNoticeAcknowledged(result.publicationNoticeAcknowledged ?? false);
         if (result.fullName) {
           setOwnerName(result.fullName);
           setAuthorNames([result.fullName]);
@@ -350,13 +357,17 @@ export default function SubmitThesisPage() {
     setTouched({});
   }
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setState({});
-
+  /**
+   * Everything that must hold before the thesis is registered.
+   *
+   * Returns the trimmed author list on success so the caller can hand it
+   * straight to the API — the consent modal sits between validation and the
+   * request, and re-running these checks afterwards would reset field state.
+   */
+  function validateForRegistration(): string[] | null {
     if (!staged) {
       setState({ error: "Please upload the manuscript PDF first." });
-      return;
+      return null;
     }
 
     const trimmedAuthors = authorNames.map((name) => name.trim());
@@ -377,7 +388,7 @@ export default function SubmitThesisPage() {
         ),
       }));
       setState({ error: authorError });
-      return;
+      return null;
     }
 
     if (
@@ -387,8 +398,14 @@ export default function SubmitThesisPage() {
       )
     ) {
       setState({ error: "You must be listed as an author of your own thesis." });
-      return;
+      return null;
     }
+
+    return trimmedAuthors;
+  }
+
+  async function registerThesis(trimmedAuthors: string[]) {
+    if (!staged) return;
 
     setLoading(true);
 
@@ -425,6 +442,40 @@ export default function SubmitThesisPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  /**
+   * Finals are the only submissions that can become public, so only they pass
+   * through the consent notice. Drafts stay private and go straight through.
+   */
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setState({});
+
+    const trimmedAuthors = validateForRegistration();
+    if (!trimmedAuthors) return;
+
+    if (isFinal && !noticeAcknowledged) {
+      setPendingAuthors(trimmedAuthors);
+      return;
+    }
+
+    await registerThesis(trimmedAuthors);
+  }
+
+  async function handleConsent(dontShowAgain: boolean) {
+    const trimmedAuthors = pendingAuthors;
+    setPendingAuthors(null);
+    if (!trimmedAuthors) return;
+
+    if (dontShowAgain) {
+      // Assumed to stick so the notice does not reappear mid-session; if the
+      // write failed, the researcher simply sees it again on their next visit.
+      setNoticeAcknowledged(true);
+      void acknowledgePublicationNotice();
+    }
+
+    await registerThesis(trimmedAuthors);
   }
 
   // -------------------------------------------------------------------------
@@ -795,6 +846,12 @@ export default function SubmitThesisPage() {
           </Button>
         </form>
       </Card>
+
+      <PublicationConsentModal
+        open={pendingAuthors !== null}
+        onConsent={handleConsent}
+        onCancel={() => setPendingAuthors(null)}
+      />
     </div>
   );
 }

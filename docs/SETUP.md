@@ -96,7 +96,7 @@ VALUES (
   'Librarian Name',
   'approved',
   'librarian',
-  'student'
+  'researcher'
 );
 ```
 

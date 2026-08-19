@@ -27,8 +27,10 @@ export default async function AdminLayout({
     { href: "/admin/settings", label: "Settings" },
   ];
 
+  // Fixed to the viewport so the page itself never scrolls — see the note in
+  // app/dashboard/layout.tsx.
   return (
-    <div className="flex h-screen">
+    <div className="fixed inset-0 flex overflow-hidden">
       <Sidebar title="Alexandria" items={navItems}>
         <form action="/api/auth/signout" method="post">
           <Button variant="danger-outline" type="submit" className="w-full">

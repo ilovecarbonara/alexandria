@@ -271,7 +271,7 @@ async function submitDecision(
     return {
       error:
         decision === "returned"
-          ? "Explain what the student needs to change before resubmitting."
+          ? "Explain what the researcher needs to change before resubmitting."
           : "A rejection must include a reason.",
     };
   }
@@ -356,7 +356,7 @@ export async function endorseThesis(
   return submitDecision(thesisId, "endorsed", comments, "adviser");
 }
 
-/** Adviser: send it back to the student with required comments. */
+/** Adviser: send it back to the researcher with required comments. */
 export async function returnThesis(
   thesisId: string,
   comments: string,
@@ -380,7 +380,7 @@ export async function rejectThesis(
   return submitDecision(thesisId, "rejected", comments, "librarian");
 }
 
-/** Librarian: bounce it back past the adviser to the student. */
+/** Librarian: bounce it back past the adviser to the researcher. */
 export async function returnThesisFromLibrarian(
   thesisId: string,
   comments: string,

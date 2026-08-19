@@ -9,7 +9,7 @@ import { STATUS_LABELS } from "@/lib/constants";
 /**
  * The review pipeline, as a transition matrix.
  *
- *   student submits -> adviser reviews -> librarian approves -> public registry
+ *   researcher submits -> adviser reviews -> librarian approves -> public registry
  *
  * Every status change in the system routes through `assertTransition`. Nothing
  * writes `theses.status` directly.
@@ -17,15 +17,15 @@ import { STATUS_LABELS } from "@/lib/constants";
  *   draft              Draft submission. Skips review entirely; visible only to
  *                      its owner and the librarian.
  *   pending_adviser    Final submitted, sitting in the assigned adviser's queue.
- *   returned           Sent back to the student with comments. Revisable.
+ *   returned           Sent back to the researcher with comments. Revisable.
  *   pending_librarian  Adviser endorsed it; sitting in the librarian's queue.
  *   accepted           Librarian approved. Published to the public registry.
  *   rejected           Terminal.
  *   flagged            Published, then disputed. Post-publication only.
  */
 const TRANSITIONS: Record<UserRole, Partial<Record<ThesisStatus, ThesisStatus[]>>> = {
-  // A student can only push a returned submission back into review.
-  student: {
+  // A researcher can only push a returned submission back into review.
+  researcher: {
     returned: ["pending_adviser"],
   },
 
@@ -121,13 +121,13 @@ export function isPublic(status: ThesisStatus): boolean {
   return status === "accepted" || status === "flagged";
 }
 
-/** In a queue waiting on someone, as opposed to resting with the student. */
+/** In a queue waiting on someone, as opposed to resting with the researcher. */
 export function isAwaitingReview(status: ThesisStatus): boolean {
   return status === "pending_adviser" || status === "pending_librarian";
 }
 
-/** The student can act on it: upload a revision and resubmit. */
-export function isActionableByStudent(status: ThesisStatus): boolean {
+/** The researcher can act on it: upload a revision and resubmit. */
+export function isActionableByResearcher(status: ThesisStatus): boolean {
   return status === "returned";
 }
 
@@ -136,7 +136,7 @@ export function isTerminal(status: ThesisStatus): boolean {
 }
 
 /**
- * The four-step tracker shown to students. `flagged` is deliberately treated as
+ * The four-step tracker shown to researchers. `flagged` is deliberately treated as
  * published — a dispute does not un-publish the record.
  */
 export type TrackerStep = "submitted" | "adviser" | "librarian" | "published";

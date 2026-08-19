@@ -1,6 +1,6 @@
 import { NextRequest, after } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { requireStudent } from "@/lib/actions/auth-guards";
+import { requireResearcher } from "@/lib/actions/auth-guards";
 import { isRegisteredOnChain, registerOnChain } from "@/lib/blockchain/actions";
 import { checkTitleSimilarity } from "@/lib/similarity";
 import {
@@ -10,6 +10,7 @@ import {
 } from "@/lib/constants";
 import {
   normalizeNameForComparison,
+  normalizeTitle,
   sanitizeTextInput,
   validateAuthorList,
   validateTitle,
@@ -22,14 +23,6 @@ import type { ThesisLevel, SubmissionType } from "@/lib/supabase/types";
 const VALID_LEVELS = THESIS_LEVELS.map((l) => l.value as string);
 const VALID_TYPES = SUBMISSION_TYPES.map((t) => t.value as string);
 const VALID_CATEGORIES: readonly string[] = THESIS_CATEGORIES;
-
-function normalizeTitle(title: string): string {
-  return title
-    .toLowerCase()
-    .replace(/[^\w\s]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
 
 /**
  * Step 3 of 3 in the submission flow.
@@ -56,7 +49,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const auth = await requireStudent();
+  const auth = await requireResearcher();
   if ("error" in auth) {
     return Response.json({ error: auth.error }, { status: 403 });
   }

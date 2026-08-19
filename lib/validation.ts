@@ -112,6 +112,20 @@ export function normalizeNameForComparison(name: string): string {
   return name.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
+/**
+ * The form stored in `theses.title_normalized`, which the trigram index and
+ * every similarity comparison run against. Registration and resubmission both
+ * write it, so it lives here rather than beside either one — the two drifting
+ * apart would silently break duplicate detection for revised manuscripts.
+ */
+export function normalizeTitle(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^\w\s]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export function validateAuthorList(names: unknown[]): string | null {
   if (!Array.isArray(names) || names.length === 0) {
     return "At least one author is required.";

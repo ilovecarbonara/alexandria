@@ -7,7 +7,7 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  await requireArea("student");
+  await requireArea("researcher");
 
   const disputeUnread = await countMyDisputeUnreads();
 
@@ -20,8 +20,15 @@ export default async function DashboardLayout({
     { href: "/dashboard/settings", label: "Settings" },
   ];
 
+  /*
+   * The shell is fixed to the viewport, so it contributes nothing to document
+   * height: the page itself can never scroll, and <main> below is the only
+   * scroller. A merely viewport-tall shell was not enough — anything
+   * overflowing inside it still grew the page and carried the sidebar off the
+   * top.
+   */
   return (
-    <div className="flex h-screen">
+    <div className="fixed inset-0 flex overflow-hidden">
       <Sidebar title="Alexandria" items={navItems}>
         <form action="/api/auth/signout" method="post">
           <Button variant="danger-outline" type="submit" className="w-full">

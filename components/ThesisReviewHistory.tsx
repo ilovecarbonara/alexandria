@@ -14,10 +14,10 @@ const DECISION_ACCENT: Record<ReviewDecision, string> = {
 };
 
 /**
- * The reviewer's own words, shown to the student.
+ * The reviewer's own words, shown to the researcher.
  *
  * This is the whole point of the returned state — without the comments, a
- * student has no idea what to change.
+ * researcher has no idea what to change.
  */
 export function ThesisReviewHistory({ thesisId }: { thesisId: string }) {
   const [entries, setEntries] = useState<ReviewEntry[] | null>(null);

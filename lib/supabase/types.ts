@@ -1,10 +1,10 @@
-export type UserRole = "student" | "adviser" | "librarian";
+export type UserRole = "researcher" | "adviser" | "librarian";
 export type ThesisLevel = "undergraduate" | "masteral" | "doctoral";
 export type SubmissionType = "draft" | "final";
 
 /**
  * The review pipeline. `draft` and `rejected` are resting states, the two
- * `pending_*` values are queues, `returned` bounces back to the student, and
+ * `pending_*` values are queues, `returned` bounces back to the researcher, and
  * only `accepted` / `flagged` are publicly visible.
  */
 export type ThesisStatus =
@@ -38,6 +38,7 @@ export interface Database {
           requested_role: UserRole;
           is_active: boolean;
           last_active_at: string | null;
+          publication_notice_ack_at: string | null;
           created_at: string;
         };
         Insert: {
@@ -50,6 +51,7 @@ export interface Database {
           requested_role?: UserRole;
           is_active?: boolean;
           last_active_at?: string | null;
+          publication_notice_ack_at?: string | null;
           created_at?: string;
         };
         Update: {
@@ -62,6 +64,7 @@ export interface Database {
           requested_role?: UserRole;
           is_active?: boolean;
           last_active_at?: string | null;
+          publication_notice_ack_at?: string | null;
           created_at?: string;
         };
         Relationships: [];

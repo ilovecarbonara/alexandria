@@ -121,6 +121,6 @@ Mono as the body font was the single largest source of the old "technical" feel.
 
 ## Review UI
 
-- The **student tracker** (`ReviewTimeline`) shows Submitted → Adviser Review → Librarian Review → Published. A halted state (`returned`, `rejected`) marks the step it stopped at in `danger`, rather than showing the run as complete.
-- **Reviewer comments** are shown to the student in full (`ThesisReviewHistory`), bordered by outcome: success for endorsed/approved, warning for returned, danger for rejected. A returned submission is useless without them.
+- The **researcher tracker** (`ReviewTimeline`) shows Submitted → Adviser Review → Librarian Review → Published. A halted state (`returned`, `rejected`) marks the step it stopped at in `danger`, rather than showing the run as complete.
+- **Reviewer comments** are shown to the researcher in full (`ThesisReviewHistory`), bordered by outcome: success for endorsed/approved, warning for returned, danger for rejected. A returned submission is useless without them.
 - Review queues surface two advisory flags: `similarity_flagged` and a low-confidence extracted abstract.

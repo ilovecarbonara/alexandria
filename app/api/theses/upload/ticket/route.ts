@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { requireStudent } from "@/lib/actions/auth-guards";
+import { requireResearcher } from "@/lib/actions/auth-guards";
 import { createUploadTicket, stagingPath } from "@/lib/storage";
 import { MAX_PDF_FILE_SIZE_BYTES, MAX_PDF_FILE_SIZE_MB } from "@/lib/constants";
 import { getClientIp, rateLimit } from "@/lib/rate-limit";
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const auth = await requireStudent();
+  const auth = await requireResearcher();
   if ("error" in auth) {
     return Response.json({ error: auth.error }, { status: 403 });
   }

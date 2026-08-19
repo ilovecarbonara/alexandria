@@ -21,12 +21,21 @@ function getFocusable(root: HTMLElement): HTMLElement[] {
 
 export function Modal({ open, onClose, title, className, children }: ModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  /**
+   * `dialog.close()` fires the native `close` event just like Esc or the
+   * backdrop does, so closing in response to `open` going false would call
+   * `onClose` and undo whatever state change caused the close. Set while we
+   * close the dialog ourselves, so only a user-initiated close reaches
+   * `onClose`. This is what lets one modal hand off to another in a single
+   * update, as the review queue does going from detail to confirmation.
+   */
+  const closingSelf = useRef(false);
 
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
     if (open) {
-      dialog.showModal();
+      if (!dialog.open) dialog.showModal();
       // Focus the first focusable element after the dialog renders.
       // requestAnimationFrame ensures children are mounted.
       requestAnimationFrame(() => {
@@ -34,9 +43,18 @@ export function Modal({ open, onClose, title, className, children }: ModalProps)
         if (focusable.length > 0) focusable[0].focus();
       });
     } else if (dialog.open) {
+      closingSelf.current = true;
       dialog.close();
     }
   }, [open]);
+
+  function handleNativeClose() {
+    if (closingSelf.current) {
+      closingSelf.current = false;
+      return;
+    }
+    onClose();
+  }
 
   // Keyboard focus trap (Tab / Shift+Tab cycling).
   useEffect(() => {
@@ -75,7 +93,7 @@ export function Modal({ open, onClose, title, className, children }: ModalProps)
   return (
     <dialog
       ref={dialogRef}
-      onClose={onClose}
+      onClose={handleNativeClose}
       aria-labelledby={title ? "modal-title" : undefined}
       className="m-auto rounded-lg border border-border bg-surface p-0 text-ink shadow-pop backdrop:bg-ink/25 backdrop:backdrop-blur-[1px]"
     >

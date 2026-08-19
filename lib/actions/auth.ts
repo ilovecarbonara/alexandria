@@ -25,7 +25,7 @@ export async function signUp(
   const fullName = (formData.get("fullName") as string)?.trim();
   const email = (formData.get("email") as string)?.trim().toLowerCase();
   const password = formData.get("password") as string;
-  const requestedRole = ((formData.get("requestedRole") as string) ?? "student").trim();
+  const requestedRole = ((formData.get("requestedRole") as string) ?? "researcher").trim();
 
   if (!fullName || !email || !password) {
     return { error: "All fields are required." };
@@ -69,7 +69,7 @@ export async function signUp(
     return { error: "Registration failed. Please try again." };
   }
 
-  // The account always starts as a pending student. `requested_role` records
+  // The account always starts as a pending researcher. `requested_role` records
   // what they asked to be; the librarian promotes it on approval.
   const service = createServiceClient();
   const { error: insertError } = await service.from("users").insert({

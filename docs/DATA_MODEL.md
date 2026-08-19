@@ -13,7 +13,7 @@ The executable source of truth is `docs/DATABASE_MIGRATION.sql`. This document d
 
 | Enum | Values |
 |------|--------|
-| user_role | student, adviser, librarian |
+| user_role | researcher, adviser, librarian |
 | thesis_level | undergraduate, masteral, doctoral |
 | submission_type | draft, final |
 | thesis_status | draft, pending_adviser, returned, pending_librarian, accepted, rejected, flagged |
@@ -27,11 +27,11 @@ The executable source of truth is `docs/DATABASE_MIGRATION.sql`. This document d
 
 ### thesis_status
 
-The review pipeline. `draft` and `rejected` are resting states, the two `pending_*` values are queues, `returned` bounces back to the student, and only `accepted` and `flagged` are publicly visible.
+The review pipeline. `draft` and `rejected` are resting states, the two `pending_*` values are queues, `returned` bounces back to the researcher, and only `accepted` and `flagged` are publicly visible.
 
 ```
 insert      → draft (Draft) | pending_adviser (Final)
-student     → returned ⇒ pending_adviser
+researcher  → returned ⇒ pending_adviser
 adviser     → pending_adviser ⇒ pending_librarian | returned
 librarian   → pending_librarian ⇒ accepted | rejected | returned
               accepted ⇒ flagged | rejected
@@ -65,8 +65,8 @@ The bucket has **no RLS policies**, deliberately. Reads go through `GET /api/the
 | full_name | text | NO | | |
 | full_name_normalized | text | NO | '' | Maintained by `trg_users_normalize_name`; used for co-author matching |
 | approval_status | user_approval_status | NO | 'pending' | |
-| role | user_role | NO | 'student' | The live role |
-| requested_role | user_role | NO | 'student' | Asked for at sign-up; promoted into `role` on approval. CHECK: never 'librarian' |
+| role | user_role | NO | 'researcher' | The live role |
+| requested_role | user_role | NO | 'researcher' | Asked for at sign-up; promoted into `role` on approval. CHECK: never 'librarian' |
 | is_active | boolean | NO | true | |
 | last_active_at | timestamptz | YES | | |
 | created_at | timestamptz | NO | now() | |
@@ -119,7 +119,7 @@ CHECK `draft_status_scope`: a Draft may only be in `draft` or `rejected`.
 An ordered snapshot captured at submission. The registration API independently verifies the submitter is in this list. Up to six authors.
 
 ### thesis_reviews
-Every adviser and librarian decision, in order. Carries the comments the student reads when a submission is returned.
+Every adviser and librarian decision, in order. Carries the comments the researcher reads when a submission is returned.
 
 | Column | Type | Nullable | Default | Notes |
 |--------|------|----------|---------|-------|
@@ -219,9 +219,9 @@ RLS is enabled on all eleven tables. Authorization helpers live in the `private`
 |-------|--------|-------|
 | theses | Published theses are publicly readable | `status IN ('accepted','flagged')` — `authenticated, anon` |
 | theses | Stakeholders can read in-pipeline theses | `private.is_thesis_stakeholder(id)` |
-| theses | Students can insert own theses | `auth.uid() = user_id` |
+| theses | Researchers can insert own theses | `auth.uid() = user_id` |
 | thesis_authors | follow thesis visibility | `private.can_view_thesis(thesis_id)` |
-| thesis_reviews | Stakeholders can read reviews | `private.is_thesis_stakeholder(thesis_id)` — this is how a student reads their reviewer's comments |
+| thesis_reviews | Stakeholders can read reviews | `private.is_thesis_stakeholder(thesis_id)` — this is how a researcher reads their reviewer's comments |
 | users | Authenticated users can read advisers | `role = 'adviser' AND approval_status = 'approved' AND is_active` |
 | users | Librarian can read/update all | `private.has_role('librarian')` |
 | dispute_messages | Participants can post | author is caller AND parent is `open` AND caller is a participant |

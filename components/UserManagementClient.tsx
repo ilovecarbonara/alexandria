@@ -399,13 +399,19 @@ export function UserManagementClient({
                           {user.email}
                         </td>
                         <td className="whitespace-nowrap px-6 py-4">
-                          <span className="text-sm text-ink">
-                            {ROLE_LABELS[user.role]}
-                          </span>
-                          {/* Approving this account will promote it. */}
-                          {isPending && user.requested_role !== "student" && (
-                            <span className="ml-2 border-l-2 border-primary pl-2 text-xs uppercase text-primary">
+                          {/*
+                            A pending account holds no role yet — `role` is only
+                            the column default until approval promotes
+                            `requested_role` into it. Showing that default would
+                            read as fact, so pending rows show the request instead.
+                          */}
+                          {isPending ? (
+                            <span className="text-sm text-ink-muted">
                               Requests {ROLE_LABELS[user.requested_role]}
+                            </span>
+                          ) : (
+                            <span className="text-sm text-ink">
+                              {ROLE_LABELS[user.role]}
                             </span>
                           )}
                         </td>

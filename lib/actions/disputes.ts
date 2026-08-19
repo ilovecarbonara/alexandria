@@ -1,6 +1,6 @@
 "use server";
 
-import { requireAuth, requireStudent } from "./auth-guards";
+import { requireAuth, requireResearcher } from "./auth-guards";
 import { logActivity } from "./activity";
 import { createServiceClient } from "@/lib/supabase/service";
 import { rateLimit } from "@/lib/rate-limit";
@@ -194,7 +194,7 @@ export async function flagDispute(
     return { error: `Reason must be ${MAX_REASON_LENGTH} characters or less.` };
   }
 
-  const auth = await requireStudent();
+  const auth = await requireResearcher();
   if ("error" in auth) return { error: auth.error };
 
   // Prevent self-flagging
@@ -611,7 +611,7 @@ function notificationRecipients(
  * current viewer across every thread they participate in. Used by the
  * sidebar badge.
  *
- * - Students: counts unreads from disputes they filed plus disputes on
+ * - Researchers: counts unreads from disputes they filed plus disputes on
  *   theses they own.
  * - Admins: counts unreads from every open dispute (admin participates in
  *   all threads).
