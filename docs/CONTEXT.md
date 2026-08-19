@@ -1,6 +1,6 @@
 # Project Alexandria
 
-The University of Southern Philippines Foundation's archive of student and faculty theses. Alexandria stores the manuscripts themselves, routes every final submission through a two-stage academic review, and publishes approved records — title, authors, and abstract — to a publicly searchable catalogue.
+The University of Southern Philippines Foundation's archive of student and faculty theses. Alexandria stores the manuscripts themselves, routes every final submission through a two-stage academic review, and publishes approved records — title, authors, and abstract — to a publicly searchable catalogue that any reader can cite from.
 
 ## Stack
 - Next.js 16 (App Router), TypeScript, Tailwind CSS v4
@@ -56,6 +56,7 @@ Drafts skip review entirely: they are archived privately (`draft`) and are visib
 - Public search returns `accepted` and `flagged` records only. RLS enforces the same rule at the database, so application filtering is the second gate rather than the only one.
 - Sign-up requires an `@uspf.edu.ph` address and librarian approval.
 - Public verification requires NO login.
+- Published records can be cited in APA, MLA, or Chicago from the record page. The citation is derived entirely from metadata already on screen — no request, no stored citation — and dates the work by `registered_at`.
 - The system records SUBMISSION and INSTITUTIONAL REVIEW, not a determination of authorship. It does not verify that the submitter wrote the thesis.
 
 ## Where things are
@@ -67,6 +68,7 @@ Drafts skip review entirely: they are archived privately (`draft`) and are visib
 | Review actions | `lib/actions/reviews.ts` |
 | Abstract extraction | `lib/pdf/extract.ts` |
 | Manuscript storage | `lib/storage.ts` |
+| Citation formatting | `lib/citation.ts` |
 | Submission pipeline | `app/api/theses/upload/ticket` → `upload/process` → `register` |
 | Schema | `docs/DATABASE_MIGRATION.sql` |
 

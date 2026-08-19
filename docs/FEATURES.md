@@ -182,3 +182,15 @@ The only transition a researcher owns. Reuses the same staged-upload path as a n
 ## F16: Settings
 - All roles: profile summary (name, email, role) and password change with current-password verification
 - Librarian additionally: read-only system configuration — network, contract address, similarity thresholds and their source
+
+## F17: Citation Export
+- A **Cite** button on the thesis detail page (F6) opens a dialog offering **APA 7**, **MLA 9**, and **Chicago**. No login required — it sits on the public record
+- Shown only for published records (`accepted`, `flagged`). A draft has no public permalink worth citing
+- `lib/citation.ts` is pure and free of runtime imports, so `test/citation.test.mts` can load it under `node --experimental-strip-types` (`npm run test:citation`), which cannot resolve the `@/` alias
+- **Author names are parsed heuristically.** They are stored as one free-text field, so the surname is recovered by walking back from the final token and absorbing particles (`de`, `dela`, `delos`, `san`, `van`, …). "Juan Dela Cruz" inverts to `Dela Cruz, J.`, not `Cruz, J. D.` Generational suffixes (`Jr.`, `III`) and the already-inverted `Surname, Given` form are handled too
+- **Known limit**: a given name written as run-together initials (`JC`) yields one initial rather than two. The reliable fix is a structured given/family name field — a wider heuristic would mangle names typed in full caps
+- Author joining differs per style: APA inverts every name and uses `&` (eliding past 20); MLA collapses to `et al.` at 3+; Chicago lists up to three, then `et al.`
+- The year is **`registered_at`** — the archive registration year, not a defence date. Accurate for anything submitted through Alexandria; a backfilled older thesis would cite its registration year
+- Titles render exactly as stored. Sentence-casing for APA would destroy acronyms and proper nouns
+- Copy writes both `text/plain` and `text/html` through `ClipboardItem`, so the italicised title survives a paste into a word processor. Anything that rejects the rich flavour falls back to plain text
+- The permalink prefers the browser's own origin over `NEXT_PUBLIC_APP_URL`, which `.env.example` sets to `localhost` and no other code reads

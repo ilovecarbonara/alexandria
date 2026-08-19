@@ -7,9 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "npm run test:fixtures && npm run test:pdf && npm run test:contract",
+    "test": "npm run test:fixtures && npm run test:pdf && npm run test:citation && npm run test:contract",
     "test:fixtures": "tsx test/fixtures/build-pdfs.mts",
     "test:pdf": "node --experimental-strip-types --test test/pdf-extraction.test.mts",
+    "test:citation": "node --experimental-strip-types --test test/citation.test.mts",
     "test:contract": "hardhat test"
   },
   "dependencies": {
