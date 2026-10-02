@@ -35,6 +35,12 @@ import { assertTransition } from "@/lib/workflow";
  * adviser are fixed — changing the adviser mid-review would let a submission
  * walk away from the reviewer who returned it.
  */
+// registerOnChain waits up to 60s for the Sepolia transaction to confirm.
+// Vercel's default function duration (10s on Hobby, 15s on Pro) would kill
+// the request well before that. Matches the 60_000ms race in
+// lib/blockchain/actions.ts.
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
   const ip = await getClientIp();
   const ipLimit = await rateLimit(`resubmit-ip:${ip}`, {

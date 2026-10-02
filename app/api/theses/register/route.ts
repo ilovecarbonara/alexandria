@@ -24,6 +24,12 @@ const VALID_LEVELS = THESIS_LEVELS.map((l) => l.value as string);
 const VALID_TYPES = SUBMISSION_TYPES.map((t) => t.value as string);
 const VALID_CATEGORIES: readonly string[] = THESIS_CATEGORIES;
 
+// registerOnChain waits up to 60s for the Sepolia transaction to confirm.
+// Vercel's default function duration (10s on Hobby, 15s on Pro) would kill
+// the request well before that and return a hard timeout instead of our own
+// error handling. Matches the 60_000ms race in lib/blockchain/actions.ts.
+export const maxDuration = 60;
+
 /**
  * Step 3 of 3 in the submission flow.
  *
