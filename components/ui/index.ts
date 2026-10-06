@@ -11,3 +11,4 @@ export { ConfirmDialog } from "./ConfirmDialog";
 export { Pagination } from "./Pagination";
 export { DatePicker } from "./DatePicker";
 export { Field } from "./Field";
+export { Skeleton } from "./Skeleton";
