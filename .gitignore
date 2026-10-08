@@ -50,3 +50,6 @@ docs/diagrams/
 /typechain-types
 # generated test fixtures
 test/fixtures/pdfs/
+
+# generated dummy theses for user testing
+test/dummy-theses/

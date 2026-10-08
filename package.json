@@ -11,7 +11,8 @@
     "test:fixtures": "tsx test/fixtures/build-pdfs.mts",
     "test:pdf": "node --experimental-strip-types --test test/pdf-extraction.test.mts",
     "test:citation": "node --experimental-strip-types --test test/citation.test.mts",
-    "test:contract": "hardhat test"
+    "test:contract": "hardhat test",
+    "test:dummy": "tsx test/fixtures/build-dummy-theses.mts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",
