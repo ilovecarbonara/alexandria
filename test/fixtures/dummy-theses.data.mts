@@ -24,14 +24,14 @@ export type Category =
 
 export interface DummyThesis {
   /** Subfolder the PDF is written to. */
-  group: "core" | "near-duplicate" | "extra";
+  group: "core" | "near-duplicate" | "extra" | "spare" | "verify";
   title: string;
   level: Level;
   category: Category;
   /** Suggested submission type in the Alexandria form. */
   type: "Draft" | "Final";
   /** Which tester cohort the file is meant for. */
-  audience: "Student researcher" | "Faculty researcher" | "Demo seed";
+  audience: "Student researcher" | "Faculty researcher" | "Demo seed" | "Reserve";
   keywords: string[];
   abstract: string;
   /** Near-duplicates only: the `title` this one imitates and what to expect. */
@@ -55,7 +55,7 @@ export const CORE: DummyThesis[] = [
   },
   {
     group: "core",
-    title: "Telehealth Follow-Up Adherence Among Rural Patients With Type 2 Diabetes",
+    title: "Telehealth Follow Up Adherence Among Rural Patients With Type 2 Diabetes",
     level: "doctoral",
     category: "Medical",
     type: "Final",
@@ -136,7 +136,7 @@ export const CORE: DummyThesis[] = [
   // ---- Engineering -------------------------------------------------------
   {
     group: "core",
-    title: "Low-Cost Rainwater Harvesting System for Small Residential Buildings",
+    title: "Low Cost Rainwater Harvesting System for Small Residential Buildings",
     level: "undergraduate",
     category: "Engineering",
     type: "Final",
@@ -159,7 +159,7 @@ export const CORE: DummyThesis[] = [
   // ---- Blockchain --------------------------------------------------------
   {
     group: "core",
-    title: "A Blockchain-Based Attendance Verification System for Student Organizations",
+    title: "A Blockchain Based Attendance Verification System for Student Organizations",
     level: "undergraduate",
     category: "Blockchain",
     type: "Draft",
@@ -251,7 +251,7 @@ export const CORE: DummyThesis[] = [
   // ---- Social Sciences ---------------------------------------------------
   {
     group: "core",
-    title: "Remittance Dependence and Household Decision-Making in Island Communities",
+    title: "Remittance Dependence and Household Decision Making in Island Communities",
     level: "doctoral",
     category: "Social Sciences",
     type: "Draft",
@@ -262,7 +262,7 @@ export const CORE: DummyThesis[] = [
   },
   {
     group: "core",
-    title: "Youth Political Participation in the Age of Short-Form Video",
+    title: "Youth Political Participation in the Age of Short Form Video",
     level: "doctoral",
     category: "Social Sciences",
     type: "Final",
@@ -295,13 +295,13 @@ export const NEAR_DUPLICATES: DummyThesis[] = [
   },
   {
     group: "near-duplicate",
-    title: "Low-Cost Rainwater Harvesting System for Small Residential Houses",
+    title: "Low Cost Rainwater Harvesting System for Small Residential Houses",
     level: "undergraduate",
     category: "Engineering",
     type: "Final",
     audience: "Student researcher",
     keywords: ["rainwater", "household water", "tank design", "low cost"],
-    imitates: "Low-Cost Rainwater Harvesting System for Small Residential Buildings",
+    imitates: "Low Cost Rainwater Harvesting System for Small Residential Buildings",
     expect: "auto-flag",
     abstract:
       "This fictitious capstone project describes an invented rainwater collection setup for small houses, covering gutter layout, storage tank sizing, and simple filtration. The imagined group computed expected collection from monthly rainfall averages and built a small test rig to observe flow rates and clogging. The made-up findings suggest that a modest tank can supply laundry and cleaning water through most of the rainy season, and that a screened first-flush chamber keeps debris out of the tank. Costs are compared with buying a ready-made unit. The paper also describes upkeep tasks such as cleaning screens and checking seals before and after the wet season.",
@@ -353,7 +353,7 @@ export const NEAR_DUPLICATES: DummyThesis[] = [
 export const EXTRAS: DummyThesis[] = [
   {
     group: "extra",
-    title: "Prevalence of Screen-Related Eye Strain Among Call Center Employees",
+    title: "Prevalence of Screen Related Eye Strain Among Call Center Employees",
     level: "undergraduate",
     category: "Medical",
     type: "Final",
@@ -364,7 +364,7 @@ export const EXTRAS: DummyThesis[] = [
   },
   {
     group: "extra",
-    title: "A Web-Based Inventory System for Small Pharmacies",
+    title: "A Web Based Inventory System for Small Pharmacies",
     level: "undergraduate",
     category: "Technology",
     type: "Final",
@@ -397,7 +397,7 @@ export const EXTRAS: DummyThesis[] = [
   },
   {
     group: "extra",
-    title: "Solar-Powered Irrigation Pump Design for Small Vegetable Farms",
+    title: "Solar Powered Irrigation Pump Design for Small Vegetable Farms",
     level: "masteral",
     category: "Engineering",
     type: "Final",
@@ -408,7 +408,7 @@ export const EXTRAS: DummyThesis[] = [
   },
   {
     group: "extra",
-    title: "Smart Contract Vulnerability Patterns in Student-Built Token Projects",
+    title: "Smart Contract Vulnerability Patterns in Student Built Token Projects",
     level: "masteral",
     category: "Blockchain",
     type: "Final",
@@ -419,7 +419,7 @@ export const EXTRAS: DummyThesis[] = [
   },
   {
     group: "extra",
-    title: "Social Media Marketing Practices of Home-Based Food Sellers",
+    title: "Social Media Marketing Practices of Home Based Food Sellers",
     level: "undergraduate",
     category: "Business",
     type: "Final",

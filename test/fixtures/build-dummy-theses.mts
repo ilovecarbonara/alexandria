@@ -2,17 +2,28 @@
  * Builds invented thesis and capstone PDFs for user-testing Alexandria.
  * Run with `npm run test:dummy`; output lands in test/dummy-theses/ (git-ignored).
  *
+ * Layout (see dummy-theses.plan.mts for who gets what):
+ *   1-SEED/       uploaded by you with demo accounts, to populate the system
+ *   2-TESTERS/    one folder per tester, T01-T10
+ *   3-RESERVE/    Cycle 2 spares, plus one file that is never uploaded
+ *   4-USED/       empty: move a file here once it has been uploaded
+ *
  * Every file is named after its title, carries a "fictitious test document"
  * notice on every page, and describes a study that does not exist.
  *
+ * Regenerating produces new file hashes, so it refuses to run once anything has
+ * been moved into 4-USED. Pass --force to wipe everything anyway.
+ *
  * After writing, the script verifies its own output:
  *   1. the app's real abstract extractor reads each PDF at high confidence
- *   2. title similarity (a pg_trgm emulation) matches the intent — near-
- *      duplicates land in their expected band and every other pair stays under
- *      the alert threshold
+ *   2. the form's filename-to-title autofill reproduces each title exactly
+ *   3. title similarity (a pg_trgm emulation) matches the intent: near-
+ *      duplicates land in their expected band, every other pair stays well
+ *      under the alert threshold
+ *   4. every paper has exactly one placement
  */
 import { jsPDF } from "jspdf";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -24,20 +35,21 @@ import {
   NEAR_DUPLICATES,
   type DummyThesis,
 } from "./dummy-theses.data.mts";
+import { REVISIONS, SPARES, VERIFY_NO_MATCH } from "./dummy-theses.reserve.mts";
+import { PLACEMENTS, REVISION_SUBFOLDER, type Placement } from "./dummy-theses.plan.mts";
 
 const OUT = resolve(
   join(dirname(fileURLToPath(import.meta.url)), "..", "dummy-theses"),
 );
-
-const FOLDERS: Record<DummyThesis["group"], string> = {
-  core: "01-core-20",
-  "near-duplicate": "02-near-duplicates",
-  extra: "03-registry-extras",
-};
+const USED = "4-USED";
+const OWNED_FOLDERS = ["1-SEED", "2-TESTERS", "3-RESERVE"];
+// Layouts from earlier runs of this script.
+const LEGACY_FOLDERS = ["01-core-20", "02-near-duplicates", "03-registry-extras"];
 
 const ALERT_THRESHOLD = 0.5;
 const AUTO_FLAG_THRESHOLD = 0.75;
 const MAX_PATH = 250; // Windows MAX_PATH is 260; leave headroom.
+const MAX_TITLE_LENGTH = 150;
 
 const NOTICE_SHORT =
   "FICTITIOUS TEST DOCUMENT - NOT A REAL STUDY - ALEXANDRIA USER-TESTING DATA";
@@ -66,20 +78,37 @@ function authorsFor(index: number): string[] {
   return [`Test Author ${names[index % 3]}`, `Test Author ${names[(index + 1) % 3]}`];
 }
 
-function build(t: DummyThesis, index: number): Uint8Array {
+/** Mirror of titleFromPdfFileName in app/dashboard/submit/page.tsx. */
+function titleFromFileName(fileName: string): string {
+  return fileName
+    .replace(/\.pdf$/i, "")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, MAX_TITLE_LENGTH);
+}
+
+interface BuildInput {
+  paper: DummyThesis;
+  index: number;
+  /** Replaces the paper's abstract/keywords; marks the cover as a revision. */
+  revision?: { abstract: string; keywords: string[] };
+}
+
+function build({ paper: t, index, revision }: BuildInput): Uint8Array {
   const doc = new jsPDF();
   const kind = documentKind(t);
-  const footer = (page: number) => {
-    doc.setPage(page);
-    doc.setFontSize(7);
-    doc.text(NOTICE_SHORT, 105, 287, { align: "center" });
-  };
+  const abstract = revision?.abstract ?? t.abstract;
+  const keywords = revision?.keywords ?? t.keywords;
 
   // Page 1 - cover
   doc.setFontSize(12);
   doc.text("UNIVERSITY OF SOUTHERN PHILIPPINES FOUNDATION", 105, 30, { align: "center" });
   doc.setFontSize(9);
   doc.text("Sample cover page - test data only", 105, 37, { align: "center" });
+  if (revision) {
+    doc.text("Revision 2 - fictitious revised manuscript", 105, 44, { align: "center" });
+  }
   doc.setFontSize(16);
   doc.text(doc.splitTextToSize(t.title, 150) as string[], 105, 80, { align: "center" });
   doc.setFontSize(10);
@@ -99,10 +128,10 @@ function build(t: DummyThesis, index: number): Uint8Array {
   doc.setFontSize(12);
   doc.text("ABSTRACT", 20, 25);
   doc.setFontSize(10);
-  const body = doc.splitTextToSize(t.abstract, 170) as string[];
+  const body = doc.splitTextToSize(abstract, 170) as string[];
   doc.text(body, 20, 35);
   const afterBody = 35 + body.length * 5 + 6;
-  doc.text(`KEYWORDS: ${t.keywords.join(", ")}`, 20, afterBody);
+  doc.text(`KEYWORDS: ${keywords.join(", ")}`, 20, afterBody);
 
   // Page 3 - introduction stub
   doc.addPage();
@@ -116,7 +145,11 @@ function build(t: DummyThesis, index: number): Uint8Array {
     "Because this document is fictitious test data, no such content exists.";
   doc.text(doc.splitTextToSize(intro, 170) as string[], 20, 45);
 
-  for (let p = 1; p <= doc.getNumberOfPages(); p++) footer(p);
+  for (let p = 1; p <= doc.getNumberOfPages(); p++) {
+    doc.setPage(p);
+    doc.setFontSize(7);
+    doc.text(NOTICE_SHORT, 105, 287, { align: "center" });
+  }
 
   doc.setProperties({
     title: t.title,
@@ -151,77 +184,151 @@ function similarity(a: string, b: string): number {
 }
 
 // ---------------------------------------------------------------------------
-// Build
+// Guard, then build
 // ---------------------------------------------------------------------------
 
-const ALL: DummyThesis[] = [...CORE, ...NEAR_DUPLICATES, ...EXTRAS];
+const force = process.argv.includes("--force");
+const usedDir = join(OUT, USED);
+if (!force && existsSync(usedDir) && readdirSync(usedDir, { recursive: true }).length > 0) {
+  console.error(
+    `Refusing to regenerate: ${USED} already holds uploaded files, and new PDFs would have new hashes.\n` +
+      "Run with --force to wipe everything and start over.",
+  );
+  process.exit(1);
+}
+
+const PAPERS: DummyThesis[] = [...CORE, ...NEAR_DUPLICATES, ...EXTRAS, ...SPARES, VERIFY_NO_MATCH];
 const problems: string[] = [];
 
-rmSync(OUT, { recursive: true, force: true });
-for (const folder of Object.values(FOLDERS)) mkdirSync(join(OUT, folder), { recursive: true });
+// Every paper has exactly one placement, and every placement has a paper.
+const placementOf = new Map<string, Placement>();
+for (const p of PLACEMENTS) {
+  if (placementOf.has(p.title)) problems.push(`duplicate placement: ${p.title}`);
+  placementOf.set(p.title, p);
+}
+const paperTitles = new Set(PAPERS.map((p) => p.title));
+for (const p of PAPERS) if (!placementOf.has(p.title)) problems.push(`no placement for: ${p.title}`);
+for (const title of placementOf.keys()) if (!paperTitles.has(title)) problems.push(`placement has no paper: ${title}`);
+if (paperTitles.size !== PAPERS.length) problems.push("two papers share a title");
 
-const csv: string[][] = [
-  [
-    "Folder",
-    "File name",
-    "Title",
-    "Document type",
-    "Level",
-    "Category",
-    "Submission type to pick",
-    "Meant for",
-    "Title-similarity expectation",
-    "Notes",
-  ],
-];
+for (const name of [...OWNED_FOLDERS, ...LEGACY_FOLDERS]) {
+  rmSync(join(OUT, name), { recursive: true, force: true });
+}
+rmSync(join(OUT, "MANIFEST.csv"), { force: true });
+rmSync(join(OUT, "START-HERE.md"), { force: true });
+if (force) rmSync(usedDir, { recursive: true, force: true });
+mkdirSync(usedDir, { recursive: true });
 
-for (const [i, t] of ALL.entries()) {
-  const titleError = validateTitle(t.title);
-  if (titleError) problems.push(`"${t.title}" fails validateTitle: ${titleError}`);
-  if (/[:?"/\\*<>|]/.test(t.title)) problems.push(`"${t.title}" has a character Windows rejects`);
+interface Row {
+  folder: string;
+  fileName: string;
+  title: string;
+  kind: string;
+  level: string;
+  category: string;
+  owner: string;
+  submitAs: string;
+  step: number;
+  plan: string;
+  similarity: string;
+}
+const rows: Row[] = [];
 
-  const fileName = `${t.title}.pdf`;
-  const path = join(OUT, FOLDERS[t.group], fileName);
-  if (path.length > MAX_PATH) problems.push(`path too long (${path.length}): ${fileName}`);
+function checkTitleAndPath(title: string, fileName: string, fullPath: string) {
+  const titleError = validateTitle(title);
+  if (titleError) problems.push(`"${title}" fails validateTitle: ${titleError}`);
+  if (/[:?"/\\*<>|]/.test(title)) problems.push(`"${title}" has a character Windows rejects`);
+  if (titleFromFileName(fileName) !== title) {
+    problems.push(`form autofill would turn "${fileName}" into "${titleFromFileName(fileName)}"`);
+  }
+  if (fullPath.length > MAX_PATH) problems.push(`path too long (${fullPath.length}): ${fileName}`);
+}
 
-  const bytes = build(t, i);
-  writeFileSync(path, bytes);
-
+async function checkExtraction(fileName: string, bytes: Uint8Array) {
   const result = await extractAbstract(bytes);
   if (!result.ok) {
     problems.push(`${fileName}: extractor rejected it (${result.reason})`);
-  } else {
-    if (result.confidence !== "high") problems.push(`${fileName}: abstract confidence is ${result.confidence}`);
-    if (result.keywords.length === 0) problems.push(`${fileName}: no keywords parsed`);
-    if (result.abstract.includes("FICTITIOUS")) problems.push(`${fileName}: footer leaked into abstract`);
-    if (result.abstract.length > 1500) problems.push(`${fileName}: abstract unusually long (${result.abstract.length})`);
+    return;
   }
+  if (result.confidence !== "high") problems.push(`${fileName}: abstract confidence is ${result.confidence}`);
+  if (result.keywords.length === 0) problems.push(`${fileName}: no keywords parsed`);
+  if (result.abstract.includes("FICTITIOUS")) problems.push(`${fileName}: footer leaked into abstract`);
+  if (result.abstract.length > 1500) problems.push(`${fileName}: abstract unusually long (${result.abstract.length})`);
+}
 
-  csv.push([
-    FOLDERS[t.group],
+for (const [i, paper] of PAPERS.entries()) {
+  const placement = placementOf.get(paper.title);
+  if (!placement) continue;
+
+  const fileName = `${paper.title}.pdf`;
+  const dir = join(OUT, placement.folder);
+  mkdirSync(dir, { recursive: true });
+  const path = join(dir, fileName);
+  checkTitleAndPath(paper.title, fileName, path);
+
+  const bytes = build({ paper, index: i });
+  writeFileSync(path, bytes);
+  await checkExtraction(fileName, bytes);
+
+  rows.push({
+    folder: placement.folder,
     fileName,
-    t.title,
-    documentKind(t),
-    LEVEL_LABEL[t.level],
-    t.category,
-    t.type,
-    t.audience,
-    t.expect === "auto-flag"
-      ? "Auto-flag dispute (>= 0.75)"
-      : t.expect === "alert-only"
-        ? "Title alert only (0.50-0.75)"
-        : "None expected",
-    [t.imitates ? `Imitates "${t.imitates}". Submit from a different account.` : "", t.note ?? ""]
-      .filter(Boolean)
-      .join(" "),
-  ]);
+    title: paper.title,
+    kind: documentKind(paper),
+    level: LEVEL_LABEL[paper.level],
+    category: paper.category,
+    owner: placement.owner,
+    submitAs: placement.submitAs,
+    step: placement.step,
+    plan: placement.plan,
+    similarity:
+      paper.expect === "auto-flag"
+        ? "Title alert + auto-flag dispute"
+        : paper.expect === "alert-only"
+          ? "Title alert only"
+          : "",
+  });
+}
+
+for (const [i, rev] of REVISIONS.entries()) {
+  const paper = PAPERS.find((p) => p.title === rev.of);
+  const base = placementOf.get(rev.of);
+  if (!paper || !base) {
+    problems.push(`revision targets a missing paper: ${rev.of}`);
+    continue;
+  }
+  const fileName = `${paper.title}.pdf`;
+  const folder = `${base.folder}/${REVISION_SUBFOLDER}`;
+  const dir = join(OUT, folder);
+  mkdirSync(dir, { recursive: true });
+  const path = join(dir, fileName);
+  checkTitleAndPath(paper.title, fileName, path);
+
+  const bytes = build({ paper, index: i + 100, revision: rev });
+  writeFileSync(path, bytes);
+  await checkExtraction(fileName, bytes);
+  if (rev.abstract === paper.abstract) problems.push(`${fileName}: revision abstract is unchanged`);
+
+  rows.push({
+    folder,
+    fileName,
+    title: paper.title,
+    kind: documentKind(paper),
+    level: LEVEL_LABEL[paper.level],
+    category: paper.category,
+    owner: base.owner,
+    submitAs: "Resubmit",
+    step: 3,
+    plan: "Use ONLY after the adviser returns the Final in this tester's folder: Resubmit with this different manuscript (UAT-18).",
+    similarity: "",
+  });
 }
 
 // Similarity relationships
 const norm = (t: DummyThesis) => normalizeTitle(t.title);
 const expectedPairs = new Map<string, DummyThesis>();
 for (const d of NEAR_DUPLICATES) {
-  const original = ALL.find((t) => t.title === d.imitates);
+  const original = PAPERS.find((t) => t.title === d.imitates);
   if (!original) {
     problems.push(`"${d.title}" imitates a title that does not exist`);
     continue;
@@ -237,43 +344,96 @@ for (const d of NEAR_DUPLICATES) {
 }
 
 let worst = 0;
-for (let a = 0; a < ALL.length; a++) {
-  for (let b = a + 1; b < ALL.length; b++) {
+for (let a = 0; a < PAPERS.length; a++) {
+  for (let b = a + 1; b < PAPERS.length; b++) {
     const intended =
-      expectedPairs.get(ALL[a].title) === ALL[b] || expectedPairs.get(ALL[b].title) === ALL[a];
+      expectedPairs.get(PAPERS[a].title) === PAPERS[b] || expectedPairs.get(PAPERS[b].title) === PAPERS[a];
     if (intended) continue;
-    const score = similarity(norm(ALL[a]), norm(ALL[b]));
+    const score = similarity(norm(PAPERS[a]), norm(PAPERS[b]));
     worst = Math.max(worst, score);
     // Keep a margin below the alert threshold so stray alerts don't muddy a test.
     if (score >= ALERT_THRESHOLD - 0.1) {
-      problems.push(`unintended similarity ${score.toFixed(2)}: "${ALL[a].title}" vs "${ALL[b].title}"`);
+      problems.push(`unintended similarity ${score.toFixed(2)}: "${PAPERS[a].title}" vs "${PAPERS[b].title}"`);
     }
   }
 }
 console.log(`highest unintended similarity: ${worst.toFixed(2)} (alert threshold ${ALERT_THRESHOLD})`);
 
-const quote = (s: string) => `"${s.replace(/"/g, '""')}"`;
+// ---------------------------------------------------------------------------
+// Manifest + START-HERE
+// ---------------------------------------------------------------------------
+
+const order = (r: Row) => OWNED_FOLDERS.findIndex((f) => r.folder.startsWith(f));
+rows.sort((a, b) => order(a) - order(b) || a.folder.localeCompare(b.folder) || a.step - b.step);
+
+const quote = (s: string | number) => `"${String(s).replace(/"/g, '""')}"`;
+const header = ["Folder", "File name", "Submit as", "Owner", "Order", "Planned outcome", "Similarity", "Type", "Level", "Category"];
 writeFileSync(
   join(OUT, "MANIFEST.csv"),
-  "﻿" + csv.map((row) => row.map(quote).join(",")).join("\r\n") + "\r\n",
+  "﻿" +
+    [header, ...rows.map((r) => [r.folder, r.fileName, r.submitAs, r.owner, r.step, r.plan, r.similarity, r.kind, r.level, r.category])]
+      .map((row) => row.map(quote).join(","))
+      .join("\r\n") +
+    "\r\n",
 );
 
-const counts = (key: (t: DummyThesis) => string) =>
-  Object.entries(
-    ALL.reduce<Record<string, number>>((acc, t) => ((acc[key(t)] = (acc[key(t)] ?? 0) + 1), acc), {}),
-  )
-    .map(([k, v]) => `${k}=${v}`)
-    .join(", ");
+const seed = rows.filter((r) => r.folder.startsWith("1-SEED"));
+const testers = rows.filter((r) => r.folder.startsWith("2-TESTERS"));
+const reserve = rows.filter((r) => r.folder.startsWith("3-RESERVE"));
+const seedByOrder = [...seed].sort((a, b) => a.step - b.step);
+const cell = (s: string) => s.replace(/\|/g, "\\|");
 
-console.log(`\nWrote ${ALL.length} PDFs + MANIFEST.csv to ${OUT}`);
-console.log(`core levels:  ${counts((t) => (t.group === "core" ? t.level : "-")).replace(/-=\d+,? ?/, "")}`);
-console.log(`core types:   ${CORE.filter((t) => t.type === "Final").length} Final, ${CORE.filter((t) => t.type === "Draft").length} Draft`);
-console.log(`categories:   ${counts((t) => t.category)}`);
+const md: string[] = [];
+md.push("# Alexandria test PDFs - start here", "");
+md.push(
+  "All papers are invented. File names are exact titles on purpose: the submit form copies the title from the file name.",
+  "",
+  "**When you upload a file, move it into `4-USED/`.** Regenerating makes new files with new hashes, so the script refuses to run once `4-USED/` has content.",
+  "",
+  "People: **D1-D4** are demo researchers, **A1/A2** the two advisers, **T01-T05** student testers, **T06-T10** faculty testers.",
+  "",
+);
+md.push(`## 1-SEED - you upload these (${seed.length})`, "", "Do them in this order. Finish each file's journey before the next.", "");
+md.push("| # | Folder | File | As | Owner | What happens to it |", "|---|---|---|---|---|---|");
+for (const r of seedByOrder) {
+  md.push(`| ${r.step} | ${r.folder.replace("1-SEED/", "")} | ${cell(r.title)} | ${r.submitAs} | ${r.owner} | ${cell(r.plan)} |`);
+}
+md.push("", `## 2-TESTERS - hand these out (${testers.filter((r) => r.submitAs !== "Resubmit").length} + ${testers.filter((r) => r.submitAs === "Resubmit").length} revisions)`, "");
+md.push("| Tester | Order | File | As | What happens to it |", "|---|---|---|---|---|");
+for (const r of testers) {
+  const who = r.folder.replace("2-TESTERS/", "").replace(`/${REVISION_SUBFOLDER}`, "");
+  const tag = r.submitAs === "Resubmit" ? "RESUBMIT" : r.submitAs;
+  md.push(`| ${who}${r.submitAs === "Resubmit" ? " (revision)" : ""} | ${r.step} | ${cell(r.title)} | ${tag} | ${cell(r.plan)} |`);
+}
+md.push("", `## 3-RESERVE - keep (${reserve.length})`, "");
+md.push("| Folder | File | What it is for |", "|---|---|---|");
+for (const r of reserve) md.push(`| ${r.folder.replace("3-RESERVE/", "")} | ${cell(r.title)} | ${cell(r.plan)} |`);
+md.push("", "## At a glance", "");
+const count = (pred: (r: Row) => boolean) => rows.filter(pred).length;
+md.push(
+  `- Published: ${count((r) => r.folder.endsWith("1-PUBLISH"))} seeded + 1 more that gets flagged (\`2-PUBLISH-then-FLAG\`)`,
+  `- Left in queues: ${count((r) => r.folder.endsWith("3-STOP-at-librarian-queue"))} at the librarian, ${count((r) => r.folder.endsWith("4-STOP-at-adviser-queue"))} at the advisers`,
+  `- Returned: 1 seeded (stays returned) + 4 tester Finals that get returned and resubmitted`,
+  `- Rejected: ${count((r) => r.folder.endsWith("6-REJECT"))}, Draft: ${count((r) => r.folder.endsWith("7-DRAFT"))} seeded + 5 faculty Drafts`,
+  `- Auto-flag disputes: 4 (T01-T04 near-duplicates); alert only: 1 (T05)`,
+  `- Manual disputes to seed: 2 (one left open, one resolved), see the Eye Strain and Inventory rows`,
+  "",
+);
+writeFileSync(join(OUT, "START-HERE.md"), md.join("\n"));
+
+console.log(
+  `\nWrote ${rows.length} PDFs (${seed.length} seed, ${testers.length} tester incl. ` +
+    `${REVISIONS.length} revisions, ${reserve.length} reserve) to ${OUT}`,
+);
+
+if (seed.length !== 15) problems.push(`expected 15 seed files, got ${seed.length}`);
+if (testers.filter((r) => r.submitAs !== "Resubmit").length !== 20) problems.push("expected 20 tester files");
+if (reserve.length !== 6) problems.push(`expected 6 reserve files, got ${reserve.length}`);
 
 if (problems.length) {
   console.error(`\n${problems.length} problem(s):`);
   for (const p of problems) console.error(`  - ${p}`);
   process.exitCode = 1;
 } else {
-  console.log("\nAll checks passed.");
+  console.log("All checks passed.");
 }
