@@ -136,18 +136,17 @@ export function DashboardDisputesClient({
       <button
         type="button"
         onClick={() => switchTab(key)}
-        className={`flex items-center gap-2 border-b-2 px-4 py-2 text-sm transition-colors ${
-          active
-            ? "border-primary text-primary"
-            : "border-transparent text-ink-subtle hover:text-ink"
-        }`}
+        className={`flex items-center gap-2 border-b-2 px-4 py-2 text-sm transition-colors ${active
+          ? "border-primary text-primary"
+          : "border-transparent text-ink-subtle hover:text-ink"
+          }`}
       >
         <span>
           {label}{" "}
           <span className="text-ink-subtle">({count})</span>
         </span>
         {unread > 0 && (
-          <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-danger px-1.5 py-0.5 text-[10px] leading-none text-ink">
+          <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-danger px-1.5 py-0.5 text-[10px] leading-none text-white">
             {unread > 99 ? "99+" : unread}
           </span>
         )}
@@ -192,7 +191,7 @@ export function DashboardDisputesClient({
                           {row.thesis_title}
                         </span>
                         {row.unread_count > 0 && (
-                          <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-danger px-1.5 py-0.5 text-[10px] leading-none text-ink">
+                          <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-danger px-1.5 py-0.5 text-[10px] leading-none text-white">
                             {row.unread_count}
                           </span>
                         )}

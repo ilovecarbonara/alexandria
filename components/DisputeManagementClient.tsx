@@ -294,7 +294,7 @@ export function DisputeManagementClient({
                       <td className="max-w-72 px-6 py-4 text-sm text-ink-muted">
                         <span className="flex items-center gap-2">
                           {dispute.unread_count > 0 && (
-                            <span className="inline-flex min-w-5 shrink-0 items-center justify-center rounded-full bg-danger px-1.5 py-0.5 text-[10px] leading-none text-ink">
+                            <span className="inline-flex min-w-5 shrink-0 items-center justify-center rounded-full bg-danger px-1.5 py-0.5 text-[10px] leading-none text-white">
                               {dispute.unread_count}
                             </span>
                           )}
@@ -368,8 +368,8 @@ export function DisputeManagementClient({
                   value={
                     selected.thesis_registered_at
                       ? new Date(
-                          selected.thesis_registered_at,
-                        ).toLocaleDateString()
+                        selected.thesis_registered_at,
+                      ).toLocaleDateString()
                       : "—"
                   }
                 />
@@ -424,11 +424,10 @@ export function DisputeManagementClient({
                     />
                     <div className="flex justify-end">
                       <span
-                        className={`text-xs ${
-                          closingNote.length > 1800
+                        className={`text-xs ${closingNote.length > 1800
                             ? "text-danger"
                             : "text-ink-subtle"
-                        }`}
+                          }`}
                       >
                         {closingNote.length}/{MAX_REASON_LENGTH}
                       </span>
