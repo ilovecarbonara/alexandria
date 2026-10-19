@@ -580,7 +580,7 @@ export default function SubmitThesisPage() {
               onChange={handleFileChange}
             />
             <span className="text-xs text-ink-subtle">
-              PDF, up to {MAX_PDF_FILE_SIZE_MB} MB. Must contain selectable text —
+              PDF, up to {MAX_PDF_FILE_SIZE_MB} MB. Must contain final abstract —
               a scan of a printed copy cannot be read.
             </span>
           </div>
